@@ -1,0 +1,13 @@
+# Heart Health Activity Log
+# Each entry has: date, state (true/false or activity type), and optional value
+
+2026:
+  - date: 2026-01-01
+    state: true
+    value: 5
+
+  - date: 2026-01-02
+    state: false
+
+  - date: 2026-01-03
+    state: false
