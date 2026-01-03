@@ -1,14 +1,6 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 html,
 body {
@@ -17,9 +9,6 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -38,5 +27,104 @@ a {
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
+  }
+}
+
+/* Heart-health calm theme (derived from:
+   Light bg #F6F8F7 / fg #1F2D2A
+   Dark  bg #0F1C1A / fg #E4EFEA
+) */
+@layer base {
+  :root {
+    --background: 150 12% 97%;
+    --foreground: 167 18% 15%;
+
+    --card: 120 14% 99%;
+    --card-foreground: 167 18% 15%;
+
+    --popover: 120 14% 99%;
+    --popover-foreground: 167 18% 15%;
+
+    /* Primary = your calm deep teal-charcoal */
+    --primary: 167 18% 15%;
+    --primary-foreground: 160 23% 97%;
+
+    /* Secondary / muted surfaces */
+    --secondary: 156 13% 92%;
+    --secondary-foreground: 167 18% 15%;
+
+    --muted: 150 14% 95%;
+    --muted-foreground: 162 9% 39%;
+
+    /* Accent = soft sage surface */
+    --accent: 150 17% 89%;
+    --accent-foreground: 167 18% 15%;
+
+    /* Destructive: softened red (avoid “alarm red” everywhere) */
+    --destructive: 0 64% 57%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 137 10% 86%;
+    --input: 137 10% 86%;
+
+    /* Ring: muted teal for focus states */
+    --ring: 170 30% 32%;
+
+    /* Calm chart palette (muted coral / teal / slate / amber / lavender) */
+    --chart-1: 9 58% 63%;
+    --chart-2: 168 41% 38%;
+    --chart-3: 203 30% 35%;
+    --chart-4: 42 53% 54%;
+    --chart-5: 268 30% 55%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 171 30% 8%;
+    --foreground: 153 26% 92%;
+
+    --card: 171 35% 11%;
+    --card-foreground: 153 26% 92%;
+
+    --popover: 171 35% 11%;
+    --popover-foreground: 153 26% 92%;
+
+    /* In dark mode, primary surfaces usually flip to “light” ink */
+    --primary: 153 26% 92%;
+    --primary-foreground: 171 30% 8%;
+
+    --secondary: 170 35% 14%;
+    --secondary-foreground: 153 26% 92%;
+
+    --muted: 170 35% 14%;
+    --muted-foreground: 160 12% 70%;
+
+    --accent: 170 33% 17%;
+    --accent-foreground: 153 26% 92%;
+
+    --destructive: 0 45% 49%;
+    --destructive-foreground: 0 100% 98%;
+
+    --border: 169 32% 20%;
+    --input: 169 32% 20%;
+
+    --ring: 166 30% 59%;
+
+    /* Same chart hues generally work; keep consistent across themes */
+    --chart-1: 9 58% 63%;
+    --chart-2: 168 41% 38%;
+    --chart-3: 203 30% 35%;
+    --chart-4: 42 53% 54%;
+    --chart-5: 268 30% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
