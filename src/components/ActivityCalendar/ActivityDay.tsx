@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Activity } from '@/lib/activities';
 import { cn } from '@/lib/utils';
 import {
@@ -7,6 +8,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { useActivityConfig, formatValueWithUnit } from './ActivityProvider';
 
 interface ActivityDayProps {
@@ -67,6 +74,7 @@ function formatTooltipDate(date: Date): string {
 
 export function ActivityDay({ date, activity, compact = false }: ActivityDayProps) {
   const config = useActivityConfig();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   
   if (!date) {
     return (
@@ -131,20 +139,53 @@ export function ActivityDay({ date, activity, compact = false }: ActivityDayProp
     </div>
   );
 
+  // Mobile: use drawer on tap
+  // Desktop: use tooltip on hover
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
+    <>
+      {/* Desktop: Tooltip */}
+      <div className="hidden md:block">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            {cell}
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-center">
+              <div className="font-medium">{formattedDate}</div>
+              <div className="text-muted-foreground">
+                {activityStatus}
+                {valueText && <span> · {valueText}</span>}
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      {/* Mobile: Drawer on tap */}
+      <div className="block md:hidden" onClick={() => setDrawerOpen(true)}>
         {cell}
-      </TooltipTrigger>
-      <TooltipContent>
-        <div className="text-center">
-          <div className="font-medium">{formattedDate}</div>
-          <div className="text-muted-foreground">
-            {activityStatus}
-            {valueText && <span> · {valueText}</span>}
+      </div>
+
+      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <DrawerContent>
+          <DrawerHeader className="text-center">
+            <DrawerTitle>{formattedDate}</DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-8 text-center">
+            <div className={cn(
+              "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium",
+              activityState === 'good' 
+                ? "bg-chart-2/20 text-chart-2" 
+                : activityState === 'bad'
+                  ? "bg-chart-1/20 text-chart-1"
+                  : "bg-muted text-muted-foreground"
+            )}>
+              {activityStatus}
+              {valueText && <span>· {valueText}</span>}
+            </div>
           </div>
-        </div>
-      </TooltipContent>
-    </Tooltip>
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 }
