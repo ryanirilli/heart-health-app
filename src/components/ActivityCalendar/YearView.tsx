@@ -1,14 +1,15 @@
 'use client';
 
-import { ActivityMap, getDatesInYear, formatDate, getShortMonthName, getWeeksInMonth } from '@/lib/activities';
+import { getDatesInYear, formatDate, getShortMonthName, getWeeksInMonth } from '@/lib/activities';
 import { ActivityDay } from './ActivityDay';
+import { useActivities } from './ActivityProvider';
 
 interface YearViewProps {
   year: number;
-  activities: ActivityMap;
 }
 
-function MobileYearView({ year, activities }: YearViewProps) {
+function MobileYearView({ year }: YearViewProps) {
+  const { activities } = useActivities();
   const months = Array.from({ length: 12 }, (_, i) => i);
 
   return (
@@ -44,7 +45,8 @@ function MobileYearView({ year, activities }: YearViewProps) {
   );
 }
 
-function DesktopYearView({ year, activities }: YearViewProps) {
+function DesktopYearView({ year }: YearViewProps) {
+  const { activities } = useActivities();
   const dates = getDatesInYear(year);
   
   // Group dates by week (GitHub-style: columns are weeks, rows are days of week)
@@ -138,38 +140,30 @@ function DesktopYearView({ year, activities }: YearViewProps) {
 function Legend() {
   return (
     <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-xs text-muted-foreground">
-      <div className="flex items-center gap-1.5">
+      <span>Less</span>
+      <div className="flex items-center gap-0.5">
         <div className="w-3 h-3 rounded-sm bg-muted/50" />
-        <span>No data</span>
+        <div className="w-3 h-3 rounded-sm bg-chart-3/50" />
+        <div className="w-3 h-3 rounded-sm bg-chart-3/65" />
+        <div className="w-3 h-3 rounded-sm bg-chart-3/80" />
+        <div className="w-3 h-3 rounded-sm bg-chart-3" />
       </div>
-      <div className="flex items-center gap-1.5">
-        <div className="w-3 h-3 rounded-sm bg-chart-2" />
-        <span>No drinks</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <div className="flex gap-0.5">
-          <div className="w-3 h-3 rounded-sm bg-chart-1/40" />
-          <div className="w-3 h-3 rounded-sm bg-chart-1/60" />
-          <div className="w-3 h-3 rounded-sm bg-chart-1/80" />
-          <div className="w-3 h-3 rounded-sm bg-chart-1" />
-        </div>
-        <span>Had drinks</span>
-      </div>
+      <span>More</span>
     </div>
   );
 }
 
-export function YearView({ year, activities }: YearViewProps) {
+export function YearView({ year }: YearViewProps) {
   return (
     <>
       {/* Mobile: 2-column month grid */}
       <div className="block md:hidden">
-        <MobileYearView year={year} activities={activities} />
+        <MobileYearView year={year} />
       </div>
       
       {/* Desktop: GitHub-style horizontal grid */}
       <div className="hidden md:block">
-        <DesktopYearView year={year} activities={activities} />
+        <DesktopYearView year={year} />
       </div>
     </>
   );

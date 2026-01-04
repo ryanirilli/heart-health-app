@@ -1,27 +1,21 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { ActivityMap, getMonthName, getDateRange } from '@/lib/activities';
+import { getMonthName, getDateRange } from '@/lib/activities';
 import { MonthView } from './MonthView';
 import { YearView } from './YearView';
+import { useActivities } from './ActivityProvider';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'month' | 'year';
 
-interface ActivityCalendarProps {
-  activities: ActivityMap;
-}
-
-export function ActivityCalendar({ activities }: ActivityCalendarProps) {
+export function ActivityCalendar() {
+  const { activities } = useActivities();
   const dateRange = useMemo(() => getDateRange(activities), [activities]);
   
   const [viewMode, setViewMode] = useState<ViewMode>('year');
-  const [year, setYear] = useState(dateRange.maxYear);
-  const [month, setMonth] = useState(
-    dateRange.maxYear === new Date().getFullYear() 
-      ? Math.min(dateRange.maxMonth, new Date().getMonth())
-      : dateRange.maxMonth
-  );
+  const [year, setYear] = useState(() => new Date().getFullYear());
+  const [month, setMonth] = useState(() => new Date().getMonth());
 
   // Check if we can navigate
   const canGoPrevious = useMemo(() => {
@@ -34,13 +28,18 @@ export function ActivityCalendar({ activities }: ActivityCalendarProps) {
   }, [viewMode, year, month, dateRange]);
 
   const canGoNext = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    
     if (viewMode === 'year') {
-      return year < dateRange.maxYear;
+      // Can go forward up to current year
+      return year < currentYear;
     }
-    // Month view: can go forward if not at the last month of the last year
-    if (year < dateRange.maxYear) return true;
-    return month < dateRange.maxMonth;
-  }, [viewMode, year, month, dateRange]);
+    // Month view: can go forward up to current month
+    if (year < currentYear) return true;
+    return month < currentMonth;
+  }, [viewMode, year, month]);
 
   const handlePrevious = () => {
     if (!canGoPrevious) return;
@@ -178,9 +177,9 @@ export function ActivityCalendar({ activities }: ActivityCalendarProps) {
       {/* Calendar view */}
       <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
         {viewMode === 'month' ? (
-          <MonthView year={year} month={month} activities={activities} />
+          <MonthView year={year} month={month} />
         ) : (
-          <YearView year={year} activities={activities} />
+          <YearView year={year} />
         )}
       </div>
     </div>

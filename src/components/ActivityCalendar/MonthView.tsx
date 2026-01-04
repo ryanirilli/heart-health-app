@@ -1,15 +1,16 @@
-import { ActivityMap, getWeeksInMonth, getMonthName, formatDate } from '@/lib/activities';
+import { getWeeksInMonth, getMonthName, formatDate } from '@/lib/activities';
 import { ActivityDay } from './ActivityDay';
+import { useActivities } from './ActivityProvider';
 
 interface MonthViewProps {
   year: number;
   month: number;
-  activities: ActivityMap;
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function MonthView({ year, month, activities }: MonthViewProps) {
+export function MonthView({ year, month }: MonthViewProps) {
+  const { activities } = useActivities();
   const weeks = getWeeksInMonth(year, month);
   const monthName = getMonthName(month);
 

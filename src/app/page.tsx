@@ -4,34 +4,29 @@ import {
   ActivityCalendar,
   ActivityProvider,
 } from "@/components/ActivityCalendar";
-import { parseActivities } from "@/lib/activities";
+import { parseYamlContent } from "@/lib/activities";
+import { ActivityHeader } from "@/components/ActivityHeader";
 
-async function getActivities() {
+async function getActivityData() {
   const filePath = path.join(process.cwd(), "data", "activities.yaml");
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    return parseActivities(content);
+    return parseYamlContent(content);
   } catch {
     // Return empty if file doesn't exist
-    return {};
+    return { types: {}, activities: {} };
   }
 }
 
 export default async function Home() {
-  const activities = await getActivities();
+  const { types, activities } = await getActivityData();
 
   return (
     <main className="min-h-screen p-6 md:p-12">
       <div className="max-w-5xl mx-auto space-y-6">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-            Your Alcohol Rhythm
-          </h2>
-          <p className="text-muted-foreground">Track your daily drinking</p>
-        </div>
-
-        <ActivityProvider config={{ unit: "drink", pluralize: true }}>
-          <ActivityCalendar activities={activities} />
+        <ActivityProvider initialTypes={types} initialActivities={activities}>
+          <ActivityHeader />
+          <ActivityCalendar />
         </ActivityProvider>
       </div>
     </main>

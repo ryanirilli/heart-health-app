@@ -1,59 +1,151 @@
 // Activity types and data parsing utilities
 import { parse } from 'yaml';
+import { ActivityType, ActivityTypeMap } from './activityTypes';
 
+/** A single entry for one activity type on a specific date */
+export interface ActivityEntry {
+  /** The activity type ID this entry belongs to */
+  typeId: string;
+  /** The recorded value */
+  value: number;
+}
+
+/** All activity entries for a single date */
 export interface Activity {
-  date: string; // YYYY-MM-DD format
-  state: boolean | string;
-  value?: number;
+  /** Date in YYYY-MM-DD format */
+  date: string;
+  /** Map of activity type ID to entry */
+  entries: { [typeId: string]: ActivityEntry };
 }
 
 export interface ActivityMap {
   [date: string]: Activity;
 }
 
-interface YamlActivity {
-  date: string;
-  state: boolean | string;
-  value?: number;
+/** YAML structure for activity types */
+interface YamlActivityType {
+  id: string;
+  name: string;
+  unit?: string;
+  pluralize?: boolean;
+  isNegative?: boolean;
+  goalType?: 'positive' | 'negative' | 'neutral';
+  uiType?: 'increment' | 'slider' | 'buttonGroup';
+  minValue?: number;
+  maxValue?: number;
+  step?: number;
+  buttonOptions?: { label: string; value: number }[];
+  deleted?: boolean;
+  order?: number;
 }
 
-type YamlData = Record<string, YamlActivity[]>;
+/** YAML structure for activity entries */
+interface YamlActivityEntry {
+  date: string;
+  entries: { [typeId: string]: number };
+}
+
+/** Root YAML data structure */
+interface YamlData {
+  types?: YamlActivityType[];
+  activities?: Record<string, YamlActivityEntry[]>;
+}
 
 /**
- * Parse activities from YAML file content
- * 
- * Expected format:
- * 2026:
- *   - date: 2026-01-01
- *     state: true
- *     value: 30
+ * Parse activity types from YAML data
  */
-export function parseActivities(content: string): ActivityMap {
+export function parseActivityTypes(data: YamlData): ActivityTypeMap {
+  const types: ActivityTypeMap = {};
+  
+  if (data.types && Array.isArray(data.types)) {
+    data.types.forEach((t, index) => {
+      types[t.id] = {
+        id: t.id,
+        name: t.name,
+        unit: t.unit,
+        pluralize: t.pluralize,
+        isNegative: t.isNegative,
+        goalType: t.goalType,
+        uiType: t.uiType ?? 'increment',
+        minValue: t.minValue,
+        maxValue: t.maxValue,
+        step: t.step,
+        buttonOptions: t.buttonOptions,
+        deleted: t.deleted ?? false,
+        order: t.order ?? index,
+      };
+    });
+  }
+  
+  return types;
+}
+
+/**
+ * Parse activities from YAML data
+ */
+export function parseActivities(data: YamlData): ActivityMap {
   const activities: ActivityMap = {};
   
-  try {
-    const data = parse(content) as YamlData;
-    
-    // Iterate over each year's entries
-    for (const year in data) {
-      const entries = data[year];
+  if (data.activities) {
+    for (const year in data.activities) {
+      const entries = data.activities[year];
       if (!Array.isArray(entries)) continue;
       
       for (const entry of entries) {
         if (!entry.date) continue;
         
+        const activityEntries: { [typeId: string]: ActivityEntry } = {};
+        
+        if (entry.entries) {
+          for (const typeId in entry.entries) {
+            activityEntries[typeId] = {
+              typeId,
+              value: entry.entries[typeId],
+            };
+          }
+        }
+        
         activities[entry.date] = {
           date: entry.date,
-          state: entry.state ?? false,
-          value: entry.value,
+          entries: activityEntries,
         };
       }
     }
+  }
+  
+  return activities;
+}
+
+/**
+ * Parse the complete YAML content
+ */
+export function parseYamlContent(content: string): { types: ActivityTypeMap; activities: ActivityMap } {
+  try {
+    const data = parse(content) as YamlData;
+    return {
+      types: parseActivityTypes(data),
+      activities: parseActivities(data),
+    };
   } catch {
     console.error('Failed to parse activities YAML');
+    return { types: {}, activities: {} };
   }
+}
 
-  return activities;
+/**
+ * Check if a date has any activity data
+ */
+export function hasActivityData(activity?: Activity): boolean {
+  if (!activity) return false;
+  return Object.keys(activity.entries).length > 0;
+}
+
+/**
+ * Get the count of entries for a date
+ */
+export function getEntryCount(activity?: Activity): number {
+  if (!activity) return 0;
+  return Object.keys(activity.entries).length;
 }
 
 /**
