@@ -77,14 +77,20 @@ export function createDefaultActivityType(partial: Partial<ActivityType> = {}): 
     minValue: 0,
     maxValue: 10,
     step: 1,
-    buttonOptions: [
-      { label: 'Low', value: 1 },
-      { label: 'Medium', value: 2 },
-      { label: 'High', value: 3 },
-    ],
+    buttonOptions: [], // Start empty - user must add at least 2 options
     order: 0,
     ...partial,
   };
+}
+
+/** Minimum number of button options required for buttonGroup type */
+export const MIN_BUTTON_OPTIONS = 2;
+
+/** Validate button options - requires at least MIN_BUTTON_OPTIONS with non-empty labels */
+export function validateButtonOptions(options: ButtonOption[] | undefined): boolean {
+  if (!options) return false;
+  const validOptions = options.filter(opt => opt.label.trim().length > 0);
+  return validOptions.length >= MIN_BUTTON_OPTIONS;
 }
 
 /** 

@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ActivityType, UIType, ButtonOption, MAX_BUTTON_OPTIONS, GoalType, getGoalType } from '@/lib/activityTypes';
+import { ActivityType, UIType, ButtonOption, MAX_BUTTON_OPTIONS, MIN_BUTTON_OPTIONS, GoalType, getGoalType, validateButtonOptions } from '@/lib/activityTypes';
 import { useActivityTypes } from './ActivityProvider';
 import { cn } from '@/lib/utils';
 
@@ -110,6 +110,10 @@ function ButtonOptionsEditor({ options, onChange }: ButtonOptionsEditorProps) {
 
   // Generate stable IDs for sortable items
   const optionIds = options.map((_, index) => `option-${index}`);
+  
+  // Count valid options (non-empty labels)
+  const validOptionsCount = options.filter(opt => opt.label.trim().length > 0).length;
+  const needsMoreOptions = validOptionsCount < MIN_BUTTON_OPTIONS;
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -147,7 +151,7 @@ function ButtonOptionsEditor({ options, onChange }: ButtonOptionsEditorProps) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <label className="text-xs font-medium text-muted-foreground">
-          Options (max {MAX_BUTTON_OPTIONS})
+          Options ({MIN_BUTTON_OPTIONS}-{MAX_BUTTON_OPTIONS} required)
         </label>
         {options.length < MAX_BUTTON_OPTIONS && (
           <button
@@ -162,29 +166,38 @@ function ButtonOptionsEditor({ options, onChange }: ButtonOptionsEditorProps) {
       
       {options.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-2">
-          Add options for users to choose from
+          Add at least {MIN_BUTTON_OPTIONS} options for users to choose from
         </p>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={optionIds} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
-              {options.map((option, index) => (
-                <SortableOption
-                  key={optionIds[index]}
-                  id={optionIds[index]}
-                  option={option}
-                  index={index}
-                  onLabelChange={(label) => handleLabelChange(index, label)}
-                  onDelete={() => handleDelete(index)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        <>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={optionIds} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {options.map((option, index) => (
+                  <SortableOption
+                    key={optionIds[index]}
+                    id={optionIds[index]}
+                    option={option}
+                    index={index}
+                    onLabelChange={(label) => handleLabelChange(index, label)}
+                    onDelete={() => handleDelete(index)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+          {needsMoreOptions && (
+            <p className="text-xs text-chart-4">
+              {validOptionsCount === 0 
+                ? `Enter labels for at least ${MIN_BUTTON_OPTIONS} options`
+                : `Need ${MIN_BUTTON_OPTIONS - validOptionsCount} more option${MIN_BUTTON_OPTIONS - validOptionsCount > 1 ? 's' : ''} with a label`}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
@@ -227,6 +240,9 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
     // Unit is required for increment and slider, but not for buttonGroup
     const needsUnit = editingType.uiType !== 'buttonGroup';
     if (needsUnit && !editingType.unit?.trim()) return;
+    
+    // Button options validation for buttonGroup
+    if (editingType.uiType === 'buttonGroup' && !validateButtonOptions(editingType.buttonOptions)) return;
 
     try {
       const isNew = !activeTypes.find(t => t.id === editingType.id);
@@ -503,7 +519,8 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 onClick={handleSave}
                 disabled={
                   !editingType.name.trim() || 
-                  (editingType.uiType !== 'buttonGroup' && !editingType.unit?.trim())
+                  (editingType.uiType !== 'buttonGroup' && !editingType.unit?.trim()) ||
+                  (editingType.uiType === 'buttonGroup' && !validateButtonOptions(editingType.buttonOptions))
                 }
                 className={cn(
                   "px-6 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
