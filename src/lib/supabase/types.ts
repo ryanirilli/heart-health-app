@@ -1,0 +1,35 @@
+// Database types for Supabase tables
+
+export interface DbActivityType {
+  id: string;
+  user_id: string;
+  name: string;
+  unit: string | null;
+  pluralize: boolean;
+  is_negative: boolean | null;
+  goal_type: 'positive' | 'negative' | 'neutral' | null;
+  ui_type: 'increment' | 'slider' | 'buttonGroup';
+  min_value: number | null;
+  max_value: number | null;
+  step: number | null;
+  button_options: { label: string; value: number }[] | null;
+  deleted: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbActivity {
+  id: string;
+  user_id: string;
+  activity_type_id: string;
+  date: string;
+  value: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Insert types (without auto-generated fields)
+export type DbActivityTypeInsert = Omit<DbActivityType, 'created_at' | 'updated_at'>;
+export type DbActivityInsert = Omit<DbActivity, 'id' | 'created_at' | 'updated_at'>;
+

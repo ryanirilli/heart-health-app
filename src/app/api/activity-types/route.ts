@@ -1,88 +1,74 @@
-import { promises as fs } from 'fs';
-import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
-import { parse, stringify } from 'yaml';
+import { createClient } from '@/lib/supabase/server';
 import { ActivityType, MAX_ACTIVITY_TYPES } from '@/lib/activityTypes';
-
-interface YamlActivityEntry {
-  date: string;
-  entries: { [typeId: string]: number };
-}
-
-interface YamlData {
-  types?: ActivityType[];
-  activities?: Record<string, YamlActivityEntry[]>;
-}
-
-const ACTIVITIES_FILE = path.join(process.cwd(), 'data', 'activities.yaml');
-
-async function readActivitiesFile(): Promise<YamlData> {
-  try {
-    const content = await fs.readFile(ACTIVITIES_FILE, 'utf-8');
-    return (parse(content) as YamlData) || { types: [], activities: {} };
-  } catch {
-    return { types: [], activities: {} };
-  }
-}
-
-async function writeActivitiesFile(data: YamlData): Promise<void> {
-  // Ensure the data directory exists
-  const dir = path.dirname(ACTIVITIES_FILE);
-  await fs.mkdir(dir, { recursive: true });
-  
-  // Add a header comment
-  const header = `# Heart Health Activity Log
-# Types define what activities you're tracking
-# Activities store daily entries for each type
-
-`;
-  
-  const yamlContent = stringify(data, { lineWidth: 0 });
-  await fs.writeFile(ACTIVITIES_FILE, header + yamlContent, 'utf-8');
-}
 
 // Create a new activity type
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const newType = await request.json() as ActivityType;
 
-    if (!newType.id || !newType.name || !newType.unit) {
+    if (!newType.id || !newType.name) {
       return NextResponse.json(
-        { error: 'Missing required fields: id, name, unit' },
+        { error: 'Missing required fields: id, name' },
         { status: 400 }
       );
     }
 
-    // Read existing data
-    const data = await readActivitiesFile();
-
-    // Ensure types array exists
-    if (!data.types) {
-      data.types = [];
-    }
-
     // Check if we've hit the limit
-    const activeTypes = data.types.filter(t => !t.deleted);
-    if (activeTypes.length >= MAX_ACTIVITY_TYPES) {
+    const { count } = await supabase
+      .from('activity_types')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('deleted', false);
+
+    if (count !== null && count >= MAX_ACTIVITY_TYPES) {
       return NextResponse.json(
         { error: `Maximum of ${MAX_ACTIVITY_TYPES} activity types allowed` },
         { status: 400 }
       );
     }
 
-    // Check for duplicate ID
-    if (data.types.find(t => t.id === newType.id)) {
+    // Insert the new type
+    const { error } = await supabase
+      .from('activity_types')
+      .insert({
+        id: newType.id,
+        user_id: user.id,
+        name: newType.name,
+        unit: newType.unit || null,
+        pluralize: newType.pluralize ?? true,
+        is_negative: newType.isNegative ?? null,
+        goal_type: newType.goalType || null,
+        ui_type: newType.uiType || 'increment',
+        min_value: newType.minValue ?? null,
+        max_value: newType.maxValue ?? null,
+        step: newType.step ?? null,
+        button_options: newType.buttonOptions || null,
+        deleted: false,
+        display_order: newType.order ?? 0,
+      });
+
+    if (error) {
+      console.error('Failed to create activity type:', error);
+      if (error.code === '23505') {
+        return NextResponse.json(
+          { error: 'Activity type with this ID already exists' },
+          { status: 400 }
+        );
+      }
       return NextResponse.json(
-        { error: 'Activity type with this ID already exists' },
-        { status: 400 }
+        { error: 'Failed to create activity type' },
+        { status: 500 }
       );
     }
-
-    // Add the new type
-    data.types.push(newType);
-
-    // Write back to file
-    await writeActivitiesFile(data);
 
     return NextResponse.json({ success: true, type: newType });
   } catch (error) {
@@ -97,6 +83,14 @@ export async function POST(request: NextRequest) {
 // Update an existing activity type
 export async function PUT(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const updatedType = await request.json() as ActivityType;
 
     if (!updatedType.id) {
@@ -106,29 +100,34 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Read existing data
-    const data = await readActivitiesFile();
+    // Update the type (RLS ensures user can only update their own)
+    const { error } = await supabase
+      .from('activity_types')
+      .update({
+        name: updatedType.name,
+        unit: updatedType.unit || null,
+        pluralize: updatedType.pluralize ?? true,
+        is_negative: updatedType.isNegative ?? null,
+        goal_type: updatedType.goalType || null,
+        ui_type: updatedType.uiType || 'increment',
+        min_value: updatedType.minValue ?? null,
+        max_value: updatedType.maxValue ?? null,
+        step: updatedType.step ?? null,
+        button_options: updatedType.buttonOptions || null,
+        deleted: updatedType.deleted ?? false,
+        display_order: updatedType.order ?? 0,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', updatedType.id)
+      .eq('user_id', user.id);
 
-    if (!data.types) {
+    if (error) {
+      console.error('Failed to update activity type:', error);
       return NextResponse.json(
-        { error: 'Activity type not found' },
-        { status: 404 }
+        { error: 'Failed to update activity type' },
+        { status: 500 }
       );
     }
-
-    // Find and update the type
-    const index = data.types.findIndex(t => t.id === updatedType.id);
-    if (index === -1) {
-      return NextResponse.json(
-        { error: 'Activity type not found' },
-        { status: 404 }
-      );
-    }
-
-    data.types[index] = updatedType;
-
-    // Write back to file
-    await writeActivitiesFile(data);
 
     return NextResponse.json({ success: true, type: updatedType });
   } catch (error) {
@@ -143,6 +142,14 @@ export async function PUT(request: NextRequest) {
 // Soft delete an activity type (mark as deleted)
 export async function DELETE(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -153,33 +160,23 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Read existing data
-    const data = await readActivitiesFile();
-
-    if (!data.types) {
-      return NextResponse.json(
-        { error: 'Activity type not found' },
-        { status: 404 }
-      );
-    }
-
-    // Find and soft-delete the type
-    const index = data.types.findIndex(t => t.id === id);
-    if (index === -1) {
-      return NextResponse.json(
-        { error: 'Activity type not found' },
-        { status: 404 }
-      );
-    }
-
     // Soft delete - mark as deleted
-    data.types[index] = {
-      ...data.types[index],
-      deleted: true,
-    };
+    const { error } = await supabase
+      .from('activity_types')
+      .update({ 
+        deleted: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .eq('user_id', user.id);
 
-    // Write back to file
-    await writeActivitiesFile(data);
+    if (error) {
+      console.error('Failed to delete activity type:', error);
+      return NextResponse.json(
+        { error: 'Failed to delete activity type' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -190,4 +187,3 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
-

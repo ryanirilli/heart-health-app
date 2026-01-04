@@ -1,4 +1,6 @@
 // Activity Type definitions and utilities
+import pluralizeLib from 'pluralize-esm';
+const { plural } = pluralizeLib;
 
 export type UIType = 'increment' | 'slider' | 'buttonGroup';
 
@@ -68,8 +70,8 @@ export function createDefaultActivityType(partial: Partial<ActivityType> = {}): 
   return {
     id: generateActivityTypeId(),
     name: '',
-    unit: '',
-    pluralize: true,
+    unit: 'times',
+    pluralize: false,
     goalType: 'neutral',
     uiType: 'increment',
     minValue: 0,
@@ -140,10 +142,8 @@ export function formatValueWithUnit(value: number, type: ActivityType): string {
     return `${value}`;
   }
   
-  if (pluralize && value !== 1) {
-    // Simple pluralization - add 's' if not already ending in 's'
-    const pluralUnit = unit.endsWith('s') ? unit : `${unit}s`;
-    return `${value} ${pluralUnit}`;
+  if (type.pluralize && value !== 1) {
+    return `${value} ${plural(unit)}`;
   }
   
   return `${value} ${unit}`;

@@ -1,53 +1,21 @@
-import { promises as fs } from 'fs';
-import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
-import { parse, stringify } from 'yaml';
-import { ActivityType } from '@/lib/activityTypes';
+import { createClient } from '@/lib/supabase/server';
 
 interface ActivityEntry {
   typeId: string;
   value: number;
 }
 
-interface YamlActivityEntry {
-  date: string;
-  entries: { [typeId: string]: number };
-}
-
-interface YamlData {
-  types?: ActivityType[];
-  activities?: Record<string, YamlActivityEntry[]>;
-}
-
-const ACTIVITIES_FILE = path.join(process.cwd(), 'data', 'activities.yaml');
-
-async function readActivitiesFile(): Promise<YamlData> {
-  try {
-    const content = await fs.readFile(ACTIVITIES_FILE, 'utf-8');
-    return (parse(content) as YamlData) || { types: [], activities: {} };
-  } catch {
-    return { types: [], activities: {} };
-  }
-}
-
-async function writeActivitiesFile(data: YamlData): Promise<void> {
-  // Ensure the data directory exists
-  const dir = path.dirname(ACTIVITIES_FILE);
-  await fs.mkdir(dir, { recursive: true });
-  
-  // Add a header comment
-  const header = `# Heart Health Activity Log
-# Types define what activities you're tracking
-# Activities store daily entries for each type
-
-`;
-  
-  const yamlContent = stringify(data, { lineWidth: 0 });
-  await fs.writeFile(ACTIVITIES_FILE, header + yamlContent, 'utf-8');
-}
-
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { date, entries } = body as { 
       date: string; 
@@ -61,66 +29,70 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse the year from the date
-    const year = date.split('-')[0];
-    if (!year) {
-      return NextResponse.json(
-        { error: 'Invalid date format' },
-        { status: 400 }
-      );
-    }
+    // Get all existing entries for this date
+    const { data: existingEntries } = await supabase
+      .from('activities')
+      .select('id, activity_type_id')
+      .eq('user_id', user.id)
+      .eq('date', date);
 
-    // Read existing data
-    const data = await readActivitiesFile();
+    const existingMap = new Map(
+      existingEntries?.map(e => [e.activity_type_id, e.id]) ?? []
+    );
 
-    // Ensure the activities object and year array exist
-    if (!data.activities) {
-      data.activities = {};
-    }
-    if (!data.activities[year]) {
-      data.activities[year] = [];
-    }
+    // Determine which entries to upsert and which to delete
+    const toUpsert: { user_id: string; activity_type_id: string; date: string; value: number }[] = [];
+    const toDelete: string[] = [];
 
-    // Convert entries to YAML format (just the values)
-    // Include 0 values to indicate "tracked but zero" (e.g., 0 drinks)
-    const yamlEntries: { [typeId: string]: number } = {};
+    // Process incoming entries
     for (const typeId in entries) {
-      yamlEntries[typeId] = entries[typeId].value;
+      const entry = entries[typeId];
+      toUpsert.push({
+        user_id: user.id,
+        activity_type_id: typeId,
+        date,
+        value: entry.value,
+      });
     }
 
-    // Find existing entry for this date
-    const existingIndex = data.activities[year].findIndex((entry) => entry.date === date);
-
-    const newEntry: YamlActivityEntry = {
-      date,
-      entries: yamlEntries,
-    };
-
-    // If no entries, remove the activity entirely
-    if (Object.keys(yamlEntries).length === 0) {
-      if (existingIndex >= 0) {
-        data.activities[year].splice(existingIndex, 1);
-        
-        // Remove year key if empty
-        if (data.activities[year].length === 0) {
-          delete data.activities[year];
-        }
-      }
-    } else {
-      if (existingIndex >= 0) {
-        // Update existing entry
-        data.activities[year][existingIndex] = newEntry;
-      } else {
-        // Add new entry and sort by date
-        data.activities[year].push(newEntry);
-        data.activities[year].sort((a, b) => a.date.localeCompare(b.date));
+    // Find entries to delete (exist in DB but not in incoming)
+    for (const [typeId, id] of existingMap) {
+      if (!(typeId in entries)) {
+        toDelete.push(id);
       }
     }
 
-    // Write back to file
-    await writeActivitiesFile(data);
+    // Perform upserts
+    if (toUpsert.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('activities')
+        .upsert(toUpsert, { 
+          onConflict: 'user_id,activity_type_id,date',
+          ignoreDuplicates: false 
+        });
 
-    return NextResponse.json({ success: true, entry: newEntry });
+      if (upsertError) {
+        console.error('Failed to upsert activities:', upsertError);
+        return NextResponse.json(
+          { error: 'Failed to save activity' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Delete removed entries
+    if (toDelete.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('activities')
+        .delete()
+        .in('id', toDelete);
+
+      if (deleteError) {
+        console.error('Failed to delete activities:', deleteError);
+      }
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to save activity:', error);
     return NextResponse.json(
@@ -132,6 +104,14 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
 
@@ -142,29 +122,20 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const year = date.split('-')[0];
-    if (!year) {
+    // Delete all entries for this date
+    const { error } = await supabase
+      .from('activities')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('date', date);
+
+    if (error) {
+      console.error('Failed to delete activities:', error);
       return NextResponse.json(
-        { error: 'Invalid date format' },
-        { status: 400 }
+        { error: 'Failed to delete activity' },
+        { status: 500 }
       );
     }
-
-    // Read existing data
-    const data = await readActivitiesFile();
-
-    if (data.activities && data.activities[year]) {
-      // Remove the entry for this date
-      data.activities[year] = data.activities[year].filter((entry) => entry.date !== date);
-      
-      // Remove year key if empty
-      if (data.activities[year].length === 0) {
-        delete data.activities[year];
-      }
-    }
-
-    // Write back to file
-    await writeActivitiesFile(data);
 
     return NextResponse.json({ success: true });
   } catch (error) {
