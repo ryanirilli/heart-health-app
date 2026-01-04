@@ -91,7 +91,7 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
     const options = type.buttonOptions ?? [];
     
     return (
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <button
             key={option.value}
@@ -106,7 +106,7 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
             }}
             disabled={disabled}
             className={cn(
-              "flex-1 py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all",
+              "flex-1 min-w-[80px] py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all",
               currentValue === option.value
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground",
