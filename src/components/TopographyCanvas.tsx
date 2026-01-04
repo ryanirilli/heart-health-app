@@ -292,7 +292,7 @@ export function TopographyCanvas({ className = "" }: TopographyCanvasProps) {
     };
 
     const draw = (time: number) => {
-      timeRef.current = time * 0.0001; // Slow time factor
+      timeRef.current = time * 0.00002; // Very slow time factor for subtle motion
 
       const { bg, fg } = getThemeColors();
 
@@ -310,13 +310,13 @@ export function TopographyCanvas({ className = "" }: TopographyCanvasProps) {
       for (let y = 0; y < rows; y++) {
         heightMap[y] = [];
         for (let x = 0; x < cols; x++) {
-          // Multiple octaves with subtle time animation
+          // Multiple octaves with very subtle time animation
           const nx = x * scale;
           const ny = y * scale;
           const value =
-            noise.fbm(nx + timeOffset * 0.1, ny, 5) * 0.6 +
-            noise.fbm(nx * 2 + timeOffset * 0.05, ny * 2 + 100, 3) * 0.3 +
-            noise.fbm(nx * 4, ny * 4 + timeOffset * 0.02, 2) * 0.1;
+            noise.fbm(nx + timeOffset * 0.05, ny, 5) * 0.6 +
+            noise.fbm(nx * 2 + timeOffset * 0.02, ny * 2 + 100, 3) * 0.3 +
+            noise.fbm(nx * 4, ny * 4 + timeOffset * 0.01, 2) * 0.1;
           heightMap[y][x] = value;
         }
       }
