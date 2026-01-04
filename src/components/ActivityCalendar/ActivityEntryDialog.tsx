@@ -62,8 +62,10 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
   const step = type.step ?? 1;
 
   if (type.uiType === 'slider') {
+    const progress = ((currentValue - minValue) / (maxValue - minValue)) * 100;
+    
     return (
-      <div className="space-y-2">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
             {formatValueWithUnit(currentValue, type)}
@@ -77,12 +79,9 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
           value={currentValue}
           onChange={(e) => onChange(Number(e.target.value))}
           disabled={disabled}
-          className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          className="activity-slider"
+          style={{ '--slider-progress': `${progress}%` } as React.CSSProperties}
         />
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{minValue}</span>
-          <span>{maxValue}</span>
-        </div>
       </div>
     );
   }
