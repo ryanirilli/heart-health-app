@@ -8,12 +8,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
 import { useActivityTypes, useActivities, formatValueWithUnit } from './ActivityProvider';
 import { ActivityEntryDialog } from './ActivityEntryDialog';
 import { ActivityEntry } from '@/lib/activities';
@@ -42,7 +36,6 @@ function formatTooltipDate(date: Date): string {
 export function ActivityDay({ date, activity, compact = false }: ActivityDayProps) {
   const { activityTypes } = useActivityTypes();
   const { updateActivity, deleteActivity } = useActivities();
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   
   if (!date) {
@@ -89,10 +82,8 @@ export function ActivityDay({ date, activity, compact = false }: ActivityDayProp
   };
 
   const handleCellClick = () => {
-    // In month view (non-compact), open the dialog for editing
-    if (!compact) {
-      setDialogOpen(true);
-    }
+    // Open the dialog for viewing/editing in any view
+    setDialogOpen(true);
   };
 
   const handleSave = (dateStr: string, entries: { [typeId: string]: ActivityEntry }) => {
@@ -143,48 +134,21 @@ export function ActivityDay({ date, activity, compact = false }: ActivityDayProp
               <div className="text-muted-foreground">
                 {getActivitySummary()}
               </div>
-              {!compact && (
-                <div className="text-xs text-muted-foreground/70 mt-1">
-                  Click to {hasData ? 'edit' : 'add entry'}
-                </div>
-              )}
+              <div className="text-xs text-muted-foreground/70 mt-1">
+                Click to {hasData ? 'view' : 'add entry'}
+              </div>
             </div>
           </TooltipContent>
         </Tooltip>
       </div>
 
-      {/* Mobile: Drawer for compact view, Dialog for month view */}
+      {/* Mobile: Open dialog on tap */}
       <div 
         className="block md:hidden" 
-        onClick={() => {
-          if (compact) {
-            setDrawerOpen(true);
-          } else {
-            setDialogOpen(true);
-          }
-        }}
+        onClick={() => setDialogOpen(true)}
       >
         {cell}
       </div>
-
-      {/* Drawer for mobile compact/year view */}
-      <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DrawerContent>
-          <DrawerHeader className="text-center">
-            <DrawerTitle>{formattedDate}</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-8 text-center">
-            <div className={cn(
-              "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium",
-              hasData 
-                ? "bg-chart-3/20 text-chart-3" 
-                : "bg-muted text-muted-foreground"
-            )}>
-              {getActivitySummary()}
-            </div>
-          </div>
-        </DrawerContent>
-      </Drawer>
 
       {/* Dialog for adding/editing entries */}
       <ActivityEntryDialog

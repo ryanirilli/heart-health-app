@@ -472,39 +472,36 @@ export function ActivityEntryDialog({
     </>
   );
 
-  // View mode footer
+  // View mode footer - simplified, just Close button
   const viewFooter = (
-    <div className="flex items-center justify-between gap-2 w-full">
-      {existingActivity && onDelete && (
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={isSubmitting}
-          className="px-4 py-2 text-sm font-medium text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50"
-        >
-          Delete
-        </button>
-      )}
-      <div className="flex-1" />
+    <div className="flex items-center justify-end gap-2 w-full">
       <button
         type="button"
         onClick={() => onOpenChange(false)}
-        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-      >
-        Close
-      </button>
-      <button
-        type="button"
-        onClick={() => setMode('edit')}
         className={cn(
           "px-6 py-2 rounded-lg text-sm font-medium transition-all",
           "bg-primary text-primary-foreground hover:bg-primary/90"
         )}
       >
-        Edit
+        Close
       </button>
     </div>
   );
+
+  // Edit button icon for view mode header
+  const editIconButton = mode === 'view' && existingActivity ? (
+    <button
+      type="button"
+      onClick={() => setMode('edit')}
+      className="absolute right-4 top-4 w-8 h-8 rounded-full border-2 border-border hover:border-foreground flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
+      aria-label="Edit activity"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+        <path d="m15 5 4 4"/>
+      </svg>
+    </button>
+  ) : null;
 
   // Edit mode content
   const editContent = (
@@ -665,10 +662,13 @@ export function ActivityEntryDialog({
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[85vh]">
-          <DrawerHeader className="text-left">
-            <DrawerTitle>{title}</DrawerTitle>
-            <DrawerDescription>{formattedDate}</DrawerDescription>
-          </DrawerHeader>
+          <div className="relative">
+            <DrawerHeader className="text-left">
+              <DrawerTitle>{title}</DrawerTitle>
+              <DrawerDescription>{formattedDate}</DrawerDescription>
+            </DrawerHeader>
+            {editIconButton}
+          </div>
           <div className="px-4 overflow-y-auto flex-1">
             {content}
           </div>
@@ -682,7 +682,8 @@ export function ActivityEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto" hideCloseButton>
+        {editIconButton}
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{formattedDate}</DialogDescription>
