@@ -71,7 +71,7 @@ export function createDefaultActivityType(partial: Partial<ActivityType> = {}): 
     id: generateActivityTypeId(),
     name: '',
     unit: 'times',
-    pluralize: false,
+    pluralize: true,
     goalType: 'neutral',
     uiType: 'increment',
     minValue: 0,

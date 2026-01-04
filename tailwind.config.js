@@ -55,6 +55,11 @@ module.exports = {
           4: "hsl(var(--chart-4))",
           5: "hsl(var(--chart-5))",
         },
+        activity: {
+          positive: "hsl(var(--activity-positive))",
+          negative: "hsl(var(--activity-negative))",
+          neutral: "hsl(var(--activity-neutral))",
+        },
       },
     },
   },

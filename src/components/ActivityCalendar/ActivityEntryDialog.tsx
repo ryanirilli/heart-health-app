@@ -472,21 +472,8 @@ export function ActivityEntryDialog({
     </>
   );
 
-  // View mode footer - simplified, just Close button
-  const viewFooter = (
-    <div className="flex items-center justify-end gap-2 w-full">
-      <button
-        type="button"
-        onClick={() => onOpenChange(false)}
-        className={cn(
-          "px-6 py-2 rounded-lg text-sm font-medium transition-all",
-          "bg-primary text-primary-foreground hover:bg-primary/90"
-        )}
-      >
-        Close
-      </button>
-    </div>
-  );
+  // View mode footer - empty, users can tap overlay/drag to close
+  const viewFooter = null;
 
   // Edit button icon for view mode header
   const editIconButton = mode === 'view' && existingActivity ? (
@@ -672,9 +659,11 @@ export function ActivityEntryDialog({
           <div className="px-4 overflow-y-auto flex-1">
             {content}
           </div>
-          <DrawerFooter className="flex-row">
-            {footer}
-          </DrawerFooter>
+          {footer && (
+            <DrawerFooter className="flex-row">
+              {footer}
+            </DrawerFooter>
+          )}
         </DrawerContent>
       </Drawer>
     );
@@ -689,9 +678,11 @@ export function ActivityEntryDialog({
           <DialogDescription>{formattedDate}</DialogDescription>
         </DialogHeader>
         {content}
-        <DialogFooter className="flex-row">
-          {footer}
-        </DialogFooter>
+        {footer && (
+          <DialogFooter className="flex-row">
+            {footer}
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

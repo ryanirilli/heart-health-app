@@ -303,6 +303,13 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
               <label className="text-sm font-medium text-foreground">
                 Goal Type
               </label>
+              <p className="text-xs text-muted-foreground">
+                {getGoalType(editingType) === 'positive' 
+                  ? "Higher values are better (e.g., exercise, water intake)"
+                  : getGoalType(editingType) === 'negative'
+                    ? "Lower values are better (e.g., reducing alcohol, cutting sugar)"
+                    : "No judgment, just recording (e.g., mood, sleep quality)"}
+              </p>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -341,13 +348,6 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                   Just Track
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                {getGoalType(editingType) === 'positive' 
-                  ? "Higher values are better (e.g., exercise, water intake)"
-                  : getGoalType(editingType) === 'negative'
-                    ? "Lower values are better (e.g., reducing alcohol, cutting sugar)"
-                    : "No judgment, just recording (e.g., mood, sleep quality)"}
-              </p>
             </div>
 
             {/* Advanced Settings Toggle */}
@@ -421,33 +421,20 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                   </div>
                 </div>
 
-                {/* Unit and Pluralize (for increment and slider only) */}
+                {/* Unit (for increment and slider only) */}
                 {(editingType.uiType === 'increment' || editingType.uiType === 'slider') && (
-                  <>
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        Unit
-                      </label>
-                      <input
-                        type="text"
-                        value={editingType.unit ?? ''}
-                        onChange={(e) => setEditingType({ ...editingType, unit: e.target.value })}
-                        placeholder="e.g., drink, minute, glass"
-                        className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                      />
-                    </div>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={editingType.pluralize ?? false}
-                        onChange={(e) => setEditingType({ ...editingType, pluralize: e.target.checked })}
-                        className="w-4 h-4 rounded border-border accent-primary"
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        Pluralize unit (e.g., 1 drink → 2 drinks)
-                      </span>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Unit
                     </label>
-                  </>
+                    <input
+                      type="text"
+                      value={editingType.unit ?? ''}
+                      onChange={(e) => setEditingType({ ...editingType, unit: e.target.value, pluralize: true })}
+                      placeholder="e.g., drink, minute, glass"
+                      className="w-full px-2 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
                 )}
 
                 {/* Range values (for slider) */}

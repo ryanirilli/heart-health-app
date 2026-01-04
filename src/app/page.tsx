@@ -1,88 +1,75 @@
-import {
-  ActivityCalendar,
-  ActivityProvider,
-} from "@/components/ActivityCalendar";
-import { ActivityHeader } from "@/components/ActivityHeader";
+import Link from "next/link";
+import { Activity, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { ActivityTypeMap, ActivityType } from "@/lib/activityTypes";
-import { ActivityMap, ActivityEntry } from "@/lib/activities";
-import { DbActivityType, DbActivity } from "@/lib/supabase/types";
+import { redirect } from "next/navigation";
+import { TopographyCanvas } from "@/components/TopographyCanvas";
 
-async function getActivityData(userId: string) {
-  const supabase = await createClient();
-
-  // Fetch activity types
-  const { data: dbTypes } = await supabase
-    .from("activity_types")
-    .select("*")
-    .eq("user_id", userId)
-    .order("display_order", { ascending: true });
-
-  // Fetch activities
-  const { data: dbActivities } = await supabase
-    .from("activities")
-    .select("*")
-    .eq("user_id", userId);
-
-  // Convert DB types to app types
-  const types: ActivityTypeMap = {};
-  (dbTypes as DbActivityType[] | null)?.forEach((t) => {
-    types[t.id] = {
-      id: t.id,
-      name: t.name,
-      unit: t.unit ?? undefined,
-      pluralize: t.pluralize,
-      isNegative: t.is_negative ?? undefined,
-      goalType: t.goal_type ?? undefined,
-      uiType: t.ui_type,
-      minValue: t.min_value ?? undefined,
-      maxValue: t.max_value ?? undefined,
-      step: t.step ?? undefined,
-      buttonOptions: t.button_options ?? undefined,
-      deleted: t.deleted,
-      order: t.display_order,
-    } as ActivityType;
-  });
-
-  // Convert DB activities to app format (grouped by date)
-  const activities: ActivityMap = {};
-  (dbActivities as DbActivity[] | null)?.forEach((a) => {
-    if (!activities[a.date]) {
-      activities[a.date] = {
-        date: a.date,
-        entries: {},
-      };
-    }
-    activities[a.date].entries[a.activity_type_id] = {
-      typeId: a.activity_type_id,
-      value: a.value,
-    } as ActivityEntry;
-  });
-
-  return { types, activities };
-}
-
-export default async function Home() {
+export default async function LandingPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // This shouldn't happen due to middleware, but just in case
-  if (!user) {
-    return null;
+  if (user) {
+    redirect("/dashboard");
   }
 
-  const { types, activities } = await getActivityData(user.id);
-
   return (
-    <main className="min-h-screen p-6 md:p-12">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <ActivityProvider initialTypes={types} initialActivities={activities}>
-          <ActivityHeader />
-          <ActivityCalendar />
-        </ActivityProvider>
+    <div className="min-h-screen relative">
+      {/* Procedural topography background */}
+      <TopographyCanvas />
+
+      {/* Content */}
+      <div className="relative z-10 min-h-screen flex flex-col">
+        {/* Navigation */}
+        <nav className="flex items-center justify-between px-6 py-6 md:px-12">
+          <div className="flex items-center gap-2.5">
+            <Activity className="h-5 w-5 text-foreground" />
+            <span className="font-medium text-foreground tracking-tight">
+              Rhythm
+            </span>
+          </div>
+          <Link
+            href="/login"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Sign In
+          </Link>
+        </nav>
+
+        {/* Hero */}
+        <main className="flex-1 flex items-center justify-center px-6 md:px-12">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-foreground leading-[1.15] tracking-tight mb-6">
+              Track the patterns
+              <br />
+              <span className="text-muted-foreground">
+                that shape your days.
+              </span>
+            </h1>
+
+            <p className="text-lg text-muted-foreground max-w-md mb-10 leading-relaxed font-light">
+              A simple way to observe your habits, health, and rhythms over
+              time.
+            </p>
+
+            <Link
+              href="/login"
+              className="group inline-flex items-center gap-2 text-foreground hover:text-muted-foreground transition-colors"
+            >
+              <span className="text-sm font-medium">Get started</span>
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="px-6 md:px-12 py-6">
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Rhythm
+          </p>
+        </footer>
       </div>
-    </main>
+    </div>
   );
 }

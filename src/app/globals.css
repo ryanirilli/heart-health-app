@@ -73,6 +73,11 @@ a {
     --chart-5: 268 30% 55%;
 
     --radius: 0.5rem;
+
+    /* Activity score colors */
+    --activity-positive: 150 35% 82%;
+    --activity-negative: 0 45% 85%;
+    --activity-neutral: 220 15% 88%;
   }
 
   /* NEW DARK THEME: modern, relaxing, less green */
@@ -118,6 +123,11 @@ a {
     --chart-3: 215 35% 60%;
     --chart-4: 42 53% 54%;
     --chart-5: 268 30% 60%;
+
+    /* Activity score colors */
+    --activity-positive: 150 30% 22%;
+    --activity-negative: 0 35% 25%;
+    --activity-neutral: 220 14% 18%;
   }
 }
 

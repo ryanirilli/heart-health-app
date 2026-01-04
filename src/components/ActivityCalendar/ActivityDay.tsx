@@ -11,6 +11,7 @@ import {
 import { useActivityTypes, useActivities, formatValueWithUnit } from './ActivityProvider';
 import { ActivityEntryDialog } from './ActivityEntryDialog';
 import { ActivityEntry } from '@/lib/activities';
+import { getGoalType, ActivityTypeMap } from '@/lib/activityTypes';
 
 interface ActivityDayProps {
   date: Date | null;
@@ -48,16 +49,71 @@ export function ActivityDay({ date, activity, compact = false }: ActivityDayProp
   const entryCount = getEntryCount(activity);
   const dayNumber = date.getDate();
   
-  // Unified color: use chart-3 (a calm blue/slate) when there's data
-  // Intensity based on how many entries are filled
+  /**
+   * Calculate the activity score for the day based on goal types and values.
+   * 
+   * Scoring logic:
+   * - Sum all values from "positive" (more is better) activities → positiveSum
+   * - Sum all values from "negative" (less is better) activities → negativeSum
+   * - Compare: if positiveSum >= negativeSum → 'positive', else → 'negative'
+   * - Neutral/tracking activities are ignored
+   * - If only neutral activities exist → 'neutral'
+   * 
+   * Returns: 'positive' | 'negative' | 'neutral' | null (no data)
+   */
+  const getActivityScore = (activity: Activity | undefined, types: ActivityTypeMap): 'positive' | 'negative' | 'neutral' | null => {
+    if (!activity?.entries || Object.keys(activity.entries).length === 0) {
+      return null;
+    }
+    
+    let positiveSum = 0;
+    let negativeSum = 0;
+    let hasNonNeutral = false;
+    
+    for (const typeId in activity.entries) {
+      const type = types[typeId];
+      if (!type) continue;
+      
+      const entry = activity.entries[typeId];
+      const value = entry.value;
+      const goalType = getGoalType(type);
+      
+      if (goalType === 'positive') {
+        // More is better: add to positive sum
+        positiveSum += value;
+        hasNonNeutral = true;
+      } else if (goalType === 'negative') {
+        // Less is better: add to negative sum
+        negativeSum += value;
+        hasNonNeutral = true;
+      }
+      // 'neutral' types are ignored for scoring
+    }
+    
+    // If only neutral/tracking activities, return neutral
+    if (!hasNonNeutral) {
+      return 'neutral';
+    }
+    
+    // Compare sums: positive wins ties
+    if (positiveSum >= negativeSum) return 'positive';
+    return 'negative';
+  };
+  
+  const activityScore = getActivityScore(activity, activityTypes);
+  
   const getColorClass = () => {
     if (!hasData) return 'bg-muted/50';
     
-    // Calculate intensity based on entry count (1-5 types max)
-    if (entryCount === 1) return 'bg-chart-3/50';
-    if (entryCount === 2) return 'bg-chart-3/65';
-    if (entryCount === 3) return 'bg-chart-3/80';
-    return 'bg-chart-3';
+    switch (activityScore) {
+      case 'positive':
+        return 'bg-activity-positive';
+      case 'negative':
+        return 'bg-activity-negative';
+      case 'neutral':
+      default:
+        return 'bg-activity-neutral';
+    }
   };
 
   const cellColor = getColorClass();
@@ -108,8 +164,8 @@ export function ActivityDay({ date, activity, compact = false }: ActivityDayProp
       {!compact && (
         <span className={cn(
           "text-xs sm:text-sm font-medium",
-          hasData && entryCount >= 2
-            ? "text-primary-foreground" 
+          hasData
+            ? "text-foreground" 
             : "text-foreground/70"
         )}>
           {dayNumber}

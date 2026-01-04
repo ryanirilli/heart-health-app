@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Header } from "@/components/Header";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -25,14 +24,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} dark`}>
+    <html lang="en" suppressHydrationWarning className="dark">
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <TooltipProvider
           delayDuration={100}
           skipDelayDuration={0}
           disableHoverableContent
         >
-          <Header />
           {children}
         </TooltipProvider>
       </body>
