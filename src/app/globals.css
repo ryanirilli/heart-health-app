@@ -31,53 +31,61 @@ a {
 }
 
 /* Rhythm (heart-health) calm theme
-   Light stays the same.
-   Dark updated to a modern "ink" palette: deep blue-gray backgrounds + soft neutral text.
-   Less forest, more spa-at-night.
+   Light: warm, muted paper tones - easy on the eyes
+   Dark: modern "ink" palette - deep blue-gray backgrounds + soft neutral text
 */
 @layer base {
   :root {
-    --background: 150 12% 97%;
-    --foreground: 167 18% 15%;
+    /* Warm paper background - not stark white */
+    --background: 40 20% 94%;
+    --foreground: 220 15% 25%;
 
-    --card: 120 14% 99%;
-    --card-foreground: 167 18% 15%;
+    /* Cards slightly lighter than bg for subtle lift */
+    --card: 40 25% 96%;
+    --card-foreground: 220 15% 25%;
 
-    --popover: 120 14% 99%;
-    --popover-foreground: 167 18% 15%;
+    --popover: 40 25% 96%;
+    --popover-foreground: 220 15% 25%;
 
-    --primary: 167 18% 15%;
-    --primary-foreground: 160 23% 97%;
+    /* Primary: warm charcoal */
+    --primary: 220 12% 28%;
+    --primary-foreground: 40 20% 96%;
 
-    --secondary: 156 13% 92%;
-    --secondary-foreground: 167 18% 15%;
+    /* Secondary: warm stone */
+    --secondary: 35 15% 88%;
+    --secondary-foreground: 220 15% 25%;
 
-    --muted: 150 14% 95%;
-    --muted-foreground: 162 9% 39%;
+    /* Muted: soft warm gray */
+    --muted: 38 12% 90%;
+    --muted-foreground: 220 8% 45%;
 
-    --accent: 150 17% 89%;
-    --accent-foreground: 167 18% 15%;
+    /* Accent: warm sand */
+    --accent: 35 18% 85%;
+    --accent-foreground: 220 15% 25%;
 
-    --destructive: 0 64% 57%;
+    --destructive: 0 55% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 137 10% 86%;
-    --input: 137 10% 86%;
+    /* Borders: warm, subtle */
+    --border: 35 12% 82%;
+    --input: 35 12% 82%;
 
-    --ring: 170 30% 32%;
+    /* Focus ring: calm teal */
+    --ring: 180 25% 40%;
 
-    --chart-1: 9 58% 63%;
-    --chart-2: 168 41% 38%;
-    --chart-3: 203 30% 35%;
-    --chart-4: 42 53% 54%;
-    --chart-5: 268 30% 55%;
+    /* Charts: muted, sophisticated palette */
+    --chart-1: 12 45% 55%;
+    --chart-2: 170 35% 42%;
+    --chart-3: 210 25% 45%;
+    --chart-4: 45 45% 50%;
+    --chart-5: 280 25% 50%;
 
     --radius: 0.5rem;
 
-    /* Activity score colors */
-    --activity-positive: 150 35% 82%;
-    --activity-negative: 0 45% 85%;
-    --activity-neutral: 220 15% 88%;
+    /* Activity score colors - softer */
+    --activity-positive: 160 25% 80%;
+    --activity-negative: 5 35% 82%;
+    --activity-neutral: 35 10% 85%;
   }
 
   /* NEW DARK THEME: modern, relaxing, less green */

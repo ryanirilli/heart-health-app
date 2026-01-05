@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { ActivityType, UIType, ButtonOption, MAX_BUTTON_OPTIONS, MIN_BUTTON_OPTIONS, GoalType, getGoalType, validateButtonOptions } from '@/lib/activityTypes';
 import { useActivityTypes } from './ActivityProvider';
+import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { cn } from '@/lib/utils';
 
 interface SortableOptionProps {
@@ -79,7 +80,7 @@ function SortableOption({ id, option, index, onLabelChange, onDelete }: Sortable
         value={option.label}
         onChange={(e) => onLabelChange(e.target.value)}
         placeholder={`Option ${index + 1}`}
-        className="flex-1 px-3 py-1.5 rounded-full border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
       />
       <button
         type="button"
@@ -310,7 +311,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 value={editingType.name}
                 onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
                 placeholder="e.g., Alcoholic Drinks, Exercise, Water"
-                className="w-full px-4 py-2 rounded-full border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
@@ -331,7 +332,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                   type="button"
                   onClick={() => setEditingType({ ...editingType, goalType: 'positive', isNegative: undefined })}
                   className={cn(
-                    "flex-1 py-2 px-2 rounded-full border-2 text-xs font-medium transition-all",
+                    "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
                     getGoalType(editingType) === 'positive'
                       ? "border-chart-2 bg-chart-2/10 text-chart-2"
                       : "border-border hover:border-muted-foreground/50 text-muted-foreground"
@@ -343,7 +344,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                   type="button"
                   onClick={() => setEditingType({ ...editingType, goalType: 'negative', isNegative: undefined })}
                   className={cn(
-                    "flex-1 py-2 px-2 rounded-full border-2 text-xs font-medium transition-all",
+                    "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
                     getGoalType(editingType) === 'negative'
                       ? "border-chart-1 bg-chart-1/10 text-chart-1"
                       : "border-border hover:border-muted-foreground/50 text-muted-foreground"
@@ -355,7 +356,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                   type="button"
                   onClick={() => setEditingType({ ...editingType, goalType: 'neutral', isNegative: undefined })}
                   className={cn(
-                    "flex-1 py-2 px-2 rounded-full border-2 text-xs font-medium transition-all",
+                    "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
                     getGoalType(editingType) === 'neutral'
                       ? "border-chart-3 bg-chart-3/10 text-chart-3"
                       : "border-border hover:border-muted-foreground/50 text-muted-foreground"
@@ -402,7 +403,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                       type="button"
                       onClick={() => setEditingType({ ...editingType, uiType: 'increment' })}
                       className={cn(
-                        "flex-1 py-2 px-2 rounded-full border-2 text-xs font-medium transition-all",
+                        "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
                         editingType.uiType === 'increment'
                           ? "border-primary bg-primary/10 text-foreground"
                           : "border-border hover:border-muted-foreground/50 text-muted-foreground"
@@ -414,7 +415,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                       type="button"
                       onClick={() => setEditingType({ ...editingType, uiType: 'slider' })}
                       className={cn(
-                        "flex-1 py-2 px-2 rounded-full border-2 text-xs font-medium transition-all",
+                        "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
                         editingType.uiType === 'slider'
                           ? "border-primary bg-primary/10 text-foreground"
                           : "border-border hover:border-muted-foreground/50 text-muted-foreground"
@@ -426,7 +427,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                       type="button"
                       onClick={() => setEditingType({ ...editingType, uiType: 'buttonGroup' })}
                       className={cn(
-                        "flex-1 py-2 px-2 rounded-full border-2 text-xs font-medium transition-all",
+                        "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
                         editingType.uiType === 'buttonGroup'
                           ? "border-primary bg-primary/10 text-foreground"
                           : "border-border hover:border-muted-foreground/50 text-muted-foreground"
@@ -448,7 +449,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                       value={editingType.unit ?? ''}
                       onChange={(e) => setEditingType({ ...editingType, unit: e.target.value, pluralize: true })}
                       placeholder="e.g., drink, minute, glass"
-                      className="w-full px-3 py-1.5 rounded-full border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
                 )}
@@ -462,7 +463,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                         type="number"
                         value={editingType.minValue ?? 0}
                         onChange={(e) => setEditingType({ ...editingType, minValue: Number(e.target.value) })}
-                        className="w-full px-3 py-1.5 rounded-full border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
                     <div className="space-y-1">
@@ -471,7 +472,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                         type="number"
                         value={editingType.maxValue ?? 10}
                         onChange={(e) => setEditingType({ ...editingType, maxValue: Number(e.target.value) })}
-                        className="w-full px-3 py-1.5 rounded-full border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
                     <div className="space-y-1">
@@ -480,7 +481,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                         type="number"
                         value={editingType.step ?? 1}
                         onChange={(e) => setEditingType({ ...editingType, step: Number(e.target.value) })}
-                        className="w-full px-3 py-1.5 rounded-full border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
                   </div>
@@ -496,15 +497,11 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
               </div>
             )}
 
-            <DialogFooter className="flex-col sm:flex-row gap-2 pt-4">
+            <DialogFooter className="flex-row gap-2 pt-4">
               {activeTypes.find(t => t.id === editingType.id) && (
-                <button
-                  type="button"
-                  onClick={() => handleDelete(editingType.id)}
-                  className="px-4 py-2 text-sm font-medium text-destructive hover:text-destructive/80 transition-colors"
-                >
-                  Delete Type
-                </button>
+                <ConfirmDeleteButton
+                  onDelete={() => handleDelete(editingType.id)}
+                />
               )}
               <div className="flex-1" />
               <button
@@ -547,7 +544,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                     <button
                       key={type.id}
                       onClick={() => handleEdit(type)}
-                      className="w-full flex items-center gap-3 p-3 rounded-full border border-border hover:border-muted-foreground/50 hover:bg-muted/50 transition-all text-left"
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-muted-foreground/50 hover:bg-muted/50 transition-all text-left"
                     >
                       <div className={cn(
                         "w-3 h-3 rounded-full",

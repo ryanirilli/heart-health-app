@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -22,11 +22,11 @@ import { ActivityType, formatValueWithUnit, getGoalType, getButtonOptionLabel } 
 import pluralizeLib from 'pluralize-esm';
 const { plural } = pluralizeLib;
 import { useActivityTypes } from './ActivityProvider';
+import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/lib/hooks/useMediaQuery';
 
 type DialogMode = 'view' | 'edit';
-type DeleteConfirmState = 'idle' | 'confirming';
 
 interface ActivityEntryDialogProps {
   open: boolean;
@@ -311,8 +311,6 @@ export function ActivityEntryDialog({
   const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
   const [showUnsetTypes, setShowUnsetTypes] = useState(false);
   const [mode, setMode] = useState<DialogMode>('view');
-  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>('idle');
-  const deleteConfirmTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMobile = useIsMobile();
 
   // Reset state when dialog opens with new data
@@ -332,12 +330,6 @@ export function ActivityEntryDialog({
       setEntries(initialEntries);
       setTrackedTypes(initialTracked);
       setShowUnsetTypes(false);
-      setDeleteConfirm('idle');
-      // Clear any pending timeout
-      if (deleteConfirmTimeoutRef.current) {
-        clearTimeout(deleteConfirmTimeoutRef.current);
-        deleteConfirmTimeoutRef.current = null;
-      }
       // Start in view mode if there's existing data, otherwise edit mode for new entries
       setMode(existingActivity ? 'view' : 'edit');
     }
@@ -381,30 +373,8 @@ export function ActivityEntryDialog({
     onOpenChange(false);
   };
 
-  const handleDeleteClick = () => {
-    if (deleteConfirm === 'idle') {
-      // First click - show confirmation
-      setDeleteConfirm('confirming');
-      // Auto-reset after 3 seconds
-      deleteConfirmTimeoutRef.current = setTimeout(() => {
-        setDeleteConfirm('idle');
-      }, 3000);
-    } else {
-      // Second click - actually delete
-      handleDelete();
-    }
-  };
-
   const handleDelete = () => {
     if (!onDelete) return;
-    
-    // Clear confirmation timeout
-    if (deleteConfirmTimeoutRef.current) {
-      clearTimeout(deleteConfirmTimeoutRef.current);
-      deleteConfirmTimeoutRef.current = null;
-    }
-    
-    // The onDelete callback now handles the mutation via React Query
     onDelete();
     onOpenChange(false);
   };
@@ -593,44 +563,11 @@ export function ActivityEntryDialog({
   const editFooter = (
     <div className="flex items-center justify-between gap-2 w-full">
       {existingActivity && onDelete && (
-        <button
-          type="button"
-          onClick={handleDeleteClick}
-          disabled={isPending}
-          className={cn(
-            "p-2 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed",
-            deleteConfirm === 'confirming'
-              ? "bg-destructive text-destructive-foreground"
-              : "text-destructive hover:bg-destructive/10"
-          )}
-          aria-label={deleteConfirm === 'confirming' ? 'Click again to confirm delete' : 'Delete activity'}
-          title={deleteConfirm === 'confirming' ? 'Click again to confirm' : 'Delete'}
-        >
-          {isDeleting ? (
-            <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-            </svg>
-          ) : deleteConfirm === 'confirming' ? (
-            <span className="flex items-center gap-1.5 px-1 text-sm font-medium">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                <line x1="10" x2="10" y1="11" y2="17"/>
-                <line x1="14" x2="14" y1="11" y2="17"/>
-              </svg>
-              Confirm?
-            </span>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6h18"/>
-              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-              <line x1="10" x2="10" y1="11" y2="17"/>
-              <line x1="14" x2="14" y1="11" y2="17"/>
-            </svg>
-          )}
-        </button>
+        <ConfirmDeleteButton
+          onDelete={handleDelete}
+          disabled={isSaving}
+          isDeleting={isDeleting}
+        />
       )}
       <div className="flex-1" />
       <button

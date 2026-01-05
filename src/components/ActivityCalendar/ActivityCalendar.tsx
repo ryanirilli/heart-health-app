@@ -107,70 +107,74 @@ export function ActivityCalendar() {
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-2 sm:gap-4">
         {/* View mode toggle */}
-        <div className="flex rounded-full bg-muted p-1">
-          <button
-            onClick={() => handleViewModeChange('month')}
-            className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
-              viewMode === 'month' 
-                ? "bg-primary text-primary-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Month
-          </button>
-          <button
-            onClick={() => handleViewModeChange('year')}
-            className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
-              viewMode === 'year' 
-                ? "bg-primary text-primary-foreground shadow-sm" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Year
-          </button>
+        <div className="flex">
+          <div className="flex rounded-full bg-muted p-1 border border-border">
+            <button
+              onClick={() => handleViewModeChange('month')}
+              className={cn(
+                "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
+                viewMode === 'month' 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Month
+            </button>
+            <button
+              onClick={() => handleViewModeChange('year')}
+              className={cn(
+                "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
+                viewMode === 'year' 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Year
+            </button>
+          </div>
         </div>
 
         {/* Navigation */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handlePrevious}
-            disabled={!canGoPrevious}
-            className={cn(
-              "p-2 rounded-full transition-colors",
-              canGoPrevious 
-                ? "hover:bg-muted text-muted-foreground hover:text-foreground" 
-                : "text-muted-foreground/30 cursor-not-allowed"
-            )}
-            aria-label="Previous"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
-          </button>
-          
-          <span className="text-sm font-medium text-foreground min-w-[120px] text-center">
-            {viewMode === 'month' ? `${getMonthName(month)} ${year}` : year}
-          </span>
-          
-          <button
-            onClick={handleNext}
-            disabled={!canGoNext}
-            className={cn(
-              "p-2 rounded-full transition-colors",
-              canGoNext 
-                ? "hover:bg-muted text-muted-foreground hover:text-foreground" 
-                : "text-muted-foreground/30 cursor-not-allowed"
-            )}
-            aria-label="Next"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
-          </button>
+        <div className="flex">
+          <div className="flex items-center gap-1 rounded-full border border-border bg-muted p-1">
+            <button
+              onClick={handlePrevious}
+              disabled={!canGoPrevious}
+              className={cn(
+                "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
+                canGoPrevious 
+                  ? "hover:bg-background text-muted-foreground hover:text-foreground" 
+                  : "text-muted-foreground/30 cursor-not-allowed"
+              )}
+              aria-label="Previous"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+            </button>
+            
+            <span className="text-sm font-medium text-foreground min-w-[120px] text-center">
+              {viewMode === 'month' ? `${getMonthName(month)} ${year}` : year}
+            </span>
+            
+            <button
+              onClick={handleNext}
+              disabled={!canGoNext}
+              className={cn(
+                "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
+                canGoNext 
+                  ? "hover:bg-background text-muted-foreground hover:text-foreground" 
+                  : "text-muted-foreground/30 cursor-not-allowed"
+              )}
+              aria-label="Next"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -27,19 +27,18 @@ export function ThemeToggle() {
 
   const applyTheme = (newTheme: Theme) => {
     const root = document.documentElement;
-    const body = document.body;
     
     if (newTheme === 'system') {
       const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       if (systemDark) {
-        body.classList.add('dark');
+        root.classList.add('dark');
       } else {
-        body.classList.remove('dark');
+        root.classList.remove('dark');
       }
     } else if (newTheme === 'dark') {
-      body.classList.add('dark');
+      root.classList.add('dark');
     } else {
-      body.classList.remove('dark');
+      root.classList.remove('dark');
     }
   };
 
@@ -52,7 +51,7 @@ export function ThemeToggle() {
   // Prevent hydration mismatch
   if (!mounted) {
     return (
-      <button className="p-2 rounded-full hover:bg-accent transition-colors">
+      <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-accent transition-colors">
         <Sun className="h-5 w-5" />
       </button>
     );
@@ -61,7 +60,7 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="p-2 rounded-full hover:bg-accent transition-colors text-foreground">
+        <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-accent transition-colors text-foreground">
           {theme === 'dark' ? (
             <Moon className="h-5 w-5" />
           ) : theme === 'light' ? (
