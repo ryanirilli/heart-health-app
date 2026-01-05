@@ -177,7 +177,7 @@ const PRESET_ACTIVITY_TYPES: PresetActivityType[] = [
   },
   {
     name: 'Exercise',
-    description: 'Track workout duration',
+    description: 'Track workout duration (0-3 hours)',
     colorClasses: { bg: 'bg-emerald-500/15', text: 'text-emerald-600' },
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -193,7 +193,10 @@ const PRESET_ACTIVITY_TYPES: PresetActivityType[] = [
       unit: 'minute',
       pluralize: true,
       goalType: 'positive',
-      uiType: 'increment',
+      uiType: 'slider',
+      minValue: 0,
+      maxValue: 180,
+      step: 15,
       order,
     }),
   },

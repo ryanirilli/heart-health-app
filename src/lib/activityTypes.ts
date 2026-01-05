@@ -129,6 +129,26 @@ export function canAddActivityType(types: ActivityTypeMap): boolean {
   return getActiveActivityTypes(types).length < MAX_ACTIVITY_TYPES;
 }
 
+/** Format minutes as hours and minutes gracefully */
+function formatMinutesAsTime(minutes: number): string {
+  if (minutes === 0) return '0 minutes';
+  
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours === 0) {
+    return mins === 1 ? '1 minute' : `${mins} minutes`;
+  }
+  
+  if (mins === 0) {
+    return hours === 1 ? '1 hour' : `${hours} hours`;
+  }
+  
+  const hourPart = hours === 1 ? '1 hour' : `${hours} hours`;
+  const minPart = mins === 1 ? '1 minute' : `${mins} minutes`;
+  return `${hourPart} ${minPart}`;
+}
+
 /** Format a value with the activity type's unit */
 export function formatValueWithUnit(value: number, type: ActivityType): string {
   // For button groups, show the label instead of value + unit
@@ -141,14 +161,19 @@ export function formatValueWithUnit(value: number, type: ActivityType): string {
     return `${type.name}: ${value}`;
   }
   
-  const { unit, pluralize } = type;
+  const { unit, pluralize: shouldPluralize } = type;
   
   // If no unit, just return the value
   if (!unit) {
     return `${value}`;
   }
   
-  if (type.pluralize && value !== 1) {
+  // Special handling for minutes - show as hours and minutes when appropriate
+  if (unit === 'minute' && value >= 60) {
+    return formatMinutesAsTime(value);
+  }
+  
+  if (shouldPluralize && value !== 1) {
     return `${value} ${plural(unit)}`;
   }
   
