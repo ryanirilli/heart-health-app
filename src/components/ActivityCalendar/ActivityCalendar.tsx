@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { getMonthName, getDateRange } from '@/lib/activities';
+import { getShortMonthName, getDateRange } from '@/lib/activities';
 import { DayView } from './DayView';
 import { MonthView } from './MonthView';
 import { YearView } from './YearView';
@@ -157,7 +157,7 @@ export function ActivityCalendar() {
         {/* Navigation (hidden for day view) */}
         {viewMode !== 'day' && (
           <div className="flex">
-            <div className="flex items-center gap-1 rounded-full border border-border bg-muted p-1">
+            <div className="flex items-center rounded-full border border-border bg-muted p-1">
               <button
                 onClick={handlePrevious}
                 disabled={!canGoPrevious}
@@ -174,8 +174,8 @@ export function ActivityCalendar() {
                 </svg>
               </button>
               
-              <span className="text-sm font-medium text-foreground min-w-[120px] text-center">
-                {viewMode === 'month' ? `${getMonthName(month)} ${year}` : year}
+              <span className="text-sm font-medium text-foreground min-w-[48px] text-center px-1">
+                {viewMode === 'month' ? getShortMonthName(month) : year}
               </span>
               
               <button
