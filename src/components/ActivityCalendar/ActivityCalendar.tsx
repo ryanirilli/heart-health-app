@@ -2,23 +2,25 @@
 
 import { useState, useMemo } from 'react';
 import { getMonthName, getDateRange } from '@/lib/activities';
+import { DayView } from './DayView';
 import { MonthView } from './MonthView';
 import { YearView } from './YearView';
 import { useActivities } from './ActivityProvider';
 import { cn } from '@/lib/utils';
 
-type ViewMode = 'month' | 'year';
+type ViewMode = 'day' | 'month' | 'year';
 
 export function ActivityCalendar() {
   const { activities } = useActivities();
   const dateRange = useMemo(() => getDateRange(activities), [activities]);
   
-  const [viewMode, setViewMode] = useState<ViewMode>('year');
+  const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [month, setMonth] = useState(() => new Date().getMonth());
 
-  // Check if we can navigate
+  // Check if we can navigate (only for month/year views)
   const canGoPrevious = useMemo(() => {
+    if (viewMode === 'day') return false;
     if (viewMode === 'year') {
       return year > dateRange.minYear;
     }
@@ -28,6 +30,7 @@ export function ActivityCalendar() {
   }, [viewMode, year, month, dateRange]);
 
   const canGoNext = useMemo(() => {
+    if (viewMode === 'day') return false;
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
@@ -71,7 +74,7 @@ export function ActivityCalendar() {
     }
   };
 
-  // When switching to month view, default to current month (clamped to valid range)
+  // When switching view modes, set appropriate defaults
   const handleViewModeChange = (newMode: ViewMode) => {
     setViewMode(newMode);
     
@@ -101,7 +104,11 @@ export function ActivityCalendar() {
         setYear(dateRange.maxYear);
         setMonth(dateRange.maxMonth);
       }
+    } else if (newMode === 'year') {
+      // Default to current year
+      setYear(new Date().getFullYear());
     }
+    // Day view doesn't need any setup - it always shows today
   };
 
   return (
@@ -111,6 +118,17 @@ export function ActivityCalendar() {
         {/* View mode toggle */}
         <div className="flex">
           <div className="flex rounded-full bg-muted p-1 border border-border">
+            <button
+              onClick={() => handleViewModeChange('day')}
+              className={cn(
+                "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
+                viewMode === 'day' 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Day
+            </button>
             <button
               onClick={() => handleViewModeChange('month')}
               className={cn(
@@ -136,51 +154,55 @@ export function ActivityCalendar() {
           </div>
         </div>
 
-        {/* Navigation */}
-        <div className="flex">
-          <div className="flex items-center gap-1 rounded-full border border-border bg-muted p-1">
-            <button
-              onClick={handlePrevious}
-              disabled={!canGoPrevious}
-              className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
-                canGoPrevious 
-                  ? "hover:bg-background text-muted-foreground hover:text-foreground" 
-                  : "text-muted-foreground/30 cursor-not-allowed"
-              )}
-              aria-label="Previous"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m15 18-6-6 6-6"/>
-              </svg>
-            </button>
-            
-            <span className="text-sm font-medium text-foreground min-w-[120px] text-center">
-              {viewMode === 'month' ? `${getMonthName(month)} ${year}` : year}
-            </span>
-            
-            <button
-              onClick={handleNext}
-              disabled={!canGoNext}
-              className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
-                canGoNext 
-                  ? "hover:bg-background text-muted-foreground hover:text-foreground" 
-                  : "text-muted-foreground/30 cursor-not-allowed"
-              )}
-              aria-label="Next"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
-            </button>
+        {/* Navigation (hidden for day view) */}
+        {viewMode !== 'day' && (
+          <div className="flex">
+            <div className="flex items-center gap-1 rounded-full border border-border bg-muted p-1">
+              <button
+                onClick={handlePrevious}
+                disabled={!canGoPrevious}
+                className={cn(
+                  "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
+                  canGoPrevious 
+                    ? "hover:bg-background text-muted-foreground hover:text-foreground" 
+                    : "text-muted-foreground/30 cursor-not-allowed"
+                )}
+                aria-label="Previous"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m15 18-6-6 6-6"/>
+                </svg>
+              </button>
+              
+              <span className="text-sm font-medium text-foreground min-w-[120px] text-center">
+                {viewMode === 'month' ? `${getMonthName(month)} ${year}` : year}
+              </span>
+              
+              <button
+                onClick={handleNext}
+                disabled={!canGoNext}
+                className={cn(
+                  "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
+                  canGoNext 
+                    ? "hover:bg-background text-muted-foreground hover:text-foreground" 
+                    : "text-muted-foreground/30 cursor-not-allowed"
+                )}
+                aria-label="Next"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Calendar view */}
       <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
-        {viewMode === 'month' ? (
+        {viewMode === 'day' ? (
+          <DayView />
+        ) : viewMode === 'month' ? (
           <MonthView year={year} month={month} />
         ) : (
           <YearView year={year} />

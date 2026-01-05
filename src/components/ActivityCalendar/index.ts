@@ -1,7 +1,9 @@
 export { ActivityCalendar } from './ActivityCalendar';
 export { ActivityDay } from './ActivityDay';
+export { DayView } from './DayView';
 export { MonthView } from './MonthView';
 export { YearView } from './YearView';
 export { ActivityProvider, useActivityTypes, useActivities } from './ActivityProvider';
 export { ActivityEntryDialog } from './ActivityEntryDialog';
+export { ActivityFormContent } from './ActivityFormContent';
 export { ActivityTypeManager } from './ActivityTypeManager';
