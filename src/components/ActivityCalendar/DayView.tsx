@@ -9,6 +9,8 @@ import { useActivities, useActivityTypes } from './ActivityProvider';
 import { formatDialogDate } from './ActivityFormContent';
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { cn } from '@/lib/utils';
+import { motion, PanInfo, AnimatePresence } from 'framer-motion';
+import { useIsMobile } from '@/lib/hooks/useMediaQuery';
 
 type FormMode = 'view' | 'edit';
 
@@ -251,14 +253,39 @@ function ActivityViewCard({
   );
 }
 
-export function DayView() {
+const SWIPE_THRESHOLD = 50;
+
+// Helper to check if a date is today
+function isToday(date: Date): boolean {
+  const today = new Date();
+  return date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
+}
+
+interface DayViewProps {
+  selectedDate: Date;
+  slideDirection: 'left' | 'right';
+  onPreviousDay: () => void;
+  onNextDay: () => void;
+  canGoNext: boolean;
+}
+
+export function DayView({ 
+  selectedDate, 
+  slideDirection, 
+  onPreviousDay, 
+  onNextDay, 
+  canGoNext 
+}: DayViewProps) {
   const { activities, updateActivity, deleteActivity, isSaving, isDeleting } = useActivities();
   const { activeTypes, activityTypes } = useActivityTypes();
   
-  const today = useMemo(() => new Date(), []);
-  const todayStr = useMemo(() => formatDate(today), [today]);
-  const existingActivity = activities[todayStr];
-  const formattedDate = formatDialogDate(today);
+  const selectedDateStr = useMemo(() => formatDate(selectedDate), [selectedDate]);
+  const existingActivity = activities[selectedDateStr];
+  const formattedDate = formatDialogDate(selectedDate);
+  
+  const isCurrentlyToday = isToday(selectedDate);
 
   // All hooks must be called unconditionally
   const [mode, setMode] = useState<FormMode>('edit');
@@ -266,7 +293,7 @@ export function DayView() {
   const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
   const [showUnsetTypes, setShowUnsetTypes] = useState(false);
 
-  // Reset state when existingActivity changes
+  // Reset state when existingActivity or selectedDate changes
   useEffect(() => {
     const initialEntries: { [typeId: string]: number | undefined } = {};
     const initialTracked = new Set<string>();
@@ -282,7 +309,45 @@ export function DayView() {
     setTrackedTypes(initialTracked);
     setShowUnsetTypes(false);
     setMode(existingActivity ? 'view' : 'edit');
-  }, [existingActivity]);
+  }, [existingActivity, selectedDateStr]);
+  
+  // Handle swipe gesture completion (mobile only)
+  const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const { offset, velocity } = info;
+    const absX = Math.abs(offset.x);
+    const absVelocity = Math.abs(velocity.x);
+    
+    // Consider both distance and velocity for swipe detection
+    const isSwipe = absX > SWIPE_THRESHOLD || absVelocity > 500;
+    
+    if (isSwipe) {
+      if (offset.x > 0) {
+        // Swiped right → go to previous day (always allowed)
+        onPreviousDay();
+      } else {
+        // Swiped left → go to next day (only if not at today)
+        if (canGoNext) {
+          onNextDay();
+        }
+      }
+    }
+  }, [canGoNext, onPreviousDay, onNextDay]);
+  
+  // Animation variants for AnimatePresence
+  const slideVariants = {
+    enter: (direction: 'left' | 'right') => ({
+      x: direction === 'left' ? 300 : -300,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: 'left' | 'right') => ({
+      x: direction === 'left' ? -300 : 300,
+      opacity: 0,
+    }),
+  };
 
   const handleEntryChange = useCallback((typeId: string, value: number | undefined) => {
     setEntries(prev => ({
@@ -315,12 +380,12 @@ export function DayView() {
       const value = entries[typeId] ?? 0;
       activityEntries[typeId] = { typeId, value };
     }
-    updateActivity(todayStr, activityEntries);
-  }, [trackedTypes, entries, updateActivity, todayStr]);
+    updateActivity(selectedDateStr, activityEntries);
+  }, [trackedTypes, entries, updateActivity, selectedDateStr]);
 
   const handleDelete = useCallback(() => {
-    deleteActivity(todayStr);
-  }, [deleteActivity, todayStr]);
+    deleteActivity(selectedDateStr);
+  }, [deleteActivity, selectedDateStr]);
 
   const handleCancel = useCallback(() => {
     if (existingActivity) {
@@ -547,30 +612,71 @@ export function DayView() {
   const content = mode === 'view' ? viewContent : editContent;
   const footer = mode === 'view' ? null : editFooter;
 
+  // Only enable drag/swipe on mobile
+  const isMobile = useIsMobile();
+
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="relative flex items-start justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">
-            {title}
-          </h2>
-          <p className="text-sm text-muted-foreground">{formattedDate}</p>
-        </div>
-        {editButton}
-      </div>
+    <div className="relative overflow-hidden">
+      {/* Swipeable Card with AnimatePresence for smooth transitions */}
+      <AnimatePresence mode="popLayout" custom={slideDirection}>
+        <motion.div
+          key={selectedDateStr}
+          custom={slideDirection}
+          variants={slideVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{
+            x: { type: "spring", stiffness: 300, damping: 30 },
+            opacity: { duration: 0.2 },
+          }}
+          drag={isMobile ? "x" : false}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.2}
+          onDragEnd={handleDragEnd}
+          className={cn(
+            "bg-card rounded-xl p-6 border border-border shadow-sm",
+            isMobile && "touch-none"
+          )}
+        >
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="relative flex items-start justify-between">
+              <div className="flex-1 text-center md:text-left">
+                <h2 className="text-lg font-semibold text-foreground">
+                  {title}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {formattedDate}
+                  {isCurrentlyToday && (
+                    <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                      Today
+                    </span>
+                  )}
+                </p>
+              </div>
+              {editButton}
+            </div>
 
-      {/* Content */}
-      <div className="py-2">
-        {content}
-      </div>
+            {/* Content */}
+            <div className="py-2">
+              {content}
+            </div>
 
-      {/* Footer */}
-      {footer && (
-        <div className="pt-4 border-t border-border">
-          {footer}
-        </div>
-      )}
+            {/* Footer */}
+            {footer && (
+              <div className="pt-4 border-t border-border">
+                {footer}
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+      
+      {/* Swipe hint - mobile only */}
+      <div className="mt-4 text-center text-xs text-muted-foreground/50 md:hidden">
+        Swipe to navigate between days
+      </div>
     </div>
   );
 }
