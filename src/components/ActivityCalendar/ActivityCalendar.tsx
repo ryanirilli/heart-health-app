@@ -109,11 +109,11 @@ export function ActivityCalendar() {
       {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* View mode toggle */}
-        <div className="flex rounded-lg bg-muted p-1">
+        <div className="flex rounded-full bg-muted p-1">
           <button
             onClick={() => handleViewModeChange('month')}
             className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
+              "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
               viewMode === 'month' 
                 ? "bg-primary text-primary-foreground shadow-sm" 
                 : "text-muted-foreground hover:text-foreground"
@@ -124,7 +124,7 @@ export function ActivityCalendar() {
           <button
             onClick={() => handleViewModeChange('year')}
             className={cn(
-              "px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
+              "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
               viewMode === 'year' 
                 ? "bg-primary text-primary-foreground shadow-sm" 
                 : "text-muted-foreground hover:text-foreground"
@@ -140,7 +140,7 @@ export function ActivityCalendar() {
             onClick={handlePrevious}
             disabled={!canGoPrevious}
             className={cn(
-              "p-2 rounded-md transition-colors",
+              "p-2 rounded-full transition-colors",
               canGoPrevious 
                 ? "hover:bg-muted text-muted-foreground hover:text-foreground" 
                 : "text-muted-foreground/30 cursor-not-allowed"
@@ -160,7 +160,7 @@ export function ActivityCalendar() {
             onClick={handleNext}
             disabled={!canGoNext}
             className={cn(
-              "p-2 rounded-md transition-colors",
+              "p-2 rounded-full transition-colors",
               canGoNext 
                 ? "hover:bg-muted text-muted-foreground hover:text-foreground" 
                 : "text-muted-foreground/30 cursor-not-allowed"

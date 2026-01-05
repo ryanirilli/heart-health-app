@@ -1,9 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { ActivityMap, ActivityEntry as AppActivityEntry } from '@/lib/activities';
+import { DbActivity } from '@/lib/supabase/types';
 
 interface ActivityEntry {
   typeId: string;
   value: number;
+}
+
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    
+    // Get authenticated user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Fetch activities
+    const { data: dbActivities, error } = await supabase
+      .from('activities')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Failed to fetch activities:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch activities' },
+        { status: 500 }
+      );
+    }
+
+    // Convert DB activities to app format (grouped by date)
+    const activities: ActivityMap = {};
+    (dbActivities as DbActivity[] | null)?.forEach((a) => {
+      if (!activities[a.date]) {
+        activities[a.date] = {
+          date: a.date,
+          entries: {},
+        };
+      }
+      activities[a.date].entries[a.activity_type_id] = {
+        typeId: a.activity_type_id,
+        value: a.value,
+      } as AppActivityEntry;
+    });
+
+    return NextResponse.json(activities);
+  } catch (error) {
+    console.error('Failed to fetch activities:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch activities' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {

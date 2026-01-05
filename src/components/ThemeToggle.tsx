@@ -52,7 +52,7 @@ export function ThemeToggle() {
   // Prevent hydration mismatch
   if (!mounted) {
     return (
-      <button className="p-2 rounded-md hover:bg-accent transition-colors">
+      <button className="p-2 rounded-full hover:bg-accent transition-colors">
         <Sun className="h-5 w-5" />
       </button>
     );
@@ -61,7 +61,7 @@ export function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="p-2 rounded-md hover:bg-accent transition-colors text-foreground">
+        <button className="p-2 rounded-full hover:bg-accent transition-colors text-foreground">
           {theme === 'dark' ? (
             <Moon className="h-5 w-5" />
           ) : theme === 'light' ? (

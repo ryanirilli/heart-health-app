@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/lib/hooks/useMediaQuery';
 
 type DialogMode = 'view' | 'edit';
+type DeleteConfirmState = 'idle' | 'confirming';
 
 interface ActivityEntryDialogProps {
   open: boolean;
@@ -34,6 +35,8 @@ interface ActivityEntryDialogProps {
   existingActivity?: Activity;
   onSave: (date: string, entries: { [typeId: string]: ActivityEntry }) => void;
   onDelete?: () => void;
+  isSaving?: boolean;
+  isDeleting?: boolean;
 }
 
 function formatDialogDate(date: Date): string {
@@ -105,7 +108,7 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
             }}
             disabled={disabled}
             className={cn(
-              "flex-1 min-w-[80px] py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all",
+              "flex-1 min-w-[80px] py-2.5 px-3 rounded-full border-2 text-sm font-medium transition-all",
               currentValue === option.value
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground",
@@ -300,13 +303,16 @@ export function ActivityEntryDialog({
   existingActivity,
   onSave,
   onDelete,
+  isSaving = false,
+  isDeleting = false,
 }: ActivityEntryDialogProps) {
   const { activeTypes, activityTypes } = useActivityTypes();
   const [entries, setEntries] = useState<{ [typeId: string]: number | undefined }>({});
   const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUnsetTypes, setShowUnsetTypes] = useState(false);
   const [mode, setMode] = useState<DialogMode>('view');
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState>('idle');
+  const deleteConfirmTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMobile = useIsMobile();
 
   // Reset state when dialog opens with new data
@@ -326,6 +332,12 @@ export function ActivityEntryDialog({
       setEntries(initialEntries);
       setTrackedTypes(initialTracked);
       setShowUnsetTypes(false);
+      setDeleteConfirm('idle');
+      // Clear any pending timeout
+      if (deleteConfirmTimeoutRef.current) {
+        clearTimeout(deleteConfirmTimeoutRef.current);
+        deleteConfirmTimeoutRef.current = null;
+      }
       // Start in view mode if there's existing data, otherwise edit mode for new entries
       setMode(existingActivity ? 'view' : 'edit');
     }
@@ -354,60 +366,47 @@ export function ActivityEntryDialog({
     });
   };
 
-  const handleSave = async () => {
-    setIsSubmitting(true);
+  const handleSave = () => {
+    const dateStr = formatDate(date);
     
-    try {
-      const dateStr = formatDate(date);
-      
-      // Build entries object - only include types that are explicitly tracked
-      const activityEntries: { [typeId: string]: ActivityEntry } = {};
-      for (const typeId of trackedTypes) {
-        const value = entries[typeId] ?? 0;
-        activityEntries[typeId] = { typeId, value };
-      }
+    // Build entries object - only include types that are explicitly tracked
+    const activityEntries: { [typeId: string]: ActivityEntry } = {};
+    for (const typeId of trackedTypes) {
+      const value = entries[typeId] ?? 0;
+      activityEntries[typeId] = { typeId, value };
+    }
 
-      const response = await fetch('/api/activities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: dateStr, entries: activityEntries }),
-      });
+    // The onSave callback now handles the mutation via React Query
+    onSave(dateStr, activityEntries);
+    onOpenChange(false);
+  };
 
-      if (!response.ok) {
-        throw new Error('Failed to save activity');
-      }
-
-      onSave(dateStr, activityEntries);
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to save activity:', error);
-    } finally {
-      setIsSubmitting(false);
+  const handleDeleteClick = () => {
+    if (deleteConfirm === 'idle') {
+      // First click - show confirmation
+      setDeleteConfirm('confirming');
+      // Auto-reset after 3 seconds
+      deleteConfirmTimeoutRef.current = setTimeout(() => {
+        setDeleteConfirm('idle');
+      }, 3000);
+    } else {
+      // Second click - actually delete
+      handleDelete();
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!onDelete) return;
     
-    setIsSubmitting(true);
-    
-    try {
-      const dateStr = formatDate(date);
-      const response = await fetch(`/api/activities?date=${dateStr}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete activity');
-      }
-
-      onDelete();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Failed to delete activity:', error);
-    } finally {
-      setIsSubmitting(false);
+    // Clear confirmation timeout
+    if (deleteConfirmTimeoutRef.current) {
+      clearTimeout(deleteConfirmTimeoutRef.current);
+      deleteConfirmTimeoutRef.current = null;
     }
+    
+    // The onDelete callback now handles the mutation via React Query
+    onDelete();
+    onOpenChange(false);
   };
 
   const formattedDate = formatDialogDate(date);
@@ -588,17 +587,49 @@ export function ActivityEntryDialog({
     </div>
   );
 
+  const isPending = isSaving || isDeleting;
+
   // Edit mode footer
   const editFooter = (
     <div className="flex items-center justify-between gap-2 w-full">
       {existingActivity && onDelete && (
         <button
           type="button"
-          onClick={handleDelete}
-          disabled={isSubmitting}
-          className="px-4 py-2 text-sm font-medium text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50"
+          onClick={handleDeleteClick}
+          disabled={isPending}
+          className={cn(
+            "p-2 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+            deleteConfirm === 'confirming'
+              ? "bg-destructive text-destructive-foreground"
+              : "text-destructive hover:bg-destructive/10"
+          )}
+          aria-label={deleteConfirm === 'confirming' ? 'Click again to confirm delete' : 'Delete activity'}
+          title={deleteConfirm === 'confirming' ? 'Click again to confirm' : 'Delete'}
         >
-          Delete
+          {isDeleting ? (
+            <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+          ) : deleteConfirm === 'confirming' ? (
+            <span className="flex items-center gap-1.5 px-1 text-sm font-medium">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                <line x1="10" x2="10" y1="11" y2="17"/>
+                <line x1="14" x2="14" y1="11" y2="17"/>
+              </svg>
+              Confirm?
+            </span>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 6h18"/>
+              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+              <line x1="10" x2="10" y1="11" y2="17"/>
+              <line x1="14" x2="14" y1="11" y2="17"/>
+            </svg>
+          )}
         </button>
       )}
       <div className="flex-1" />
@@ -620,21 +651,28 @@ export function ActivityEntryDialog({
             onOpenChange(false);
           }
         }}
-        disabled={isSubmitting}
-        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        disabled={isPending}
+        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Cancel
       </button>
       <button
         type="button"
         onClick={handleSave}
-        disabled={activeTypes.length === 0 || isSubmitting}
+        disabled={activeTypes.length === 0 || isPending}
         className={cn(
-          "px-6 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+          "px-6 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
           "bg-primary text-primary-foreground hover:bg-primary/90"
         )}
       >
-        {isSubmitting ? 'Saving...' : 'Save'}
+        {isSaving ? (
+          <span className="flex items-center gap-2">
+            <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            </svg>
+            Saving...
+          </span>
+        ) : 'Save'}
       </button>
     </div>
   );

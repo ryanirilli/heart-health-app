@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryProvider } from "@/lib/providers/QueryProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,13 +27,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <TooltipProvider
-          delayDuration={100}
-          skipDelayDuration={0}
-          disableHoverableContent
-        >
-          {children}
-        </TooltipProvider>
+        <QueryProvider>
+          <TooltipProvider
+            delayDuration={100}
+            skipDelayDuration={0}
+            disableHoverableContent
+          >
+            {children}
+          </TooltipProvider>
+        </QueryProvider>
       </body>
     </html>
   );

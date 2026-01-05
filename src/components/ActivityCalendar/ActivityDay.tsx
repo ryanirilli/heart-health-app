@@ -36,7 +36,7 @@ function formatTooltipDate(date: Date): string {
 
 export function ActivityDay({ date, activity, compact = false }: ActivityDayProps) {
   const { activityTypes } = useActivityTypes();
-  const { updateActivity, deleteActivity } = useActivities();
+  const { updateActivity, deleteActivity, isSaving, isDeleting } = useActivities();
   const [dialogOpen, setDialogOpen] = useState(false);
   
   if (!date) {
@@ -214,6 +214,8 @@ export function ActivityDay({ date, activity, compact = false }: ActivityDayProp
         existingActivity={activity}
         onSave={handleSave}
         onDelete={hasData ? handleDelete : undefined}
+        isSaving={isSaving}
+        isDeleting={isDeleting}
       />
     </>
   );

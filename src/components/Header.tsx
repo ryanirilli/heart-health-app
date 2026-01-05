@@ -32,7 +32,7 @@ export function Header() {
             <ThemeToggle />
             <button
               onClick={handleSignOut}
-              className="flex items-center justify-center w-9 h-9 rounded-lg hover:bg-muted transition-colors"
+              className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors"
               title="Sign out"
             >
               <LogOut className="h-4 w-4 text-muted-foreground" />
