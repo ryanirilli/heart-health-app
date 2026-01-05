@@ -37,6 +37,7 @@
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.23",
     "babel-plugin-react-compiler": "1.0.0",
+    "canvas": "^3.2.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
     "postcss": "^8.5.6",
@@ -48,6 +49,7 @@
     "unrs-resolver"
   ],
   "trustedDependencies": [
+    "canvas",
     "sharp",
     "unrs-resolver"
   ]
