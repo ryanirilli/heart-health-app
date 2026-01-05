@@ -191,16 +191,14 @@ function ActivityTypeCard({
             : "border-border hover:border-muted-foreground/40"
       )}
     >
-      {/* Clickable header to toggle tracking */}
-      <button
-        type="button"
-        onClick={() => !isDisabled && onToggleTracked(!isTracked)}
-        disabled={isDisabled}
+      {/* Header - clickable only when not tracked */}
+      <div
         className={cn(
           "w-full flex items-center gap-2 p-4 text-left transition-colors",
-          !isDisabled && !isTracked && "hover:bg-muted/50",
-          isDisabled && "opacity-50 cursor-not-allowed"
+          !isDisabled && !isTracked && "hover:bg-muted/50 cursor-pointer",
+          isDisabled && "opacity-50"
         )}
+        onClick={() => !isDisabled && !isTracked && onToggleTracked(true)}
       >
         <div className={cn(
           "w-2 h-2 rounded-full",
@@ -222,11 +220,13 @@ function ActivityTypeCard({
           </span>
         )}
         {isTracked && (
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+          <ConfirmDeleteButton
+            onDelete={() => onToggleTracked(false)}
+            disabled={isDisabled}
+            confirmLabel="Remove?"
+          />
         )}
-      </button>
+      </div>
       
       {/* Value input (shown when tracked) */}
       {isTracked && (
