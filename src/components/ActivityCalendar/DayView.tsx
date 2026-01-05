@@ -50,6 +50,18 @@ export function DayView({
   
   const isCurrentlyToday = isToday(selectedDate);
 
+  // Track if this is the initial mount to skip animation
+  const [isInitialMount, setIsInitialMount] = useState(true);
+  
+  // After first render, allow animations
+  useEffect(() => {
+    // Use a small timeout to ensure the initial render completes without animation
+    const timer = setTimeout(() => {
+      setIsInitialMount(false);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
   // All hooks must be called unconditionally
   const [mode, setMode] = useState<FormMode>('edit');
   const [entries, setEntries] = useState<{ [typeId: string]: number | undefined }>({});
@@ -389,7 +401,7 @@ export function DayView({
           key={selectedDateStr}
           custom={slideDirection}
           variants={slideVariants}
-          initial="enter"
+          initial={isInitialMount ? "center" : "enter"}
           animate="center"
           exit="exit"
           transition={{
