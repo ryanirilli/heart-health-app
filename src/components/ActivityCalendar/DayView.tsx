@@ -1,257 +1,20 @@
 'use client';
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { formatDate, Activity, ActivityEntry } from '@/lib/activities';
-import { ActivityType, formatValueWithUnit, getGoalType, getButtonOptionLabel } from '@/lib/activityTypes';
-import pluralizeLib from 'pluralize-esm';
-const { plural } = pluralizeLib;
+import { formatDate, ActivityEntry } from '@/lib/activities';
 import { useActivities, useActivityTypes } from './ActivityProvider';
-import { formatDialogDate } from './ActivityFormContent';
+import { 
+  formatDialogDate, 
+  EntryInput, 
+  ActivityTypeCard, 
+  ActivityViewCard 
+} from './ActivityFormContent';
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { cn } from '@/lib/utils';
-import { motion, PanInfo, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { useIsMobile } from '@/lib/hooks/useMediaQuery';
 
 type FormMode = 'view' | 'edit';
-
-interface EntryInputProps {
-  type: ActivityType;
-  value: number | undefined;
-  onChange: (value: number | undefined) => void;
-  disabled?: boolean;
-}
-
-function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
-  const currentValue = value ?? 0;
-  const minValue = type.minValue ?? 0;
-  const maxValue = type.maxValue ?? 100;
-  const step = type.step ?? 1;
-
-  if (type.uiType === 'slider') {
-    const progress = ((currentValue - minValue) / (maxValue - minValue)) * 100;
-    
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {formatValueWithUnit(currentValue, type)}
-          </span>
-        </div>
-        <input
-          type="range"
-          min={minValue}
-          max={maxValue}
-          step={step}
-          value={currentValue}
-          onChange={(e) => onChange(Number(e.target.value))}
-          disabled={disabled}
-          className="activity-slider"
-          style={{ '--slider-progress': `${progress}%` } as React.CSSProperties}
-        />
-      </div>
-    );
-  }
-
-  if (type.uiType === 'buttonGroup') {
-    const options = type.buttonOptions ?? [];
-    
-    return (
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => {
-              if (currentValue === option.value) {
-                onChange(0);
-              } else {
-                onChange(option.value);
-              }
-            }}
-            disabled={disabled}
-            className={cn(
-              "flex-1 min-w-[80px] py-2.5 px-3 rounded-full border-2 text-sm font-medium transition-all",
-              currentValue === option.value
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground",
-              disabled && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={() => onChange(Math.max(0, currentValue - step))}
-        disabled={disabled || currentValue <= 0}
-        className={cn(
-          "w-10 h-10 rounded-full border-2 text-lg font-bold transition-all flex items-center justify-center",
-          disabled || currentValue <= 0
-            ? "border-muted text-muted-foreground cursor-not-allowed"
-            : "border-border hover:border-foreground text-foreground hover:bg-muted"
-        )}
-      >
-        −
-      </button>
-      <div className="flex-1 text-center">
-        <span className="text-2xl font-bold text-foreground">
-          {currentValue}
-        </span>
-        {type.unit && (
-          <span className="ml-2 text-sm text-muted-foreground">
-            {type.pluralize && currentValue !== 1 
-              ? plural(type.unit)
-              : type.unit}
-          </span>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={() => onChange(currentValue + step)}
-        disabled={disabled}
-        className="w-10 h-10 rounded-full border-2 border-border hover:border-foreground text-lg font-bold text-foreground hover:bg-muted transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        +
-      </button>
-    </div>
-  );
-}
-
-function ActivityTypeCard({ 
-  type, 
-  value, 
-  isTracked,
-  onChange, 
-  onToggleTracked,
-  disabled 
-}: { 
-  type: ActivityType; 
-  value: number | undefined;
-  isTracked: boolean;
-  onChange: (value: number | undefined) => void;
-  onToggleTracked: (tracked: boolean) => void;
-  disabled?: boolean;
-}) {
-  const goalType = getGoalType(type);
-  const isDisabled = disabled || type.deleted;
-  
-  return (
-    <div 
-      className={cn(
-        "rounded-lg border transition-all overflow-hidden",
-        type.deleted 
-          ? "border-border/50 bg-muted/30" 
-          : isTracked
-            ? "border-primary/50 bg-primary/5"
-            : "border-border hover:border-muted-foreground/40"
-      )}
-    >
-      <div
-        className={cn(
-          "w-full flex items-center gap-2 p-4 text-left transition-colors",
-          !isDisabled && !isTracked && "hover:bg-muted/50 cursor-pointer",
-          isDisabled && "opacity-50"
-        )}
-        onClick={() => !isDisabled && !isTracked && onToggleTracked(true)}
-      >
-        <div className={cn(
-          "w-2 h-2 rounded-full",
-          goalType === 'negative' ? "bg-chart-1" : 
-          goalType === 'positive' ? "bg-chart-2" : 
-          "bg-chart-3"
-        )} />
-        <span className="text-sm font-medium text-foreground flex-1">
-          {type.name}
-        </span>
-        {type.deleted && (
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-            Archived
-          </span>
-        )}
-        {!isTracked && !isDisabled && (
-          <span className="text-xs text-muted-foreground">
-            Tap to log
-          </span>
-        )}
-        {isTracked && (
-          <ConfirmDeleteButton
-            onDelete={() => onToggleTracked(false)}
-            disabled={isDisabled}
-            confirmLabel="Remove?"
-          />
-        )}
-      </div>
-      
-      {isTracked && (
-        <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-1 duration-150">
-          <EntryInput
-            type={type}
-            value={value}
-            onChange={onChange}
-            disabled={isDisabled}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ActivityViewCard({ 
-  type, 
-  value 
-}: { 
-  type: ActivityType; 
-  value: number;
-}) {
-  const goalType = getGoalType(type);
-  
-  const displayValue = () => {
-    if (type.uiType === 'buttonGroup') {
-      const label = getButtonOptionLabel(type, value);
-      return label || `${value}`;
-    }
-    return formatValueWithUnit(value, type);
-  };
-  
-  return (
-    <div 
-      className={cn(
-        "rounded-lg border p-4 transition-all",
-        type.deleted 
-          ? "border-border/50 bg-muted/30" 
-          : "border-border bg-card"
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={cn(
-            "w-2 h-2 rounded-full",
-            goalType === 'negative' ? "bg-chart-1" : 
-            goalType === 'positive' ? "bg-chart-2" : 
-            "bg-chart-3"
-          )} />
-          <span className="text-sm font-medium text-foreground">
-            {type.name}
-          </span>
-          {type.deleted && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-              Archived
-            </span>
-          )}
-        </div>
-        <span className="text-lg font-semibold text-foreground">
-          {displayValue()}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 const SWIPE_THRESHOLD = 50;
 
@@ -312,26 +75,29 @@ export function DayView({
   }, [existingActivity, selectedDateStr]);
   
   // Handle swipe gesture completion (mobile only)
-  const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const { offset, velocity } = info;
-    const absX = Math.abs(offset.x);
-    const absVelocity = Math.abs(velocity.x);
-    
-    // Consider both distance and velocity for swipe detection
-    const isSwipe = absX > SWIPE_THRESHOLD || absVelocity > 500;
-    
-    if (isSwipe) {
-      if (offset.x > 0) {
-        // Swiped right → go to previous day (always allowed)
-        onPreviousDay();
-      } else {
-        // Swiped left → go to next day (only if not at today)
-        if (canGoNext) {
-          onNextDay();
+  const handleDragEnd = useCallback(
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const { offset, velocity } = info;
+      const absX = Math.abs(offset.x);
+      const absVelocity = Math.abs(velocity.x);
+
+      // Consider both distance and velocity for swipe detection
+      const isSwipe = absX > SWIPE_THRESHOLD || absVelocity > 500;
+
+      if (isSwipe) {
+        if (offset.x > 0) {
+          // Swiped right → go to previous day (always allowed)
+          onPreviousDay();
+        } else {
+          // Swiped left → go to next day (only if not at today)
+          if (canGoNext) {
+            onNextDay();
+          }
         }
       }
-    }
-  }, [canGoNext, onPreviousDay, onNextDay]);
+    },
+    [canGoNext, onPreviousDay, onNextDay]
+  );
   
   // Animation variants for AnimatePresence
   const slideVariants = {
@@ -497,7 +263,7 @@ export function DayView({
           )}
 
           {untrackedTypesList.length > 0 && (
-            <div className={cn(trackedTypesList.length > 0 && "border-t border-border pt-4")}>
+            <div className={cn(trackedTypesList.length > 0 && "pt-2")}>
               <button
                 type="button"
                 onClick={() => setShowUnsetTypes(!showUnsetTypes)}

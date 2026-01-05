@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerContent,
@@ -16,17 +16,20 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-} from '@/components/ui/drawer';
-import { Activity, ActivityEntry, formatDate } from '@/lib/activities';
-import { ActivityType, formatValueWithUnit, getGoalType, getButtonOptionLabel } from '@/lib/activityTypes';
-import pluralizeLib from 'pluralize-esm';
-const { plural } = pluralizeLib;
-import { useActivityTypes } from './ActivityProvider';
-import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
-import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/lib/hooks/useMediaQuery';
+} from "@/components/ui/drawer";
+import { Activity, ActivityEntry, formatDate } from "@/lib/activities";
+import { useActivityTypes } from "./ActivityProvider";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/lib/hooks/useMediaQuery";
+import {
+  EntryInput,
+  ActivityTypeCard,
+  ActivityViewCard,
+  formatDialogDate,
+} from "./ActivityFormContent";
 
-type DialogMode = 'view' | 'edit';
+type DialogMode = "view" | "edit";
 
 interface ActivityEntryDialogProps {
   open: boolean;
@@ -37,263 +40,6 @@ interface ActivityEntryDialogProps {
   onDelete?: () => void;
   isSaving?: boolean;
   isDeleting?: boolean;
-}
-
-function formatDialogDate(date: Date): string {
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  
-  const dayName = days[date.getDay()];
-  const monthName = months[date.getMonth()];
-  const dayNum = date.getDate();
-  const year = date.getFullYear();
-  
-  return `${dayName}, ${monthName} ${dayNum}, ${year}`;
-}
-
-interface EntryInputProps {
-  type: ActivityType;
-  value: number | undefined;
-  onChange: (value: number | undefined) => void;
-  disabled?: boolean;
-}
-
-function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
-  const currentValue = value ?? 0;
-  const minValue = type.minValue ?? 0;
-  const maxValue = type.maxValue ?? 100;
-  const step = type.step ?? 1;
-
-  if (type.uiType === 'slider') {
-    const progress = ((currentValue - minValue) / (maxValue - minValue)) * 100;
-    
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            {formatValueWithUnit(currentValue, type)}
-          </span>
-        </div>
-        <input
-          type="range"
-          min={minValue}
-          max={maxValue}
-          step={step}
-          value={currentValue}
-          onChange={(e) => onChange(Number(e.target.value))}
-          disabled={disabled}
-          className="activity-slider"
-          style={{ '--slider-progress': `${progress}%` } as React.CSSProperties}
-        />
-      </div>
-    );
-  }
-
-  if (type.uiType === 'buttonGroup') {
-    const options = type.buttonOptions ?? [];
-    
-    return (
-      <div className="flex flex-wrap gap-2">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => {
-              // Toggle: if already selected, deselect (set to 0)
-              if (currentValue === option.value) {
-                onChange(0);
-              } else {
-                onChange(option.value);
-              }
-            }}
-            disabled={disabled}
-            className={cn(
-              "flex-1 min-w-[80px] py-2.5 px-3 rounded-full border-2 text-sm font-medium transition-all",
-              currentValue === option.value
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground",
-              disabled && "opacity-50 cursor-not-allowed"
-            )}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    );
-  }
-
-  // Increment/decrement UI
-  return (
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={() => onChange(Math.max(0, currentValue - step))}
-        disabled={disabled || currentValue <= 0}
-        className={cn(
-          "w-10 h-10 rounded-full border-2 text-lg font-bold transition-all flex items-center justify-center",
-          disabled || currentValue <= 0
-            ? "border-muted text-muted-foreground cursor-not-allowed"
-            : "border-border hover:border-foreground text-foreground hover:bg-muted"
-        )}
-      >
-        −
-      </button>
-      <div className="flex-1 text-center">
-        <span className="text-2xl font-bold text-foreground">
-          {currentValue}
-        </span>
-        {type.unit && (
-          <span className="ml-2 text-sm text-muted-foreground">
-            {type.pluralize && currentValue !== 1 
-              ? plural(type.unit)
-              : type.unit}
-          </span>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={() => onChange(currentValue + step)}
-        disabled={disabled}
-        className="w-10 h-10 rounded-full border-2 border-border hover:border-foreground text-lg font-bold text-foreground hover:bg-muted transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        +
-      </button>
-    </div>
-  );
-}
-
-function ActivityTypeCard({ 
-  type, 
-  value, 
-  isTracked,
-  onChange, 
-  onToggleTracked,
-  disabled 
-}: { 
-  type: ActivityType; 
-  value: number | undefined;
-  isTracked: boolean;
-  onChange: (value: number | undefined) => void;
-  onToggleTracked: (tracked: boolean) => void;
-  disabled?: boolean;
-}) {
-  const goalType = getGoalType(type);
-  const isDisabled = disabled || type.deleted;
-  
-  return (
-    <div 
-      className={cn(
-        "rounded-lg border transition-all overflow-hidden",
-        type.deleted 
-          ? "border-border/50 bg-muted/30" 
-          : isTracked
-            ? "border-primary/50 bg-primary/5"
-            : "border-border hover:border-muted-foreground/40"
-      )}
-    >
-      {/* Header - clickable only when not tracked */}
-      <div
-        className={cn(
-          "w-full flex items-center gap-2 p-4 text-left transition-colors",
-          !isDisabled && !isTracked && "hover:bg-muted/50 cursor-pointer",
-          isDisabled && "opacity-50"
-        )}
-        onClick={() => !isDisabled && !isTracked && onToggleTracked(true)}
-      >
-        <div className={cn(
-          "w-2 h-2 rounded-full",
-          goalType === 'negative' ? "bg-chart-1" : 
-          goalType === 'positive' ? "bg-chart-2" : 
-          "bg-chart-3"
-        )} />
-        <span className="text-sm font-medium text-foreground flex-1">
-          {type.name}
-        </span>
-        {type.deleted && (
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-            Archived
-          </span>
-        )}
-        {!isTracked && !isDisabled && (
-          <span className="text-xs text-muted-foreground">
-            Tap to log
-          </span>
-        )}
-        {isTracked && (
-          <ConfirmDeleteButton
-            onDelete={() => onToggleTracked(false)}
-            disabled={isDisabled}
-            confirmLabel="Remove?"
-          />
-        )}
-      </div>
-      
-      {/* Value input (shown when tracked) */}
-      {isTracked && (
-        <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-1 duration-150">
-          <EntryInput
-            type={type}
-            value={value}
-            onChange={onChange}
-            disabled={isDisabled}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** View-only card for displaying activity entries */
-function ActivityViewCard({ 
-  type, 
-  value 
-}: { 
-  type: ActivityType; 
-  value: number;
-}) {
-  const goalType = getGoalType(type);
-  
-  // Format the display value
-  const displayValue = () => {
-    if (type.uiType === 'buttonGroup') {
-      const label = getButtonOptionLabel(type, value);
-      return label || `${value}`;
-    }
-    return formatValueWithUnit(value, type);
-  };
-  
-  return (
-    <div 
-      className={cn(
-        "rounded-lg border p-4 transition-all",
-        type.deleted 
-          ? "border-border/50 bg-muted/30" 
-          : "border-border bg-card"
-      )}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={cn(
-            "w-2 h-2 rounded-full",
-            goalType === 'negative' ? "bg-chart-1" : 
-            goalType === 'positive' ? "bg-chart-2" : 
-            "bg-chart-3"
-          )} />
-          <span className="text-sm font-medium text-foreground">
-            {type.name}
-          </span>
-          {type.deleted && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-              Archived
-            </span>
-          )}
-        </div>
-        <span className="text-lg font-semibold text-foreground">
-          {displayValue()}
-        </span>
-      </div>
-    </div>
-  );
 }
 
 export function ActivityEntryDialog({
@@ -307,10 +53,12 @@ export function ActivityEntryDialog({
   isDeleting = false,
 }: ActivityEntryDialogProps) {
   const { activeTypes, activityTypes } = useActivityTypes();
-  const [entries, setEntries] = useState<{ [typeId: string]: number | undefined }>({});
+  const [entries, setEntries] = useState<{
+    [typeId: string]: number | undefined;
+  }>({});
   const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
   const [showUnsetTypes, setShowUnsetTypes] = useState(false);
-  const [mode, setMode] = useState<DialogMode>('view');
+  const [mode, setMode] = useState<DialogMode>("view");
   const isMobile = useIsMobile();
 
   // Reset state when dialog opens with new data
@@ -318,7 +66,7 @@ export function ActivityEntryDialog({
     if (open) {
       const initialEntries: { [typeId: string]: number | undefined } = {};
       const initialTracked = new Set<string>();
-      
+
       // Initialize with existing values
       if (existingActivity?.entries) {
         for (const typeId in existingActivity.entries) {
@@ -326,30 +74,30 @@ export function ActivityEntryDialog({
           initialTracked.add(typeId);
         }
       }
-      
+
       setEntries(initialEntries);
       setTrackedTypes(initialTracked);
       setShowUnsetTypes(false);
       // Start in view mode if there's existing data, otherwise edit mode for new entries
-      setMode(existingActivity ? 'view' : 'edit');
+      setMode(existingActivity ? "view" : "edit");
     }
   }, [open, existingActivity]);
 
   const handleEntryChange = (typeId: string, value: number | undefined) => {
-    setEntries(prev => ({
+    setEntries((prev) => ({
       ...prev,
       [typeId]: value,
     }));
   };
 
   const handleToggleTracked = (typeId: string, tracked: boolean) => {
-    setTrackedTypes(prev => {
+    setTrackedTypes((prev) => {
       const next = new Set(prev);
       if (tracked) {
         next.add(typeId);
         // Initialize value to 0 when tracking starts
         if (entries[typeId] === undefined) {
-          setEntries(prev => ({ ...prev, [typeId]: 0 }));
+          setEntries((prev) => ({ ...prev, [typeId]: 0 }));
         }
       } else {
         next.delete(typeId);
@@ -360,7 +108,7 @@ export function ActivityEntryDialog({
 
   const handleSave = () => {
     const dateStr = formatDate(date);
-    
+
     // Build entries object - only include types that are explicitly tracked
     const activityEntries: { [typeId: string]: ActivityEntry } = {};
     for (const typeId of trackedTypes) {
@@ -380,35 +128,41 @@ export function ActivityEntryDialog({
   };
 
   const formattedDate = formatDialogDate(date);
-  
+
   // Get all types that have entries (including deleted types for viewing)
-  const typesWithExistingEntries = existingActivity?.entries 
+  const typesWithExistingEntries = existingActivity?.entries
     ? Object.keys(existingActivity.entries)
-        .map(typeId => activityTypes[typeId])
+        .map((typeId) => activityTypes[typeId])
         .filter(Boolean)
     : [];
-  
+
   // Combine active types with any deleted types that have existing entries
   const allRelevantTypes = [
     ...activeTypes,
-    ...typesWithExistingEntries.filter(t => t.deleted && !activeTypes.find(at => at.id === t.id))
+    ...typesWithExistingEntries.filter(
+      (t) => t.deleted && !activeTypes.find((at) => at.id === t.id)
+    ),
   ];
 
   // Check if this is a new entry (no existing activity)
   const isNewEntry = !existingActivity;
 
   // For existing entries, separate tracked and untracked types
-  const trackedTypesList = allRelevantTypes.filter(type => trackedTypes.has(type.id));
-  const untrackedTypesList = allRelevantTypes.filter(type => !trackedTypes.has(type.id));
+  const trackedTypesList = allRelevantTypes.filter((type) =>
+    trackedTypes.has(type.id)
+  );
+  const untrackedTypesList = allRelevantTypes.filter(
+    (type) => !trackedTypes.has(type.id)
+  );
 
   // Get entries with their types for view mode
-  const entriesWithTypes = existingActivity?.entries 
+  const entriesWithTypes = existingActivity?.entries
     ? Object.entries(existingActivity.entries)
         .map(([typeId, entry]) => ({
           type: activityTypes[typeId],
           value: entry.value,
         }))
-        .filter(item => item.type)
+        .filter((item) => item.type)
         .sort((a, b) => a.type.order - b.type.order)
     : [];
 
@@ -421,7 +175,7 @@ export function ActivityEntryDialog({
             <p>No activities logged for this day.</p>
             <button
               type="button"
-              onClick={() => setMode('edit')}
+              onClick={() => setMode("edit")}
               className="mt-4 px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
             >
               Add activities
@@ -429,11 +183,7 @@ export function ActivityEntryDialog({
           </div>
         ) : (
           entriesWithTypes.map(({ type, value }) => (
-            <ActivityViewCard
-              key={type.id}
-              type={type}
-              value={value}
-            />
+            <ActivityViewCard key={type.id} type={type} value={value} />
           ))
         )}
       </div>
@@ -444,19 +194,30 @@ export function ActivityEntryDialog({
   const viewFooter = null;
 
   // Edit button icon for view mode header
-  const editIconButton = mode === 'view' && existingActivity ? (
-    <button
-      type="button"
-      onClick={() => setMode('edit')}
-      className="absolute right-4 top-4 w-8 h-8 rounded-full border-2 border-border hover:border-foreground flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
-      aria-label="Edit activity"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-        <path d="m15 5 4 4"/>
-      </svg>
-    </button>
-  ) : null;
+  const editIconButton =
+    mode === "view" && existingActivity ? (
+      <button
+        type="button"
+        onClick={() => setMode("edit")}
+        className="absolute right-4 top-4 w-8 h-8 rounded-full border-2 border-border hover:border-foreground flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
+        aria-label="Edit activity"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+          <path d="m15 5 4 4" />
+        </svg>
+      </button>
+    ) : null;
 
   // Edit mode content
   const editContent = (
@@ -464,7 +225,9 @@ export function ActivityEntryDialog({
       {activeTypes.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <p>No activity types defined yet.</p>
-          <p className="text-sm">Add activity types in settings to start tracking.</p>
+          <p className="text-sm">
+            Add activity types in settings to start tracking.
+          </p>
         </div>
       ) : isNewEntry ? (
         // For new entries, show all activity types directly (no accordion)
@@ -476,7 +239,9 @@ export function ActivityEntryDialog({
               value={entries[type.id]}
               isTracked={trackedTypes.has(type.id)}
               onChange={(value) => handleEntryChange(type.id, value)}
-              onToggleTracked={(tracked) => handleToggleTracked(type.id, tracked)}
+              onToggleTracked={(tracked) =>
+                handleToggleTracked(type.id, tracked)
+              }
             />
           ))}
         </div>
@@ -493,7 +258,9 @@ export function ActivityEntryDialog({
                   value={entries[type.id]}
                   isTracked={true}
                   onChange={(value) => handleEntryChange(type.id, value)}
-                  onToggleTracked={(tracked) => handleToggleTracked(type.id, tracked)}
+                  onToggleTracked={(tracked) =>
+                    handleToggleTracked(type.id, tracked)
+                  }
                 />
               ))}
             </div>
@@ -501,34 +268,35 @@ export function ActivityEntryDialog({
 
           {/* Accordion for untracked types */}
           {untrackedTypesList.length > 0 && (
-            <div className={cn(trackedTypesList.length > 0 && "border-t border-border pt-4")}>
+            <div className={cn(trackedTypesList.length > 0 && "pt-2")}>
               <button
                 type="button"
                 onClick={() => setShowUnsetTypes(!showUnsetTypes)}
                 className="w-full flex items-center justify-between py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <span>
-                  {untrackedTypesList.length} untracked {untrackedTypesList.length === 1 ? 'activity' : 'activities'}
+                  {untrackedTypesList.length} untracked{" "}
+                  {untrackedTypesList.length === 1 ? "activity" : "activities"}
                 </span>
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="16" 
-                  height="16" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
                   strokeLinejoin="round"
                   className={cn(
                     "transition-transform duration-200",
                     showUnsetTypes && "rotate-180"
                   )}
                 >
-                  <path d="m6 9 6 6 6-6"/>
+                  <path d="m6 9 6 6 6-6" />
                 </svg>
               </button>
-              
+
               {showUnsetTypes && (
                 <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
                   {untrackedTypesList.map((type) => (
@@ -538,7 +306,9 @@ export function ActivityEntryDialog({
                       value={entries[type.id]}
                       isTracked={false}
                       onChange={(value) => handleEntryChange(type.id, value)}
-                      onToggleTracked={(tracked) => handleToggleTracked(type.id, tracked)}
+                      onToggleTracked={(tracked) =>
+                        handleToggleTracked(type.id, tracked)
+                      }
                     />
                   ))}
                 </div>
@@ -583,7 +353,7 @@ export function ActivityEntryDialog({
             }
             setEntries(initialEntries);
             setTrackedTypes(initialTracked);
-            setMode('view');
+            setMode("view");
           } else {
             onOpenChange(false);
           }
@@ -604,19 +374,32 @@ export function ActivityEntryDialog({
       >
         {isSaving ? (
           <span className="flex items-center gap-2">
-            <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+            <svg
+              className="animate-spin"
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
             Saving...
           </span>
-        ) : 'Save'}
+        ) : (
+          "Save"
+        )}
       </button>
     </div>
   );
 
-  const title = mode === 'view' ? 'Activity Summary' : 'Log Activity';
-  const content = mode === 'view' ? viewContent : editContent;
-  const footer = mode === 'view' ? viewFooter : editFooter;
+  const title = mode === "view" ? "Activity Summary" : "Log Activity";
+  const content = mode === "view" ? viewContent : editContent;
+  const footer = mode === "view" ? viewFooter : editFooter;
 
   // Use Drawer on mobile, Dialog on desktop
   if (isMobile) {
@@ -630,14 +413,8 @@ export function ActivityEntryDialog({
             </DrawerHeader>
             {editIconButton}
           </div>
-          <div className="px-4 overflow-y-auto flex-1">
-            {content}
-          </div>
-          {footer && (
-            <DrawerFooter className="flex-row">
-              {footer}
-            </DrawerFooter>
-          )}
+          <div className="px-4 overflow-y-auto flex-1">{content}</div>
+          {footer && <DrawerFooter className="flex-row">{footer}</DrawerFooter>}
         </DrawerContent>
       </Drawer>
     );
@@ -645,18 +422,17 @@ export function ActivityEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto" hideCloseButton>
+      <DialogContent
+        className="sm:max-w-md max-h-[85vh] overflow-y-auto"
+        hideCloseButton
+      >
         {editIconButton}
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{formattedDate}</DialogDescription>
         </DialogHeader>
         {content}
-        {footer && (
-          <DialogFooter className="flex-row">
-            {footer}
-          </DialogFooter>
-        )}
+        {footer && <DialogFooter className="flex-row">{footer}</DialogFooter>}
       </DialogContent>
     </Dialog>
   );

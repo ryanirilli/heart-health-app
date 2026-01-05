@@ -147,7 +147,7 @@ function ActivityTypeCard({
         type.deleted 
           ? "border-border/50 bg-muted/30" 
           : isTracked
-            ? "border-primary/50 bg-primary/5"
+            ? "border-primary/50"
             : "border-border hover:border-muted-foreground/40"
       )}
     >
@@ -505,7 +505,7 @@ export function ActivityFormContent({
 
           {/* Accordion for untracked types */}
           {untrackedTypesList.length > 0 && (
-            <div className={cn(trackedTypesList.length > 0 && "border-t border-border pt-4")}>
+            <div className={cn(trackedTypesList.length > 0 && "pt-2")}>
               <button
                 type="button"
                 onClick={() => setShowUnsetTypes(!showUnsetTypes)}
