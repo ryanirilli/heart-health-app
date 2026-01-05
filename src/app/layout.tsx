@@ -31,11 +31,21 @@ export const metadata: Metadata = {
   authors: [{ name: "Rhythm" }],
   creator: "Rhythm",
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL || "https://rhythmtracker.com"
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.rhythmtracker.com"
   ),
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
+    url: "https://www.rhythmtracker.com",
     siteName: "Rhythm",
     title: "Rhythm — Track the patterns that shape your days",
     description:
@@ -44,7 +54,7 @@ export const metadata: Metadata = {
       {
         url: "/og-image.png",
         width: 1200,
-        height: 600,
+        height: 630,
         alt: "Rhythm - Track your daily patterns",
       },
     ],

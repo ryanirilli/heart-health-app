@@ -244,7 +244,7 @@ const getContourLines = (
 // Generate the OG image
 function generateOGImage() {
   const width = 1200;
-  const height = 600;
+  const height = 630; // Standard OG image dimensions
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
 
