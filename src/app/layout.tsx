@@ -34,13 +34,13 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL || "https://www.rhythmtracker.com"
   ),
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-    ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
-    ],
+    icon: { url: "/icon.svg", type: "image/svg+xml" },
+    shortcut: { url: "/icon.svg", type: "image/svg+xml" },
+    apple: {
+      url: "/apple-touch-icon.png",
+      sizes: "180x180",
+      type: "image/png",
+    },
   },
   openGraph: {
     type: "website",
