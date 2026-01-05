@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -9,15 +9,15 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-} from '@dnd-kit/core';
+} from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Dialog,
   DialogContent,
@@ -25,17 +25,22 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { ActivityType, UIType, ButtonOption, MAX_BUTTON_OPTIONS, MIN_BUTTON_OPTIONS, GoalType, getGoalType, validateButtonOptions, generateActivityTypeId } from '@/lib/activityTypes';
-import { useActivityTypes } from './ActivityProvider';
-import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
-import { cn } from '@/lib/utils';
+  ActivityType,
+  UIType,
+  ButtonOption,
+  MAX_BUTTON_OPTIONS,
+  MIN_BUTTON_OPTIONS,
+  GoalType,
+  getGoalType,
+  validateButtonOptions,
+  generateActivityTypeId,
+} from "@/lib/activityTypes";
+import { useActivityTypes } from "./ActivityProvider";
+import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
+import { cn } from "@/lib/utils";
 
 // Preset activity type definitions
 interface PresetActivityType {
@@ -44,49 +49,69 @@ interface PresetActivityType {
   icon: React.ReactNode;
   /** Tailwind classes for icon background and text color */
   colorClasses: { bg: string; text: string };
-  getType: (order: number) => Omit<ActivityType, 'id'> & { id?: string };
+  getType: (order: number) => Omit<ActivityType, "id"> & { id?: string };
 }
 
 const PRESET_ACTIVITY_TYPES: PresetActivityType[] = [
   {
-    name: 'Mood',
-    description: 'Track your daily mood',
-    colorClasses: { bg: 'bg-amber-500/15', text: 'text-amber-600' },
+    name: "Mood",
+    description: "Track your daily mood",
+    colorClasses: { bg: "bg-amber-500/15", text: "text-amber-600" },
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-        <line x1="9" x2="9.01" y1="9" y2="9"/>
-        <line x1="15" x2="15.01" y1="9" y2="9"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+        <line x1="9" x2="9.01" y1="9" y2="9" />
+        <line x1="15" x2="15.01" y1="9" y2="9" />
       </svg>
     ),
     getType: (order) => ({
-      name: 'Mood',
-      goalType: 'neutral',
-      uiType: 'buttonGroup',
+      name: "Mood",
+      goalType: "neutral",
+      uiType: "buttonGroup",
       buttonOptions: [
-        { label: 'Bad', value: 1 },
-        { label: 'Neutral', value: 2 },
-        { label: 'Good', value: 3 },
+        { label: "Bad", value: 1 },
+        { label: "Neutral", value: 2 },
+        { label: "Good", value: 3 },
       ],
       order,
     }),
   },
   {
-    name: 'Water Intake',
-    description: 'Track hydration (0-5 liters)',
-    colorClasses: { bg: 'bg-sky-500/15', text: 'text-sky-600' },
+    name: "Water Intake",
+    description: "Track hydration (0-5 liters)",
+    colorClasses: { bg: "bg-sky-500/15", text: "text-sky-600" },
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
       </svg>
     ),
     getType: (order) => ({
-      name: 'Water Intake',
-      unit: 'liter',
+      name: "Water Intake",
+      unit: "liter",
       pluralize: true,
-      goalType: 'positive',
-      uiType: 'slider',
+      goalType: "positive",
+      uiType: "slider",
       minValue: 0,
       maxValue: 5,
       step: 0.5,
@@ -94,20 +119,30 @@ const PRESET_ACTIVITY_TYPES: PresetActivityType[] = [
     }),
   },
   {
-    name: 'Sleep',
-    description: 'Track sleep duration (0-12 hours)',
-    colorClasses: { bg: 'bg-indigo-500/15', text: 'text-indigo-600' },
+    name: "Sleep",
+    description: "Track sleep duration (0-12 hours)",
+    colorClasses: { bg: "bg-indigo-500/15", text: "text-indigo-600" },
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
       </svg>
     ),
     getType: (order) => ({
-      name: 'Sleep',
-      unit: 'hour',
+      name: "Sleep",
+      unit: "hour",
       pluralize: true,
-      goalType: 'positive',
-      uiType: 'slider',
+      goalType: "positive",
+      uiType: "slider",
       minValue: 0,
       maxValue: 12,
       step: 0.5,
@@ -115,20 +150,30 @@ const PRESET_ACTIVITY_TYPES: PresetActivityType[] = [
     }),
   },
   {
-    name: 'Energy',
-    description: 'Track energy level (0-100)',
-    colorClasses: { bg: 'bg-yellow-500/15', text: 'text-yellow-600' },
+    name: "Energy",
+    description: "Track energy level (0-100)",
+    colorClasses: { bg: "bg-yellow-500/15", text: "text-yellow-600" },
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
       </svg>
     ),
     getType: (order) => ({
-      name: 'Energy',
-      unit: 'aura',
+      name: "Energy",
+      unit: "aura",
       pluralize: false,
-      goalType: 'positive',
-      uiType: 'slider',
+      goalType: "positive",
+      uiType: "slider",
       minValue: 0,
       maxValue: 100,
       step: 5,
@@ -136,64 +181,94 @@ const PRESET_ACTIVITY_TYPES: PresetActivityType[] = [
     }),
   },
   {
-    name: 'Alcoholic Drinks',
-    description: 'Track alcohol consumption',
-    colorClasses: { bg: 'bg-rose-500/15', text: 'text-rose-600' },
+    name: "Alcoholic Drinks",
+    description: "Track alcohol consumption",
+    colorClasses: { bg: "bg-rose-500/15", text: "text-rose-600" },
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M8 22h8"/>
-        <path d="M12 11v11"/>
-        <path d="m19 3-7 8-7-8Z"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M8 22h8" />
+        <path d="M12 11v11" />
+        <path d="m19 3-7 8-7-8Z" />
       </svg>
     ),
     getType: (order) => ({
-      name: 'Alcoholic Drinks',
-      unit: 'drink',
+      name: "Alcoholic Drinks",
+      unit: "drink",
       pluralize: true,
-      goalType: 'negative',
-      uiType: 'increment',
+      goalType: "negative",
+      uiType: "increment",
       order,
     }),
   },
   {
-    name: 'Smoking',
-    description: 'Track cigarettes smoked',
-    colorClasses: { bg: 'bg-slate-500/15', text: 'text-slate-600' },
+    name: "Smoking",
+    description: "Track cigarettes smoked",
+    colorClasses: { bg: "bg-slate-500/15", text: "text-slate-600" },
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 12H2v4h16"/>
-        <path d="M22 12v4"/>
-        <path d="M7 12v-2a2 2 0 0 1 2-2h0a2 2 0 0 0 2-2v0a2 2 0 0 1 2-2"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M18 12H2v4h16" />
+        <path d="M22 12v4" />
+        <path d="M7 12v-2a2 2 0 0 1 2-2h0a2 2 0 0 0 2-2v0a2 2 0 0 1 2-2" />
       </svg>
     ),
     getType: (order) => ({
-      name: 'Smoking',
-      unit: 'cigarette',
+      name: "Smoking",
+      unit: "cigarette",
       pluralize: true,
-      goalType: 'negative',
-      uiType: 'increment',
+      goalType: "negative",
+      uiType: "increment",
       order,
     }),
   },
   {
-    name: 'Exercise',
-    description: 'Track workout duration (0-3 hours)',
-    colorClasses: { bg: 'bg-emerald-500/15', text: 'text-emerald-600' },
+    name: "Exercise",
+    description: "Track workout duration (0-3 hours)",
+    colorClasses: { bg: "bg-emerald-500/15", text: "text-emerald-600" },
     icon: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.4 14.4 9.6 9.6"/>
-        <path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/>
-        <path d="m21.5 21.5-1.4-1.4"/>
-        <path d="M3.9 3.9 2.5 2.5"/>
-        <path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/>
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M14.4 14.4 9.6 9.6" />
+        <path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z" />
+        <path d="m21.5 21.5-1.4-1.4" />
+        <path d="M3.9 3.9 2.5 2.5" />
+        <path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z" />
       </svg>
     ),
     getType: (order) => ({
-      name: 'Exercise',
-      unit: 'minute',
+      name: "Exercise",
+      unit: "minute",
       pluralize: true,
-      goalType: 'positive',
-      uiType: 'slider',
+      goalType: "positive",
+      uiType: "slider",
       minValue: 0,
       maxValue: 180,
       step: 15,
@@ -210,7 +285,13 @@ interface SortableOptionProps {
   onDelete: () => void;
 }
 
-function SortableOption({ id, option, index, onLabelChange, onDelete }: SortableOptionProps) {
+function SortableOption({
+  id,
+  option,
+  index,
+  onLabelChange,
+  onDelete,
+}: SortableOptionProps) {
   const {
     attributes,
     listeners,
@@ -241,9 +322,23 @@ function SortableOption({ id, option, index, onLabelChange, onDelete }: Sortable
         {...attributes}
         {...listeners}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/>
-          <circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="9" cy="5" r="1" />
+          <circle cx="9" cy="12" r="1" />
+          <circle cx="9" cy="19" r="1" />
+          <circle cx="15" cy="5" r="1" />
+          <circle cx="15" cy="12" r="1" />
+          <circle cx="15" cy="19" r="1" />
         </svg>
       </button>
       <input
@@ -259,8 +354,19 @@ function SortableOption({ id, option, index, onLabelChange, onDelete }: Sortable
         className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
         title="Delete option"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
         </svg>
       </button>
     </div>
@@ -282,9 +388,11 @@ function ButtonOptionsEditor({ options, onChange }: ButtonOptionsEditorProps) {
 
   // Generate stable IDs for sortable items
   const optionIds = options.map((_, index) => `option-${index}`);
-  
+
   // Count valid options (non-empty labels)
-  const validOptionsCount = options.filter(opt => opt.label.trim().length > 0).length;
+  const validOptionsCount = options.filter(
+    (opt) => opt.label.trim().length > 0
+  ).length;
   const needsMoreOptions = validOptionsCount < MIN_BUTTON_OPTIONS;
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -296,7 +404,9 @@ function ButtonOptionsEditor({ options, onChange }: ButtonOptionsEditorProps) {
 
       const newOptions = arrayMove(options, oldIndex, newIndex);
       // Update values based on new positions
-      newOptions.forEach((opt, i) => { opt.value = i + 1; });
+      newOptions.forEach((opt, i) => {
+        opt.value = i + 1;
+      });
       onChange(newOptions);
     }
   };
@@ -310,35 +420,31 @@ function ButtonOptionsEditor({ options, onChange }: ButtonOptionsEditorProps) {
   const handleDelete = (index: number) => {
     const newOptions = options.filter((_, i) => i !== index);
     // Update values based on new positions
-    newOptions.forEach((opt, i) => { opt.value = i + 1; });
+    newOptions.forEach((opt, i) => {
+      opt.value = i + 1;
+    });
     onChange(newOptions);
   };
 
   const handleAdd = () => {
     if (options.length >= MAX_BUTTON_OPTIONS) return;
-    onChange([...options, { label: '', value: options.length + 1 }]);
+    onChange([...options, { label: "", value: options.length + 1 }]);
   };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-medium text-muted-foreground">
-          Options ({MIN_BUTTON_OPTIONS}-{MAX_BUTTON_OPTIONS} required)
-        </label>
-        {options.length < MAX_BUTTON_OPTIONS && (
-          <button
-            type="button"
-            onClick={handleAdd}
-            className="text-xs text-primary hover:text-primary/80 font-medium"
-          >
-            + Add Option
-          </button>
-        )}
-      </div>
-      
+      {needsMoreOptions && options.length != 0 && (
+        <p className="text-xs text-chart-4">
+          {validOptionsCount === 0
+            ? `Enter labels for at least ${MIN_BUTTON_OPTIONS} options`
+            : `Need ${MIN_BUTTON_OPTIONS - validOptionsCount} more option${
+                MIN_BUTTON_OPTIONS - validOptionsCount > 1 ? "s" : ""
+              } with a label`}
+        </p>
+      )}
       {options.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-2">
-          Add at least {MIN_BUTTON_OPTIONS} options for users to choose from
+        <p className="text-xs text-muted-foreground text-left py-2">
+          Add at least {MIN_BUTTON_OPTIONS} options to choose from
         </p>
       ) : (
         <>
@@ -347,7 +453,10 @@ function ButtonOptionsEditor({ options, onChange }: ButtonOptionsEditorProps) {
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext items={optionIds} strategy={verticalListSortingStrategy}>
+            <SortableContext
+              items={optionIds}
+              strategy={verticalListSortingStrategy}
+            >
               <div className="space-y-2">
                 {options.map((option, index) => (
                   <SortableOption
@@ -362,15 +471,19 @@ function ButtonOptionsEditor({ options, onChange }: ButtonOptionsEditorProps) {
               </div>
             </SortableContext>
           </DndContext>
-          {needsMoreOptions && (
-            <p className="text-xs text-chart-4">
-              {validOptionsCount === 0 
-                ? `Enter labels for at least ${MIN_BUTTON_OPTIONS} options`
-                : `Need ${MIN_BUTTON_OPTIONS - validOptionsCount} more option${MIN_BUTTON_OPTIONS - validOptionsCount > 1 ? 's' : ''} with a label`}
-            </p>
-          )}
         </>
       )}
+      <div className="flex items-center justify-left">
+        {options.length < MAX_BUTTON_OPTIONS && (
+          <button
+            type="button"
+            onClick={handleAdd}
+            className="text-xs text-primary hover:text-primary/80 font-medium"
+          >
+            + Add Option
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -383,39 +496,43 @@ interface CustomTypeFormProps {
   onCancel: () => void;
 }
 
-function CustomTypeForm({ 
-  canAddType, 
-  createDefaultType, 
-  activeTypes, 
+function CustomTypeForm({
+  canAddType,
+  createDefaultType,
+  activeTypes,
   addActivityType,
-  onCancel 
+  onCancel,
 }: CustomTypeFormProps) {
-  const [editingType, setEditingType] = useState<ActivityType>(() => 
+  const [editingType, setEditingType] = useState<ActivityType>(() =>
     createDefaultType({ order: activeTypes.length })
   );
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSave = async () => {
     if (!editingType || !editingType.name.trim()) return;
-    
-    const needsUnit = editingType.uiType !== 'buttonGroup';
+
+    const needsUnit = editingType.uiType !== "buttonGroup";
     if (needsUnit && !editingType.unit?.trim()) return;
-    
-    if (editingType.uiType === 'buttonGroup' && !validateButtonOptions(editingType.buttonOptions)) return;
+
+    if (
+      editingType.uiType === "buttonGroup" &&
+      !validateButtonOptions(editingType.buttonOptions)
+    )
+      return;
 
     try {
-      const response = await fetch('/api/activity-types', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/activity-types", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingType),
       });
 
-      if (!response.ok) throw new Error('Failed to save activity type');
+      if (!response.ok) throw new Error("Failed to save activity type");
 
       addActivityType(editingType);
       onCancel();
     } catch (error) {
-      console.error('Failed to save activity type:', error);
+      console.error("Failed to save activity type:", error);
     }
   };
 
@@ -432,13 +549,13 @@ function CustomTypeForm({
     <div className="space-y-4 py-4">
       {/* Name */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">
-          Name
-        </label>
+        <label className="text-sm font-medium text-foreground">Name</label>
         <input
           type="text"
           value={editingType.name}
-          onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
+          onChange={(e) =>
+            setEditingType({ ...editingType, name: e.target.value })
+          }
           placeholder="e.g., Alcoholic Drinks, Exercise, Water"
           className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
@@ -446,23 +563,27 @@ function CustomTypeForm({
 
       {/* Goal Type */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">
-          Goal Type
-        </label>
+        <label className="text-sm font-medium text-foreground">Goal Type</label>
         <p className="text-xs text-muted-foreground">
-          {getGoalType(editingType) === 'positive' 
+          {getGoalType(editingType) === "positive"
             ? "Higher values are better (e.g., exercise, water intake)"
-            : getGoalType(editingType) === 'negative'
-              ? "Lower values are better (e.g., reducing alcohol, cutting sugar)"
-              : "No judgment, just recording (e.g., mood, sleep quality)"}
+            : getGoalType(editingType) === "negative"
+            ? "Lower values are better (e.g., reducing alcohol, cutting sugar)"
+            : "No judgment, just recording (e.g., mood, sleep quality)"}
         </p>
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setEditingType({ ...editingType, goalType: 'positive', isNegative: undefined })}
+            onClick={() =>
+              setEditingType({
+                ...editingType,
+                goalType: "positive",
+                isNegative: undefined,
+              })
+            }
             className={cn(
               "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-              getGoalType(editingType) === 'positive'
+              getGoalType(editingType) === "positive"
                 ? "border-chart-2 bg-chart-2/10 text-chart-2"
                 : "border-border hover:border-muted-foreground/50 text-muted-foreground"
             )}
@@ -471,10 +592,16 @@ function CustomTypeForm({
           </button>
           <button
             type="button"
-            onClick={() => setEditingType({ ...editingType, goalType: 'negative', isNegative: undefined })}
+            onClick={() =>
+              setEditingType({
+                ...editingType,
+                goalType: "negative",
+                isNegative: undefined,
+              })
+            }
             className={cn(
               "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-              getGoalType(editingType) === 'negative'
+              getGoalType(editingType) === "negative"
                 ? "border-chart-1 bg-chart-1/10 text-chart-1"
                 : "border-border hover:border-muted-foreground/50 text-muted-foreground"
             )}
@@ -483,10 +610,16 @@ function CustomTypeForm({
           </button>
           <button
             type="button"
-            onClick={() => setEditingType({ ...editingType, goalType: 'neutral', isNegative: undefined })}
+            onClick={() =>
+              setEditingType({
+                ...editingType,
+                goalType: "neutral",
+                isNegative: undefined,
+              })
+            }
             className={cn(
               "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-              getGoalType(editingType) === 'neutral'
+              getGoalType(editingType) === "neutral"
                 ? "border-chart-3 bg-chart-3/10 text-chart-3"
                 : "border-border hover:border-muted-foreground/50 text-muted-foreground"
             )}
@@ -502,19 +635,19 @@ function CustomTypeForm({
         onClick={() => setShowAdvanced(!showAdvanced)}
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          width="16" 
-          height="16" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          strokeWidth="2" 
-          strokeLinecap="round" 
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
           strokeLinejoin="round"
           className={cn("transition-transform", showAdvanced && "rotate-90")}
         >
-          <path d="m9 18 6-6-6-6"/>
+          <path d="m9 18 6-6-6-6" />
         </svg>
         Advanced Settings
       </button>
@@ -530,10 +663,12 @@ function CustomTypeForm({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setEditingType({ ...editingType, uiType: 'increment' })}
+                onClick={() =>
+                  setEditingType({ ...editingType, uiType: "increment" })
+                }
                 className={cn(
                   "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                  editingType.uiType === 'increment'
+                  editingType.uiType === "increment"
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-border hover:border-muted-foreground/50 text-muted-foreground"
                 )}
@@ -542,10 +677,12 @@ function CustomTypeForm({
               </button>
               <button
                 type="button"
-                onClick={() => setEditingType({ ...editingType, uiType: 'slider' })}
+                onClick={() =>
+                  setEditingType({ ...editingType, uiType: "slider" })
+                }
                 className={cn(
                   "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                  editingType.uiType === 'slider'
+                  editingType.uiType === "slider"
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-border hover:border-muted-foreground/50 text-muted-foreground"
                 )}
@@ -554,10 +691,12 @@ function CustomTypeForm({
               </button>
               <button
                 type="button"
-                onClick={() => setEditingType({ ...editingType, uiType: 'buttonGroup' })}
+                onClick={() =>
+                  setEditingType({ ...editingType, uiType: "buttonGroup" })
+                }
                 className={cn(
                   "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                  editingType.uiType === 'buttonGroup'
+                  editingType.uiType === "buttonGroup"
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-border hover:border-muted-foreground/50 text-muted-foreground"
                 )}
@@ -568,15 +707,22 @@ function CustomTypeForm({
           </div>
 
           {/* Unit (for increment and slider only) */}
-          {(editingType.uiType === 'increment' || editingType.uiType === 'slider') && (
+          {(editingType.uiType === "increment" ||
+            editingType.uiType === "slider") && (
             <div className="space-y-2">
               <label className="text-xs font-medium text-muted-foreground">
                 Unit
               </label>
               <input
                 type="text"
-                value={editingType.unit ?? ''}
-                onChange={(e) => setEditingType({ ...editingType, unit: e.target.value, pluralize: true })}
+                value={editingType.unit ?? ""}
+                onChange={(e) =>
+                  setEditingType({
+                    ...editingType,
+                    unit: e.target.value,
+                    pluralize: true,
+                  })
+                }
                 placeholder="e.g., drink, minute, glass"
                 className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
@@ -584,32 +730,53 @@ function CustomTypeForm({
           )}
 
           {/* Range values (for slider) */}
-          {editingType.uiType === 'slider' && (
+          {editingType.uiType === "slider" && (
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Min</label>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Min
+                </label>
                 <input
                   type="number"
                   value={editingType.minValue ?? 0}
-                  onChange={(e) => setEditingType({ ...editingType, minValue: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setEditingType({
+                      ...editingType,
+                      minValue: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Max</label>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Max
+                </label>
                 <input
                   type="number"
                   value={editingType.maxValue ?? 10}
-                  onChange={(e) => setEditingType({ ...editingType, maxValue: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setEditingType({
+                      ...editingType,
+                      maxValue: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Step</label>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Step
+                </label>
                 <input
                   type="number"
                   value={editingType.step ?? 1}
-                  onChange={(e) => setEditingType({ ...editingType, step: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setEditingType({
+                      ...editingType,
+                      step: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -617,10 +784,12 @@ function CustomTypeForm({
           )}
 
           {/* Button options (for buttonGroup) */}
-          {editingType.uiType === 'buttonGroup' && (
+          {editingType.uiType === "buttonGroup" && (
             <ButtonOptionsEditor
               options={editingType.buttonOptions ?? []}
-              onChange={(newOptions) => setEditingType({ ...editingType, buttonOptions: newOptions })}
+              onChange={(newOptions) =>
+                setEditingType({ ...editingType, buttonOptions: newOptions })
+              }
             />
           )}
         </div>
@@ -639,9 +808,11 @@ function CustomTypeForm({
           type="button"
           onClick={handleSave}
           disabled={
-            !editingType.name.trim() || 
-            (editingType.uiType !== 'buttonGroup' && !editingType.unit?.trim()) ||
-            (editingType.uiType === 'buttonGroup' && !validateButtonOptions(editingType.buttonOptions))
+            !editingType.name.trim() ||
+            (editingType.uiType !== "buttonGroup" &&
+              !editingType.unit?.trim()) ||
+            (editingType.uiType === "buttonGroup" &&
+              !validateButtonOptions(editingType.buttonOptions))
           }
           className={cn(
             "px-6 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
@@ -660,17 +831,20 @@ interface ActivityTypeManagerProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerProps) {
-  const { 
-    activeTypes, 
-    canAddType, 
-    addActivityType, 
-    updateActivityType, 
+export function ActivityTypeManager({
+  open,
+  onOpenChange,
+}: ActivityTypeManagerProps) {
+  const {
+    activeTypes,
+    canAddType,
+    addActivityType,
+    updateActivityType,
     deleteActivityType,
     maxTypes,
     createDefaultType,
   } = useActivityTypes();
-  
+
   const [editingType, setEditingType] = useState<ActivityType | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAddNew, setShowAddNew] = useState(false);
@@ -685,7 +859,7 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
 
   const handleAddPreset = async (preset: PresetActivityType) => {
     if (!canAddType) return;
-    
+
     const typeData = preset.getType(activeTypes.length);
     const newType: ActivityType = {
       ...typeData,
@@ -693,75 +867,81 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
     };
 
     try {
-      const response = await fetch('/api/activity-types', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/activity-types", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newType),
       });
 
-      if (!response.ok) throw new Error('Failed to save activity type');
+      if (!response.ok) throw new Error("Failed to save activity type");
 
       addActivityType(newType);
       setShowAddNew(false);
     } catch (error) {
-      console.error('Failed to add preset activity type:', error);
+      console.error("Failed to add preset activity type:", error);
     }
   };
 
   // Check which presets are already added (by name)
-  const existingPresetNames = new Set(activeTypes.map(t => t.name.toLowerCase()));
+  const existingPresetNames = new Set(
+    activeTypes.map((t) => t.name.toLowerCase())
+  );
 
   const handleEdit = (type: ActivityType) => {
     setEditingType({ ...type });
-    setShowAdvanced(type.uiType === 'slider' || type.uiType === 'buttonGroup');
+    setShowAdvanced(type.uiType === "slider" || type.uiType === "buttonGroup");
   };
 
   const handleSave = async () => {
     if (!editingType || !editingType.name.trim()) return;
-    
+
     // Unit is required for increment and slider, but not for buttonGroup
-    const needsUnit = editingType.uiType !== 'buttonGroup';
+    const needsUnit = editingType.uiType !== "buttonGroup";
     if (needsUnit && !editingType.unit?.trim()) return;
-    
+
     // Button options validation for buttonGroup
-    if (editingType.uiType === 'buttonGroup' && !validateButtonOptions(editingType.buttonOptions)) return;
+    if (
+      editingType.uiType === "buttonGroup" &&
+      !validateButtonOptions(editingType.buttonOptions)
+    )
+      return;
 
     try {
-      const isNew = !activeTypes.find(t => t.id === editingType.id);
-      
+      const isNew = !activeTypes.find((t) => t.id === editingType.id);
+
       // Save to API
-      const response = await fetch('/api/activity-types', {
-        method: isNew ? 'POST' : 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/activity-types", {
+        method: isNew ? "POST" : "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editingType),
       });
 
-      if (!response.ok) throw new Error('Failed to save activity type');
+      if (!response.ok) throw new Error("Failed to save activity type");
 
       if (isNew) {
         addActivityType(editingType);
       } else {
         updateActivityType(editingType);
       }
-      
+
       setEditingType(null);
     } catch (error) {
-      console.error('Failed to save activity type:', error);
+      console.error("Failed to save activity type:", error);
     }
   };
 
   const handleDelete = async (typeId: string) => {
     try {
       const response = await fetch(`/api/activity-types?id=${typeId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
-      if (!response.ok) throw new Error('Failed to delete activity type');
+      if (!response.ok) throw new Error("Failed to delete activity type");
 
       deleteActivityType(typeId);
       setEditingType(null);
     } catch (error) {
-      console.error('Failed to delete activity type:', error);
+      console.error("Failed to delete activity type:", error);
     }
   };
 
@@ -776,7 +956,8 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
         <DialogHeader>
           <DialogTitle>Manage Activity Types</DialogTitle>
           <DialogDescription>
-            Define what you want to track. You can have up to {maxTypes} activity types.
+            Define what you want to track. You can have up to {maxTypes}{" "}
+            activity types.
           </DialogDescription>
         </DialogHeader>
 
@@ -793,7 +974,9 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
               </p>
               <div className="space-y-2">
                 {PRESET_ACTIVITY_TYPES.map((preset) => {
-                  const isAlreadyAdded = existingPresetNames.has(preset.name.toLowerCase());
+                  const isAlreadyAdded = existingPresetNames.has(
+                    preset.name.toLowerCase()
+                  );
                   return (
                     <button
                       key={preset.name}
@@ -806,11 +989,13 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                           : "border-border hover:border-muted-foreground/50 hover:bg-muted/50"
                       )}
                     >
-                      <div className={cn(
-                        "w-10 h-10 rounded-lg flex items-center justify-center",
-                        preset.colorClasses.bg,
-                        preset.colorClasses.text
-                      )}>
+                      <div
+                        className={cn(
+                          "w-10 h-10 rounded-lg flex items-center justify-center",
+                          preset.colorClasses.bg,
+                          preset.colorClasses.text
+                        )}
+                      >
                         {preset.icon}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -826,9 +1011,20 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                           Added
                         </span>
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-                          <path d="M12 5v14"/>
-                          <path d="M5 12h14"/>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-muted-foreground"
+                        >
+                          <path d="M12 5v14" />
+                          <path d="M5 12h14" />
                         </svg>
                       )}
                     </button>
@@ -866,7 +1062,9 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
               <input
                 type="text"
                 value={editingType.name}
-                onChange={(e) => setEditingType({ ...editingType, name: e.target.value })}
+                onChange={(e) =>
+                  setEditingType({ ...editingType, name: e.target.value })
+                }
                 placeholder="e.g., Alcoholic Drinks, Exercise, Water"
                 className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
@@ -878,19 +1076,25 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 Goal Type
               </label>
               <p className="text-xs text-muted-foreground">
-                {getGoalType(editingType) === 'positive' 
+                {getGoalType(editingType) === "positive"
                   ? "Higher values are better (e.g., exercise, water intake)"
-                  : getGoalType(editingType) === 'negative'
-                    ? "Lower values are better (e.g., reducing alcohol, cutting sugar)"
-                    : "No judgment, just recording (e.g., mood, sleep quality)"}
+                  : getGoalType(editingType) === "negative"
+                  ? "Lower values are better (e.g., reducing alcohol, cutting sugar)"
+                  : "No judgment, just recording (e.g., mood, sleep quality)"}
               </p>
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setEditingType({ ...editingType, goalType: 'positive', isNegative: undefined })}
+                  onClick={() =>
+                    setEditingType({
+                      ...editingType,
+                      goalType: "positive",
+                      isNegative: undefined,
+                    })
+                  }
                   className={cn(
                     "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                    getGoalType(editingType) === 'positive'
+                    getGoalType(editingType) === "positive"
                       ? "border-chart-2 bg-chart-2/10 text-chart-2"
                       : "border-border hover:border-muted-foreground/50 text-muted-foreground"
                   )}
@@ -899,10 +1103,16 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 </button>
                 <button
                   type="button"
-                  onClick={() => setEditingType({ ...editingType, goalType: 'negative', isNegative: undefined })}
+                  onClick={() =>
+                    setEditingType({
+                      ...editingType,
+                      goalType: "negative",
+                      isNegative: undefined,
+                    })
+                  }
                   className={cn(
                     "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                    getGoalType(editingType) === 'negative'
+                    getGoalType(editingType) === "negative"
                       ? "border-chart-1 bg-chart-1/10 text-chart-1"
                       : "border-border hover:border-muted-foreground/50 text-muted-foreground"
                   )}
@@ -911,10 +1121,16 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 </button>
                 <button
                   type="button"
-                  onClick={() => setEditingType({ ...editingType, goalType: 'neutral', isNegative: undefined })}
+                  onClick={() =>
+                    setEditingType({
+                      ...editingType,
+                      goalType: "neutral",
+                      isNegative: undefined,
+                    })
+                  }
                   className={cn(
                     "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                    getGoalType(editingType) === 'neutral'
+                    getGoalType(editingType) === "neutral"
                       ? "border-chart-3 bg-chart-3/10 text-chart-3"
                       : "border-border hover:border-muted-foreground/50 text-muted-foreground"
                   )}
@@ -930,19 +1146,22 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="16" 
-                height="16" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
                 strokeLinejoin="round"
-                className={cn("transition-transform", showAdvanced && "rotate-90")}
+                className={cn(
+                  "transition-transform",
+                  showAdvanced && "rotate-90"
+                )}
               >
-                <path d="m9 18 6-6-6-6"/>
+                <path d="m9 18 6-6-6-6" />
               </svg>
               Advanced Settings
             </button>
@@ -958,10 +1177,12 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setEditingType({ ...editingType, uiType: 'increment' })}
+                      onClick={() =>
+                        setEditingType({ ...editingType, uiType: "increment" })
+                      }
                       className={cn(
                         "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                        editingType.uiType === 'increment'
+                        editingType.uiType === "increment"
                           ? "border-primary bg-primary/10 text-foreground"
                           : "border-border hover:border-muted-foreground/50 text-muted-foreground"
                       )}
@@ -970,10 +1191,12 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEditingType({ ...editingType, uiType: 'slider' })}
+                      onClick={() =>
+                        setEditingType({ ...editingType, uiType: "slider" })
+                      }
                       className={cn(
                         "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                        editingType.uiType === 'slider'
+                        editingType.uiType === "slider"
                           ? "border-primary bg-primary/10 text-foreground"
                           : "border-border hover:border-muted-foreground/50 text-muted-foreground"
                       )}
@@ -982,10 +1205,15 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEditingType({ ...editingType, uiType: 'buttonGroup' })}
+                      onClick={() =>
+                        setEditingType({
+                          ...editingType,
+                          uiType: "buttonGroup",
+                        })
+                      }
                       className={cn(
                         "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                        editingType.uiType === 'buttonGroup'
+                        editingType.uiType === "buttonGroup"
                           ? "border-primary bg-primary/10 text-foreground"
                           : "border-border hover:border-muted-foreground/50 text-muted-foreground"
                       )}
@@ -996,15 +1224,22 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 </div>
 
                 {/* Unit (for increment and slider only) */}
-                {(editingType.uiType === 'increment' || editingType.uiType === 'slider') && (
+                {(editingType.uiType === "increment" ||
+                  editingType.uiType === "slider") && (
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-muted-foreground">
                       Unit
                     </label>
                     <input
                       type="text"
-                      value={editingType.unit ?? ''}
-                      onChange={(e) => setEditingType({ ...editingType, unit: e.target.value, pluralize: true })}
+                      value={editingType.unit ?? ""}
+                      onChange={(e) =>
+                        setEditingType({
+                          ...editingType,
+                          unit: e.target.value,
+                          pluralize: true,
+                        })
+                      }
                       placeholder="e.g., drink, minute, glass"
                       className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     />
@@ -1012,32 +1247,53 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 )}
 
                 {/* Range values (for slider) */}
-                {editingType.uiType === 'slider' && (
+                {editingType.uiType === "slider" && (
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Min</label>
+                      <label className="text-xs font-medium text-muted-foreground">
+                        Min
+                      </label>
                       <input
                         type="number"
                         value={editingType.minValue ?? 0}
-                        onChange={(e) => setEditingType({ ...editingType, minValue: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setEditingType({
+                            ...editingType,
+                            minValue: Number(e.target.value),
+                          })
+                        }
                         className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Max</label>
+                      <label className="text-xs font-medium text-muted-foreground">
+                        Max
+                      </label>
                       <input
                         type="number"
                         value={editingType.maxValue ?? 10}
-                        onChange={(e) => setEditingType({ ...editingType, maxValue: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setEditingType({
+                            ...editingType,
+                            maxValue: Number(e.target.value),
+                          })
+                        }
                         className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">Step</label>
+                      <label className="text-xs font-medium text-muted-foreground">
+                        Step
+                      </label>
                       <input
                         type="number"
                         value={editingType.step ?? 1}
-                        onChange={(e) => setEditingType({ ...editingType, step: Number(e.target.value) })}
+                        onChange={(e) =>
+                          setEditingType({
+                            ...editingType,
+                            step: Number(e.target.value),
+                          })
+                        }
                         className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                       />
                     </div>
@@ -1045,17 +1301,22 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 )}
 
                 {/* Button options (for buttonGroup) */}
-                {editingType.uiType === 'buttonGroup' && (
+                {editingType.uiType === "buttonGroup" && (
                   <ButtonOptionsEditor
                     options={editingType.buttonOptions ?? []}
-                    onChange={(newOptions) => setEditingType({ ...editingType, buttonOptions: newOptions })}
+                    onChange={(newOptions) =>
+                      setEditingType({
+                        ...editingType,
+                        buttonOptions: newOptions,
+                      })
+                    }
                   />
                 )}
               </div>
             )}
 
             <DialogFooter className="flex-row gap-2 pt-4">
-              {activeTypes.find(t => t.id === editingType.id) && (
+              {activeTypes.find((t) => t.id === editingType.id) && (
                 <ConfirmDeleteButton
                   onDelete={() => handleDelete(editingType.id)}
                 />
@@ -1072,9 +1333,11 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 type="button"
                 onClick={handleSave}
                 disabled={
-                  !editingType.name.trim() || 
-                  (editingType.uiType !== 'buttonGroup' && !editingType.unit?.trim()) ||
-                  (editingType.uiType === 'buttonGroup' && !validateButtonOptions(editingType.buttonOptions))
+                  !editingType.name.trim() ||
+                  (editingType.uiType !== "buttonGroup" &&
+                    !editingType.unit?.trim()) ||
+                  (editingType.uiType === "buttonGroup" &&
+                    !validateButtonOptions(editingType.buttonOptions))
                 }
                 className={cn(
                   "px-6 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
@@ -1091,7 +1354,9 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
             {activeTypes.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No activity types defined yet.</p>
-                <p className="text-sm">Add your first activity type to start tracking.</p>
+                <p className="text-sm">
+                  Add your first activity type to start tracking.
+                </p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -1103,36 +1368,62 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                       onClick={() => handleEdit(type)}
                       className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-muted-foreground/50 hover:bg-muted/50 transition-all text-left"
                     >
-                      <div className={cn(
-                        "w-3 h-3 rounded-full",
-                        goalType === 'negative' ? "bg-chart-1" : 
-                        goalType === 'positive' ? "bg-chart-2" : 
-                        "bg-chart-3"
-                      )} />
+                      <div
+                        className={cn(
+                          "w-3 h-3 rounded-full",
+                          goalType === "negative"
+                            ? "bg-chart-1"
+                            : goalType === "positive"
+                            ? "bg-chart-2"
+                            : "bg-chart-3"
+                        )}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-foreground truncate">
                           {type.name}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {type.uiType !== 'buttonGroup' && type.unit ? `${type.unit} · ` : ''}
-                          {goalType === 'negative' ? 'Less is better' : 
-                           goalType === 'positive' ? 'More is better' : 
-                           'Just tracking'} · {
-                            type.uiType === 'slider' ? 'Slider' : 
-                            type.uiType === 'buttonGroup' ? 'Options' : 
-                            '+/- buttons'
-                          }
+                          {type.uiType !== "buttonGroup" && type.unit
+                            ? `${type.unit} · `
+                            : ""}
+                          {goalType === "negative"
+                            ? "Less is better"
+                            : goalType === "positive"
+                            ? "More is better"
+                            : "Just tracking"}{" "}
+                          ·{" "}
+                          {type.uiType === "slider"
+                            ? "Slider"
+                            : type.uiType === "buttonGroup"
+                            ? "Options"
+                            : "+/- buttons"}
                         </div>
                       </div>
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-                        <path d="m9 18 6-6-6-6"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-muted-foreground"
+                      >
+                        <path d="m9 18 6-6-6-6" />
                       </svg>
                     </button>
                   );
                 })}
               </div>
             )}
-
+            {!canAddType && (
+              <p className="text-xs text-left text-muted-foreground">
+                Maximum of {maxTypes} activity types reached. Delete one to add
+                more.
+              </p>
+            )}
             <DialogFooter className="pt-4">
               <button
                 type="button"
@@ -1153,16 +1444,9 @@ export function ActivityTypeManager({ open, onOpenChange }: ActivityTypeManagerP
                 Add Activity Type
               </button>
             </DialogFooter>
-            
-            {!canAddType && (
-              <p className="text-xs text-center text-muted-foreground">
-                Maximum of {maxTypes} activity types reached. Delete one to add more.
-              </p>
-            )}
           </div>
         )}
       </DialogContent>
     </Dialog>
   );
 }
-
