@@ -27,6 +27,11 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
   if (type.uiType === 'slider') {
     const progress = ((currentValue - minValue) / (maxValue - minValue)) * 100;
     
+    // Stop pointer events from bubbling to prevent triggering swipe gestures
+    const stopPropagation = (e: React.PointerEvent | React.TouchEvent) => {
+      e.stopPropagation();
+    };
+    
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -42,8 +47,12 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
           value={currentValue}
           onChange={(e) => onChange(Number(e.target.value))}
           disabled={disabled}
-          className="activity-slider"
+          className="activity-slider touch-none"
           style={{ '--slider-progress': `${progress}%` } as React.CSSProperties}
+          onPointerDown={stopPropagation}
+          onPointerMove={stopPropagation}
+          onTouchStart={stopPropagation}
+          onTouchMove={stopPropagation}
         />
       </div>
     );
