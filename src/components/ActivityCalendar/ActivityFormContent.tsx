@@ -152,12 +152,12 @@ function ActivityTypeCard({
   return (
     <div 
       className={cn(
-        "rounded-lg border transition-all overflow-hidden",
+        "rounded-lg transition-all overflow-hidden",
         type.deleted 
-          ? "border-border/50 bg-muted/30" 
+          ? "bg-muted/50" 
           : isTracked
-            ? "border-primary/50"
-            : "border-border hover:border-muted-foreground/40"
+            ? "bg-muted"
+            : "bg-muted/70 hover:bg-muted"
       )}
     >
       {/* Header - clickable only when not tracked */}
@@ -234,10 +234,10 @@ function ActivityViewCard({
   return (
     <div 
       className={cn(
-        "rounded-lg border p-4 transition-all",
+        "rounded-lg p-4 transition-all",
         type.deleted 
-          ? "border-border/50 bg-muted/30" 
-          : "border-border bg-card"
+          ? "bg-muted/50" 
+          : "bg-muted/70"
       )}
     >
       <div className="flex items-center justify-between">

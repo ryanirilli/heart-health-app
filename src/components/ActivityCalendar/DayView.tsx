@@ -390,8 +390,11 @@ export function DayView({
   const content = mode === 'view' ? viewContent : editContent;
   const footer = mode === 'view' ? null : editFooter;
 
-  // Only enable drag/swipe on mobile
+  // Only enable drag/swipe on mobile when no activity items are open (tracked)
+  // In view mode, always allow swipe. In edit mode, only allow if no items are being edited.
   const isMobile = useIsMobile();
+  const hasOpenItems = mode === 'edit' && trackedTypes.size > 0;
+  const canSwipe = isMobile && !hasOpenItems;
 
   return (
     <div className="relative overflow-hidden">
@@ -408,13 +411,13 @@ export function DayView({
             x: { type: "spring", stiffness: 300, damping: 30 },
             opacity: { duration: 0.2 },
           }}
-          drag={isMobile ? "x" : false}
+          drag={canSwipe ? "x" : false}
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.2}
           onDragEnd={handleDragEnd}
           className={cn(
             "bg-card rounded-xl p-6 border border-border shadow-sm",
-            isMobile && "touch-none"
+            canSwipe && "touch-none"
           )}
         >
           <div className="space-y-4">
@@ -443,7 +446,7 @@ export function DayView({
 
             {/* Footer */}
             {footer && (
-              <div className="pt-4 border-t border-border">
+              <div className="pt-4">
                 {footer}
               </div>
             )}
@@ -451,10 +454,12 @@ export function DayView({
         </motion.div>
       </AnimatePresence>
       
-      {/* Swipe hint - mobile only */}
-      <div className="mt-4 text-center text-xs text-muted-foreground/50 md:hidden">
-        Swipe to navigate between days
-      </div>
+      {/* Swipe hint - mobile only when swipe is enabled */}
+      {canSwipe && (
+        <div className="mt-4 text-center text-xs text-muted-foreground/50 md:hidden">
+          Swipe to navigate between days
+        </div>
+      )}
     </div>
   );
 }
