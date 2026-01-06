@@ -68,7 +68,7 @@ function SkeletonDayCard({ date }: { date: Date }) {
   return (
     <Card className="opacity-25">
       <CardHeader className="p-4 pt-3">
-        <CardTitle className="text-lg">Future</CardTitle>
+        <CardTitle className="text-lg">Tomorrow</CardTitle>
         <CardDescription>{formattedDate}</CardDescription>
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
@@ -224,20 +224,25 @@ export function DayView({
   );
 
   // Animation variants for AnimatePresence
-  const slideVariants = {
-    enter: (direction: "left" | "right") => ({
-      x: direction === "left" ? 300 : -300,
-      opacity: 0,
+  // direction="left" means going forward in time (next day) - content enters from right, exits to left
+  // direction="right" means going back in time (previous day) - content enters from left, exits to right
+  const slideVariants = useMemo(
+    () => ({
+      enter: {
+        x: slideDirection === "left" ? 300 : -300,
+        opacity: 0,
+      },
+      center: {
+        x: 0,
+        opacity: 1,
+      },
+      exit: {
+        x: slideDirection === "left" ? -300 : 300,
+        opacity: 0,
+      },
     }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (direction: "left" | "right") => ({
-      x: direction === "left" ? -300 : 300,
-      opacity: 0,
-    }),
-  };
+    [slideDirection]
+  );
 
   const handleEntryChange = useCallback(
     (typeId: string, value: number | undefined) => {
@@ -537,29 +542,31 @@ export function DayView({
   );
 
   // Desktop carousel animation - animate entire row together
-  const carouselVariants = {
-    enter: (direction: "left" | "right") => ({
-      x: direction === "left" ? "33%" : "-33%",
-      opacity: 0,
+  const carouselVariants = useMemo(
+    () => ({
+      enter: {
+        x: slideDirection === "left" ? "33%" : "-33%",
+        opacity: 0,
+      },
+      center: {
+        x: 0,
+        opacity: 1,
+      },
+      exit: {
+        x: slideDirection === "left" ? "-33%" : "33%",
+        opacity: 0,
+      },
     }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (direction: "left" | "right") => ({
-      x: direction === "left" ? "-33%" : "33%",
-      opacity: 0,
-    }),
-  };
+    [slideDirection]
+  );
 
   return (
     <>
       {/* Desktop: Three-column layout with prev/next previews */}
       <div className="hidden md:block overflow-hidden">
-        <AnimatePresence mode="popLayout" custom={slideDirection} initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={selectedDateStr}
-            custom={slideDirection}
             variants={carouselVariants}
             initial={isInitialMount ? "center" : "enter"}
             animate="center"
@@ -596,21 +603,20 @@ export function DayView({
 
       {/* Mobile: Single card with swipe */}
       <div className="md:hidden relative overflow-hidden">
-        <AnimatePresence mode="popLayout" custom={slideDirection}>
+        <AnimatePresence mode="popLayout">
           <motion.div
             key={selectedDateStr}
-            custom={slideDirection}
             variants={slideVariants}
             initial={isInitialMount ? "center" : "enter"}
             animate="center"
             exit="exit"
             transition={{
-              x: { type: "tween", duration: 0.4, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: 0.3, ease: "easeInOut" },
+              x: { type: "spring", stiffness: 400, damping: 35 },
+              opacity: { duration: 0.15 },
             }}
             drag={canSwipe ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
+            dragElastic={0.5}
             onDragEnd={handleDragEnd}
             className={cn(canSwipe && "touch-none")}
           >
