@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { formatDate, ActivityEntry } from "@/lib/activities";
+import { formatDate, ActivityEntry, Activity } from "@/lib/activities";
 import { useActivities, useActivityTypes } from "./ActivityProvider";
 import {
   formatDialogDate,
@@ -29,6 +29,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { ActivityType } from "@/lib/activityTypes";
 
 type FormMode = "view" | "edit";
 
@@ -41,6 +42,95 @@ function isToday(date: Date): boolean {
     date.getFullYear() === today.getFullYear() &&
     date.getMonth() === today.getMonth() &&
     date.getDate() === today.getDate()
+  );
+}
+
+// Helper to check if a date is in the future
+function isFuture(date: Date): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const compareDate = new Date(date);
+  compareDate.setHours(0, 0, 0, 0);
+  return compareDate > today;
+}
+
+// Helper to add days to a date
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+// Skeleton card for future dates
+function SkeletonDayCard({ date }: { date: Date }) {
+  const formattedDate = formatDialogDate(date);
+  
+  return (
+    <Card className="opacity-25">
+      <CardHeader className="p-4 pt-3">
+        <CardTitle className="text-lg">Future</CardTitle>
+        <CardDescription>{formattedDate}</CardDescription>
+      </CardHeader>
+      <CardContent className="px-4 py-2 pb-4">
+        <div className="space-y-3">
+          <div className="h-12 bg-muted rounded-lg animate-pulse" />
+          <div className="h-12 bg-muted rounded-lg animate-pulse" />
+          <div className="h-12 bg-muted rounded-lg animate-pulse" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Preview card for adjacent days (non-interactive)
+function PreviewDayCard({
+  date,
+  activity,
+  activityTypes,
+}: {
+  date: Date;
+  activity: Activity | undefined;
+  activityTypes: { [id: string]: ActivityType };
+}) {
+  const formattedDate = formatDialogDate(date);
+  const isCurrentlyToday = isToday(date);
+
+  const entriesWithTypes = useMemo(() => {
+    if (!activity?.entries) return [];
+    return Object.entries(activity.entries)
+      .map(([typeId, entry]) => ({
+        type: activityTypes[typeId],
+        value: entry.value,
+      }))
+      .filter((item) => item.type)
+      .sort((a, b) => a.type.order - b.type.order);
+  }, [activity, activityTypes]);
+
+  return (
+    <Card className="opacity-30">
+      <CardHeader className="p-4 pt-3">
+        <CardTitle className="text-lg">
+          {activity ? "Activity Summary" : "No Activity"}
+        </CardTitle>
+        <CardDescription className="flex items-center gap-2">
+          {formattedDate}
+          {isCurrentlyToday && <Badge variant="today">Today</Badge>}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="px-4 py-2 pb-4">
+        {entriesWithTypes.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <p className="text-sm">No activities logged.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {entriesWithTypes.map(({ type, value }) => (
+              <ActivityViewCard key={type.id} type={type} value={value} />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -415,54 +505,126 @@ export function DayView({
   const hasOpenItems = mode === "edit" && trackedTypes.size > 0;
   const canSwipe = isMobile && !hasOpenItems;
 
-  return (
-    <div className="relative overflow-hidden">
-      {/* Swipeable Card with AnimatePresence for smooth transitions */}
-      <AnimatePresence mode="popLayout" custom={slideDirection}>
-        <motion.div
-          key={selectedDateStr}
-          custom={slideDirection}
-          variants={slideVariants}
-          initial={isInitialMount ? "center" : "enter"}
-          animate="center"
-          exit="exit"
-          transition={{
-            x: { type: "spring", stiffness: 300, damping: 30 },
-            opacity: { duration: 0.2 },
-          }}
-          drag={canSwipe ? "x" : false}
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.2}
-          onDragEnd={handleDragEnd}
-          className={cn(canSwipe && "touch-none")}
-        >
-          <Card>
-            <CardHeader className="relative flex-row items-start justify-between space-y-0 p-4 pr-3 pt-3">
-              <div className="flex-1 text-center md:text-left space-y-1">
-                <CardTitle className="text-lg">{title}</CardTitle>
-                <CardDescription className="flex items-center justify-center md:justify-start gap-2">
-                  {formattedDate}
-                  {isCurrentlyToday && <Badge variant="today">Today</Badge>}
-                </CardDescription>
-              </div>
-              {editButton}
-            </CardHeader>
+  // Calculate previous and next dates for desktop preview
+  const previousDate = useMemo(() => addDays(selectedDate, -1), [selectedDate]);
+  const nextDate = useMemo(() => addDays(selectedDate, 1), [selectedDate]);
+  const previousDateStr = formatDate(previousDate);
+  const nextDateStr = formatDate(nextDate);
+  const previousActivity = activities[previousDateStr];
+  const nextActivity = activities[nextDateStr];
+  const isNextFuture = isFuture(nextDate);
 
-            <CardContent className="px-4 py-2 pb-4">{content}</CardContent>
-
-            {footer && (
-              <CardFooter className="px-4 pt-4 pb-4">{footer}</CardFooter>
-            )}
-          </Card>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Swipe hint - mobile only when swipe is enabled */}
-      {canSwipe && (
-        <div className="mt-4 text-center text-xs text-muted-foreground/50 md:hidden">
-          Swipe to navigate between days
+  // Main card content (used for both mobile and desktop center column)
+  const mainCard = (
+    <Card>
+      <CardHeader className="relative flex-row items-start justify-between space-y-0 p-4 pr-3 pt-3">
+        <div className="flex-1 text-center md:text-left space-y-1">
+          <CardTitle className="text-lg">{title}</CardTitle>
+          <CardDescription className="flex items-center justify-center md:justify-start gap-2">
+            {formattedDate}
+            {isCurrentlyToday && <Badge variant="today">Today</Badge>}
+          </CardDescription>
         </div>
+        {editButton}
+      </CardHeader>
+
+      <CardContent className="px-4 py-2 pb-4">{content}</CardContent>
+
+      {footer && (
+        <CardFooter className="px-4 pt-4 pb-4">{footer}</CardFooter>
       )}
-    </div>
+    </Card>
+  );
+
+  // Desktop carousel animation - animate entire row together
+  const carouselVariants = {
+    enter: (direction: "left" | "right") => ({
+      x: direction === "left" ? "33%" : "-33%",
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: "left" | "right") => ({
+      x: direction === "left" ? "-33%" : "33%",
+      opacity: 0,
+    }),
+  };
+
+  return (
+    <>
+      {/* Desktop: Three-column layout with prev/next previews */}
+      <div className="hidden md:block overflow-hidden">
+        <AnimatePresence mode="popLayout" custom={slideDirection} initial={false}>
+          <motion.div
+            key={selectedDateStr}
+            custom={slideDirection}
+            variants={carouselVariants}
+            initial={isInitialMount ? "center" : "enter"}
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "tween", duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.3, ease: "easeInOut" },
+            }}
+            className="grid grid-cols-[1fr_1.2fr_1fr] gap-4 items-start"
+          >
+            {/* Previous day */}
+            <PreviewDayCard
+              date={previousDate}
+              activity={previousActivity}
+              activityTypes={activityTypes}
+            />
+
+            {/* Current day (main interactive card) */}
+            {mainCard}
+
+            {/* Next day */}
+            {isNextFuture ? (
+              <SkeletonDayCard date={nextDate} />
+            ) : (
+              <PreviewDayCard
+                date={nextDate}
+                activity={nextActivity}
+                activityTypes={activityTypes}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Mobile: Single card with swipe */}
+      <div className="md:hidden relative overflow-hidden">
+        <AnimatePresence mode="popLayout" custom={slideDirection}>
+          <motion.div
+            key={selectedDateStr}
+            custom={slideDirection}
+            variants={slideVariants}
+            initial={isInitialMount ? "center" : "enter"}
+            animate="center"
+            exit="exit"
+            transition={{
+              x: { type: "tween", duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+              opacity: { duration: 0.3, ease: "easeInOut" },
+            }}
+            drag={canSwipe ? "x" : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
+            className={cn(canSwipe && "touch-none")}
+          >
+            {mainCard}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Swipe hint - mobile only when swipe is enabled */}
+        {canSwipe && (
+          <div className="mt-4 text-center text-xs text-muted-foreground/50">
+            Swipe to navigate between days
+          </div>
+        )}
+      </div>
+    </>
   );
 }
