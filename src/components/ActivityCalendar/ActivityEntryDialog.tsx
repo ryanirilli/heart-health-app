@@ -23,11 +23,12 @@ import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 import {
-  EntryInput,
   ActivityTypeCard,
   ActivityViewCard,
   formatDialogDate,
 } from "./ActivityFormContent";
+import { Button } from "@/components/ui/button";
+import { Pencil, ChevronDown, Loader2 } from "lucide-react";
 
 type DialogMode = "view" | "edit";
 
@@ -173,13 +174,14 @@ export function ActivityEntryDialog({
         {entriesWithTypes.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <p>No activities logged for this day.</p>
-            <button
-              type="button"
+            <Button
+              variant="muted"
+              size="sm"
               onClick={() => setMode("edit")}
-              className="mt-4 px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+              className="mt-4"
             >
               Add activities
-            </button>
+            </Button>
           </div>
         ) : (
           entriesWithTypes.map(({ type, value }) => (
@@ -196,27 +198,15 @@ export function ActivityEntryDialog({
   // Edit button icon for view mode header
   const editIconButton =
     mode === "view" && existingActivity ? (
-      <button
-        type="button"
+      <Button
+        variant="outline"
+        size="icon-sm"
         onClick={() => setMode("edit")}
-        className="absolute right-4 top-4 w-8 h-8 rounded-full border-2 border-border hover:border-foreground flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
+        className="absolute right-4 top-4"
         aria-label="Edit activity"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-          <path d="m15 5 4 4" />
-        </svg>
-      </button>
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
     ) : null;
 
   // Edit mode content
@@ -269,33 +259,23 @@ export function ActivityEntryDialog({
           {/* Accordion for untracked types */}
           {untrackedTypesList.length > 0 && (
             <div className={cn(trackedTypesList.length > 0 && "pt-2")}>
-              <button
-                type="button"
+              <Button
+                variant="muted"
+                size="sm"
                 onClick={() => setShowUnsetTypes(!showUnsetTypes)}
-                className="w-full flex items-center justify-between py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="w-full justify-between"
               >
                 <span>
                   {untrackedTypesList.length} untracked{" "}
                   {untrackedTypesList.length === 1 ? "activity" : "activities"}
                 </span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <ChevronDown
                   className={cn(
-                    "transition-transform duration-200",
+                    "h-4 w-4 transition-transform duration-200",
                     showUnsetTypes && "rotate-180"
                   )}
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </button>
+                />
+              </Button>
 
               {showUnsetTypes && (
                 <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -340,8 +320,9 @@ export function ActivityEntryDialog({
         />
       )}
       <div className="flex-1" />
-      <button
-        type="button"
+      <Button
+        variant="muted"
+        size="sm"
         onClick={() => {
           if (existingActivity) {
             // Reset to original values and go back to view mode
@@ -359,41 +340,23 @@ export function ActivityEntryDialog({
           }
         }}
         disabled={isPending}
-        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Cancel
-      </button>
-      <button
-        type="button"
+      </Button>
+      <Button
+        size="pill"
         onClick={handleSave}
         disabled={activeTypes.length === 0 || isPending}
-        className={cn(
-          "px-6 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
-          "bg-primary text-primary-foreground hover:bg-primary/90"
-        )}
       >
         {isSaving ? (
           <span className="flex items-center gap-2">
-            <svg
-              className="animate-spin"
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-            </svg>
+            <Loader2 className="h-4 w-4 animate-spin" />
             Saving...
           </span>
         ) : (
           "Save"
         )}
-      </button>
+      </Button>
     </div>
   );
 

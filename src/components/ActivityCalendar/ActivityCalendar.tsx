@@ -1,12 +1,16 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { getShortMonthName, getDateRange, formatDate } from '@/lib/activities';
+import { getShortMonthName, getDateRange } from '@/lib/activities';
 import { DayView } from './DayView';
 import { MonthView } from './MonthView';
 import { YearView } from './YearView';
 import { useActivities } from './ActivityProvider';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Card, CardContent } from '@/components/ui/card';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 type ViewMode = 'day' | 'month' | 'year';
 
@@ -134,10 +138,12 @@ export function ActivityCalendar() {
   };
 
   // When switching view modes, set appropriate defaults
-  const handleViewModeChange = (newMode: ViewMode) => {
-    setViewMode(newMode);
+  const handleViewModeChange = (newMode: string) => {
+    if (!newMode) return; // ToggleGroup can return empty string when deselecting
+    const mode = newMode as ViewMode;
+    setViewMode(mode);
     
-    if (newMode === 'month') {
+    if (mode === 'month') {
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
@@ -163,7 +169,7 @@ export function ActivityCalendar() {
         setYear(dateRange.maxYear);
         setMonth(dateRange.maxMonth);
       }
-    } else if (newMode === 'year') {
+    } else if (mode === 'year') {
       // Default to current year
       setYear(new Date().getFullYear());
     }
@@ -175,82 +181,51 @@ export function ActivityCalendar() {
       {/* Controls */}
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         {/* View mode toggle */}
-        <div className="flex">
-          <div className="flex rounded-full bg-muted p-1 border border-border">
-            <button
-              onClick={() => handleViewModeChange('day')}
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
-                viewMode === 'day' 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Day
-            </button>
-            <button
-              onClick={() => handleViewModeChange('month')}
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
-                viewMode === 'month' 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Month
-            </button>
-            <button
-              onClick={() => handleViewModeChange('year')}
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
-                viewMode === 'year' 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Year
-            </button>
-          </div>
-        </div>
+        <ToggleGroup
+          type="single"
+          value={viewMode}
+          onValueChange={handleViewModeChange}
+          variant="pill"
+          size="pill"
+          className="rounded-full bg-muted p-1 border border-border"
+        >
+          <ToggleGroupItem value="day" aria-label="Day view">
+            Day
+          </ToggleGroupItem>
+          <ToggleGroupItem value="month" aria-label="Month view">
+            Month
+          </ToggleGroupItem>
+          <ToggleGroupItem value="year" aria-label="Year view">
+            Year
+          </ToggleGroupItem>
+        </ToggleGroup>
 
         {/* Navigation - shown for all views, but hidden on mobile for day view (swipe instead) */}
         <div className={cn("flex", viewMode === 'day' && "hidden md:flex")}>
           <div className="flex items-center rounded-full border border-border bg-muted p-1">
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={handlePrevious}
               disabled={!canGoPrevious}
-              className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
-                canGoPrevious 
-                  ? "hover:bg-background text-muted-foreground hover:text-foreground" 
-                  : "text-muted-foreground/30 cursor-not-allowed"
-              )}
               aria-label="Previous"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m15 18-6-6 6-6"/>
-              </svg>
-            </button>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
             
             <span className="text-sm font-medium text-foreground min-w-[48px] text-center px-1">
               {getNavigationLabel()}
             </span>
             
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={handleNext}
               disabled={!canGoNext}
-              className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
-                canGoNext 
-                  ? "hover:bg-background text-muted-foreground hover:text-foreground" 
-                  : "text-muted-foreground/30 cursor-not-allowed"
-              )}
               aria-label="Next"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m9 18 6-6-6-6"/>
-              </svg>
-            </button>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -265,13 +240,15 @@ export function ActivityCalendar() {
           canGoNext={canGoNextDay}
         />
       ) : (
-        <div className="bg-card rounded-xl p-6 border border-border shadow-sm">
-          {viewMode === 'month' ? (
-            <MonthView year={year} month={month} />
-          ) : (
-            <YearView year={year} />
-          )}
-        </div>
+        <Card>
+          <CardContent className="p-6">
+            {viewMode === 'month' ? (
+              <MonthView year={year} month={month} />
+            ) : (
+              <YearView year={year} />
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

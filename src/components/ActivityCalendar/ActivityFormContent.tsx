@@ -8,6 +8,7 @@ const { plural } = pluralizeLib;
 import { useActivityTypes } from './ActivityProvider';
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 type FormMode = 'view' | 'edit';
 
@@ -179,9 +180,7 @@ function ActivityTypeCard({
           {type.name}
         </span>
         {type.deleted && (
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-            Archived
-          </span>
+          <Badge variant="muted">Archived</Badge>
         )}
         {!isTracked && !isDisabled && (
           <span className="text-xs text-muted-foreground">
@@ -252,9 +251,7 @@ function ActivityViewCard({
             {type.name}
           </span>
           {type.deleted && (
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
-              Archived
-            </span>
+            <Badge variant="muted">Archived</Badge>
           )}
         </div>
         <span className="text-lg font-semibold text-foreground">

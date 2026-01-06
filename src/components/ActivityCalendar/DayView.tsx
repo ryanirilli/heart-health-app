@@ -5,7 +5,6 @@ import { formatDate, ActivityEntry } from '@/lib/activities';
 import { useActivities, useActivityTypes } from './ActivityProvider';
 import { 
   formatDialogDate, 
-  EntryInput, 
   ActivityTypeCard, 
   ActivityViewCard 
 } from './ActivityFormContent';
@@ -13,6 +12,10 @@ import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { useIsMobile } from '@/lib/hooks/useMediaQuery';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Pencil, ChevronDown, Loader2 } from 'lucide-react';
 
 type FormMode = 'view' | 'edit';
 
@@ -216,13 +219,14 @@ export function DayView({
       {entriesWithTypes.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           <p>No activities logged for this day.</p>
-          <button
-            type="button"
+          <Button
+            variant="muted"
+            size="sm"
             onClick={() => setMode('edit')}
-            className="mt-4 px-4 py-2 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            className="mt-4"
           >
             Add activities
-          </button>
+          </Button>
         </div>
       ) : (
         entriesWithTypes.map(({ type, value }) => (
@@ -276,32 +280,22 @@ export function DayView({
 
           {untrackedTypesList.length > 0 && (
             <div className={cn(trackedTypesList.length > 0 && "pt-2")}>
-              <button
-                type="button"
+              <Button
+                variant="muted"
+                size="sm"
                 onClick={() => setShowUnsetTypes(!showUnsetTypes)}
-                className="w-full flex items-center justify-between py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="w-full justify-between"
               >
                 <span>
                   {untrackedTypesList.length} untracked {untrackedTypesList.length === 1 ? 'activity' : 'activities'}
                 </span>
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="16" 
-                  height="16" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
+                <ChevronDown 
                   className={cn(
-                    "transition-transform duration-200",
+                    "h-4 w-4 transition-transform duration-200",
                     showUnsetTypes && "rotate-180"
                   )}
-                >
-                  <path d="m6 9 6 6 6-6"/>
-                </svg>
-              </button>
+                />
+              </Button>
               
               {showUnsetTypes && (
                 <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -332,17 +326,14 @@ export function DayView({
 
   // Edit button for view mode
   const editButton = mode === 'view' && existingActivity ? (
-    <button
-      type="button"
+    <Button
+      variant="outline"
+      size="icon-sm"
       onClick={() => setMode('edit')}
-      className="w-8 h-8 rounded-full border-2 border-border hover:border-foreground flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
       aria-label="Edit activity"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-        <path d="m15 5 4 4"/>
-      </svg>
-    </button>
+      <Pencil className="h-3.5 w-3.5" />
+    </Button>
   ) : null;
 
   // Edit mode footer
@@ -357,33 +348,27 @@ export function DayView({
       )}
       <div className="flex-1" />
       {existingActivity && (
-        <button
-          type="button"
+        <Button
+          variant="muted"
+          size="sm"
           onClick={handleCancel}
           disabled={isPending}
-          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Cancel
-        </button>
+        </Button>
       )}
-      <button
-        type="button"
+      <Button
+        size="pill"
         onClick={handleSave}
         disabled={activeTypes.length === 0 || isPending}
-        className={cn(
-          "px-6 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
-          "bg-primary text-primary-foreground hover:bg-primary/90"
-        )}
       >
         {isSaving ? (
           <span className="flex items-center gap-2">
-            <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-            </svg>
+            <Loader2 className="h-4 w-4 animate-spin" />
             Saving...
           </span>
         ) : 'Save'}
-      </button>
+      </Button>
     </div>
   );
 
@@ -415,42 +400,32 @@ export function DayView({
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={0.2}
           onDragEnd={handleDragEnd}
-          className={cn(
-            "bg-card rounded-xl p-6 border border-border shadow-sm",
-            canSwipe && "touch-none"
-          )}
+          className={cn(canSwipe && "touch-none")}
         >
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="relative flex items-start justify-between">
-              <div className="flex-1 text-center md:text-left">
-                <h2 className="text-lg font-semibold text-foreground">
-                  {title}
-                </h2>
-                <p className="text-sm text-muted-foreground">
+          <Card>
+            <CardHeader className="relative flex-row items-start justify-between space-y-0 pb-2">
+              <div className="flex-1 text-center md:text-left space-y-1">
+                <CardTitle className="text-lg">{title}</CardTitle>
+                <CardDescription className="flex items-center justify-center md:justify-start gap-2">
                   {formattedDate}
                   {isCurrentlyToday && (
-                    <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                      Today
-                    </span>
+                    <Badge variant="today">Today</Badge>
                   )}
-                </p>
+                </CardDescription>
               </div>
               {editButton}
-            </div>
+            </CardHeader>
 
-            {/* Content */}
-            <div className="py-2">
+            <CardContent className="py-2">
               {content}
-            </div>
+            </CardContent>
 
-            {/* Footer */}
             {footer && (
-              <div className="pt-4">
+              <CardFooter className="pt-4">
                 {footer}
-              </div>
+              </CardFooter>
             )}
-          </div>
+          </Card>
         </motion.div>
       </AnimatePresence>
       

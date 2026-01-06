@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Activity } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -83,11 +86,13 @@ export default function LoginPage() {
         </div>
 
         {/* Google Sign In */}
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="pill-lg"
           onClick={handleGoogleSignIn}
           disabled={googleLoading || loading}
-          className="w-full py-2.5 px-4 rounded-full border border-input bg-background text-foreground font-medium hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -108,7 +113,7 @@ export default function LoginPage() {
             />
           </svg>
           {googleLoading ? "Connecting..." : "Continue with Google"}
-        </button>
+        </Button>
 
         {/* Divider */}
         <div className="relative">
@@ -125,38 +130,26 @@ export default function LoginPage() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-foreground"
-            >
-              Email
-            </label>
-            <input
+            <Label htmlFor="email">Email</Label>
+            <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="you@example.com"
             />
           </div>
 
           <div className="space-y-2">
-            <label
-              htmlFor="password"
-              className="text-sm font-medium text-foreground"
-            >
-              Password
-            </label>
-            <input
+            <Label htmlFor="password">Password</Label>
+            <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-2 rounded-lg border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="••••••••"
             />
           </div>
@@ -173,30 +166,32 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
+            size="pill-lg"
             disabled={loading}
-            className="w-full py-2.5 px-4 rounded-full bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full"
           >
             {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
-          </button>
+          </Button>
         </form>
 
         {/* Toggle */}
         <div className="text-center">
-          <button
+          <Button
             type="button"
+            variant="muted"
+            size="sm"
             onClick={() => {
               setIsSignUp(!isSignUp);
               setError(null);
               setMessage(null);
             }}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             {isSignUp
               ? "Already have an account? Sign in"
               : "Don't have an account? Sign up"}
-          </button>
+          </Button>
         </div>
       </div>
     </main>

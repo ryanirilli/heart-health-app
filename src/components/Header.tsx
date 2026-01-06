@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 type Theme = "light" | "dark";
 
@@ -65,12 +66,9 @@ export function Header() {
           {/* Actions */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-muted transition-colors"
-                aria-label="Menu"
-              >
-                <Menu className="h-4 w-4 text-muted-foreground" />
-              </button>
+              <Button variant="ghost" size="icon" aria-label="Menu">
+                <Menu className="h-4 w-4" />
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {mounted && (

@@ -29,11 +29,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ActivityType,
-  UIType,
   ButtonOption,
   MAX_BUTTON_OPTIONS,
   MIN_BUTTON_OPTIONS,
-  GoalType,
   getGoalType,
   validateButtonOptions,
   generateActivityTypeId,
@@ -41,6 +39,11 @@ import {
 import { useActivityTypes } from "./ActivityProvider";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { GripVertical, X, ChevronRight, Plus } from "lucide-react";
 
 // Preset activity type definitions
 interface PresetActivityType {
@@ -322,53 +325,25 @@ function SortableOption({
         {...attributes}
         {...listeners}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="9" cy="5" r="1" />
-          <circle cx="9" cy="12" r="1" />
-          <circle cx="9" cy="19" r="1" />
-          <circle cx="15" cy="5" r="1" />
-          <circle cx="15" cy="12" r="1" />
-          <circle cx="15" cy="19" r="1" />
-        </svg>
+        <GripVertical className="h-4 w-4" />
       </button>
-      <input
+      <Input
         type="text"
         value={option.label}
         onChange={(e) => onLabelChange(e.target.value)}
         placeholder={`Option ${index + 1}`}
-        className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        className="flex-1 h-8"
       />
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={onDelete}
-        className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
+        className="text-muted-foreground hover:text-destructive"
         title="Delete option"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M18 6 6 18" />
-          <path d="m6 6 12 12" />
-        </svg>
-      </button>
+        <X className="h-4 w-4" />
+      </Button>
     </div>
   );
 }
@@ -475,13 +450,16 @@ function ButtonOptionsEditor({ options, onChange }: ButtonOptionsEditorProps) {
       )}
       <div className="flex items-center justify-left">
         {options.length < MAX_BUTTON_OPTIONS && (
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="sm"
             onClick={handleAdd}
-            className="text-xs text-primary hover:text-primary/80 font-medium"
+            className="h-auto p-0 text-xs"
           >
-            + Add Option
-          </button>
+            <Plus className="h-3 w-3 mr-1" />
+            Add Option
+          </Button>
         )}
       </div>
     </div>
@@ -549,21 +527,20 @@ function CustomTypeForm({
     <div className="space-y-4 py-4">
       {/* Name */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Name</label>
-        <input
+        <Label>Name</Label>
+        <Input
           type="text"
           value={editingType.name}
           onChange={(e) =>
             setEditingType({ ...editingType, name: e.target.value })
           }
           placeholder="e.g., Alcoholic Drinks, Exercise, Water"
-          className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
 
       {/* Goal Type */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Goal Type</label>
+        <Label>Goal Type</Label>
         <p className="text-xs text-muted-foreground">
           {getGoalType(editingType) === "positive"
             ? "Higher values are better (e.g., exercise, water intake)"
@@ -572,8 +549,10 @@ function CustomTypeForm({
             : "No judgment, just recording (e.g., mood, sleep quality)"}
         </p>
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() =>
               setEditingType({
                 ...editingType,
@@ -582,16 +561,17 @@ function CustomTypeForm({
               })
             }
             className={cn(
-              "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-              getGoalType(editingType) === "positive"
-                ? "border-chart-2 bg-chart-2/10 text-chart-2"
-                : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+              "flex-1 text-xs",
+              getGoalType(editingType) === "positive" &&
+                "border-chart-2 bg-chart-2/10 text-chart-2 hover:bg-chart-2/20"
             )}
           >
             More is Better
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() =>
               setEditingType({
                 ...editingType,
@@ -600,16 +580,17 @@ function CustomTypeForm({
               })
             }
             className={cn(
-              "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-              getGoalType(editingType) === "negative"
-                ? "border-chart-1 bg-chart-1/10 text-chart-1"
-                : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+              "flex-1 text-xs",
+              getGoalType(editingType) === "negative" &&
+                "border-chart-1 bg-chart-1/10 text-chart-1 hover:bg-chart-1/20"
             )}
           >
             Less is Better
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={() =>
               setEditingType({
                 ...editingType,
@@ -618,91 +599,82 @@ function CustomTypeForm({
               })
             }
             className={cn(
-              "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-              getGoalType(editingType) === "neutral"
-                ? "border-chart-3 bg-chart-3/10 text-chart-3"
-                : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+              "flex-1 text-xs",
+              getGoalType(editingType) === "neutral" &&
+                "border-chart-3 bg-chart-3/10 text-chart-3 hover:bg-chart-3/20"
             )}
           >
             Just Track
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Advanced Settings Toggle */}
-      <button
+      <Button
         type="button"
+        variant="muted"
+        size="sm"
         onClick={() => setShowAdvanced(!showAdvanced)}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="justify-start"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={cn("transition-transform", showAdvanced && "rotate-90")}
-        >
-          <path d="m9 18 6-6-6-6" />
-        </svg>
+        <ChevronRight
+          className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-90")}
+        />
         Advanced Settings
-      </button>
+      </Button>
 
       {/* Advanced Settings */}
       {showAdvanced && (
         <div className="space-y-4 pl-4 border-l-2 border-border animate-in fade-in slide-in-from-top-2 duration-200">
           {/* UI Type */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Input Type
-            </label>
+            <Label>Input Type</Label>
             <div className="flex gap-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() =>
                   setEditingType({ ...editingType, uiType: "increment" })
                 }
                 className={cn(
-                  "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                  editingType.uiType === "increment"
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+                  "flex-1 text-xs",
+                  editingType.uiType === "increment" &&
+                    "border-primary bg-primary/10"
                 )}
               >
                 +/- Buttons
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() =>
                   setEditingType({ ...editingType, uiType: "slider" })
                 }
                 className={cn(
-                  "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                  editingType.uiType === "slider"
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+                  "flex-1 text-xs",
+                  editingType.uiType === "slider" &&
+                    "border-primary bg-primary/10"
                 )}
               >
                 Slider
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() =>
                   setEditingType({ ...editingType, uiType: "buttonGroup" })
                 }
                 className={cn(
-                  "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                  editingType.uiType === "buttonGroup"
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+                  "flex-1 text-xs",
+                  editingType.uiType === "buttonGroup" &&
+                    "border-primary bg-primary/10"
                 )}
               >
                 Options
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -710,10 +682,8 @@ function CustomTypeForm({
           {(editingType.uiType === "increment" ||
             editingType.uiType === "slider") && (
             <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">
-                Unit
-              </label>
-              <input
+              <Label className="text-xs text-muted-foreground">Unit</Label>
+              <Input
                 type="text"
                 value={editingType.unit ?? ""}
                 onChange={(e) =>
@@ -724,7 +694,7 @@ function CustomTypeForm({
                   })
                 }
                 placeholder="e.g., drink, minute, glass"
-                className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                className="h-8"
               />
             </div>
           )}
@@ -733,10 +703,8 @@ function CustomTypeForm({
           {editingType.uiType === "slider" && (
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Min
-                </label>
-                <input
+                <Label className="text-xs text-muted-foreground">Min</Label>
+                <Input
                   type="number"
                   value={editingType.minValue ?? 0}
                   onChange={(e) =>
@@ -745,14 +713,12 @@ function CustomTypeForm({
                       minValue: Number(e.target.value),
                     })
                   }
-                  className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="h-8"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Max
-                </label>
-                <input
+                <Label className="text-xs text-muted-foreground">Max</Label>
+                <Input
                   type="number"
                   value={editingType.maxValue ?? 10}
                   onChange={(e) =>
@@ -761,14 +727,12 @@ function CustomTypeForm({
                       maxValue: Number(e.target.value),
                     })
                   }
-                  className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="h-8"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Step
-                </label>
-                <input
+                <Label className="text-xs text-muted-foreground">Step</Label>
+                <Input
                   type="number"
                   value={editingType.step ?? 1}
                   onChange={(e) =>
@@ -777,7 +741,7 @@ function CustomTypeForm({
                       step: Number(e.target.value),
                     })
                   }
-                  className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="h-8"
                 />
               </div>
             </div>
@@ -797,15 +761,11 @@ function CustomTypeForm({
 
       <DialogFooter className="flex-row gap-2 pt-4">
         <div className="flex-1" />
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <Button variant="muted" size="sm" onClick={onCancel}>
           Cancel
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          size="pill"
           onClick={handleSave}
           disabled={
             !editingType.name.trim() ||
@@ -814,13 +774,9 @@ function CustomTypeForm({
             (editingType.uiType === "buttonGroup" &&
               !validateButtonOptions(editingType.buttonOptions))
           }
-          className={cn(
-            "px-6 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
-            "bg-primary text-primary-foreground hover:bg-primary/90"
-          )}
         >
           Save
-        </button>
+        </Button>
       </DialogFooter>
     </div>
   );
@@ -1007,38 +963,22 @@ export function ActivityTypeManager({
                         </div>
                       </div>
                       {isAlreadyAdded ? (
-                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                          Added
-                        </span>
+                        <Badge variant="muted">Added</Badge>
                       ) : (
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-muted-foreground"
-                        >
-                          <path d="M12 5v14" />
-                          <path d="M5 12h14" />
-                        </svg>
+                        <Plus className="h-5 w-5 text-muted-foreground" />
                       )}
                     </button>
                   );
                 })}
               </div>
               <DialogFooter className="pt-4">
-                <button
-                  type="button"
+                <Button
+                  variant="muted"
+                  size="sm"
                   onClick={() => setShowAddNew(false)}
-                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Back
-                </button>
+                </Button>
               </DialogFooter>
             </TabsContent>
             <TabsContent value="custom">
@@ -1056,25 +996,20 @@ export function ActivityTypeManager({
           <div className="space-y-4 py-2">
             {/* Name */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Name
-              </label>
-              <input
+              <Label>Name</Label>
+              <Input
                 type="text"
                 value={editingType.name}
                 onChange={(e) =>
                   setEditingType({ ...editingType, name: e.target.value })
                 }
                 placeholder="e.g., Alcoholic Drinks, Exercise, Water"
-                className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
 
             {/* Goal Type */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
-                Goal Type
-              </label>
+              <Label>Goal Type</Label>
               <p className="text-xs text-muted-foreground">
                 {getGoalType(editingType) === "positive"
                   ? "Higher values are better (e.g., exercise, water intake)"
@@ -1083,8 +1018,10 @@ export function ActivityTypeManager({
                   : "No judgment, just recording (e.g., mood, sleep quality)"}
               </p>
               <div className="flex gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() =>
                     setEditingType({
                       ...editingType,
@@ -1093,16 +1030,17 @@ export function ActivityTypeManager({
                     })
                   }
                   className={cn(
-                    "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                    getGoalType(editingType) === "positive"
-                      ? "border-chart-2 bg-chart-2/10 text-chart-2"
-                      : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+                    "flex-1 text-xs",
+                    getGoalType(editingType) === "positive" &&
+                      "border-chart-2 bg-chart-2/10 text-chart-2 hover:bg-chart-2/20"
                   )}
                 >
                   More is Better
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() =>
                     setEditingType({
                       ...editingType,
@@ -1111,16 +1049,17 @@ export function ActivityTypeManager({
                     })
                   }
                   className={cn(
-                    "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                    getGoalType(editingType) === "negative"
-                      ? "border-chart-1 bg-chart-1/10 text-chart-1"
-                      : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+                    "flex-1 text-xs",
+                    getGoalType(editingType) === "negative" &&
+                      "border-chart-1 bg-chart-1/10 text-chart-1 hover:bg-chart-1/20"
                   )}
                 >
                   Less is Better
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() =>
                     setEditingType({
                       ...editingType,
@@ -1129,82 +1068,71 @@ export function ActivityTypeManager({
                     })
                   }
                   className={cn(
-                    "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                    getGoalType(editingType) === "neutral"
-                      ? "border-chart-3 bg-chart-3/10 text-chart-3"
-                      : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+                    "flex-1 text-xs",
+                    getGoalType(editingType) === "neutral" &&
+                      "border-chart-3 bg-chart-3/10 text-chart-3 hover:bg-chart-3/20"
                   )}
                 >
                   Just Track
-                </button>
+                </Button>
               </div>
             </div>
 
             {/* Advanced Settings Toggle */}
-            <button
+            <Button
               type="button"
+              variant="muted"
+              size="sm"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="justify-start"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={cn(
-                  "transition-transform",
-                  showAdvanced && "rotate-90"
-                )}
-              >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
+              <ChevronRight
+                className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-90")}
+              />
               Advanced Settings
-            </button>
+            </Button>
 
             {/* Advanced Settings */}
             {showAdvanced && (
               <div className="space-y-4 pl-4 border-l-2 border-border animate-in fade-in slide-in-from-top-2 duration-200">
                 {/* UI Type */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Input Type
-                  </label>
+                  <Label>Input Type</Label>
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() =>
                         setEditingType({ ...editingType, uiType: "increment" })
                       }
                       className={cn(
-                        "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                        editingType.uiType === "increment"
-                          ? "border-primary bg-primary/10 text-foreground"
-                          : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+                        "flex-1 text-xs",
+                        editingType.uiType === "increment" &&
+                          "border-primary bg-primary/10"
                       )}
                     >
                       +/- Buttons
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() =>
                         setEditingType({ ...editingType, uiType: "slider" })
                       }
                       className={cn(
-                        "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                        editingType.uiType === "slider"
-                          ? "border-primary bg-primary/10 text-foreground"
-                          : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+                        "flex-1 text-xs",
+                        editingType.uiType === "slider" &&
+                          "border-primary bg-primary/10"
                       )}
                     >
                       Slider
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() =>
                         setEditingType({
                           ...editingType,
@@ -1212,14 +1140,13 @@ export function ActivityTypeManager({
                         })
                       }
                       className={cn(
-                        "flex-1 py-2 px-2 rounded-lg border-2 text-xs font-medium transition-all",
-                        editingType.uiType === "buttonGroup"
-                          ? "border-primary bg-primary/10 text-foreground"
-                          : "border-border hover:border-muted-foreground/50 text-muted-foreground"
+                        "flex-1 text-xs",
+                        editingType.uiType === "buttonGroup" &&
+                          "border-primary bg-primary/10"
                       )}
                     >
                       Options
-                    </button>
+                    </Button>
                   </div>
                 </div>
 
@@ -1227,10 +1154,8 @@ export function ActivityTypeManager({
                 {(editingType.uiType === "increment" ||
                   editingType.uiType === "slider") && (
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-muted-foreground">
-                      Unit
-                    </label>
-                    <input
+                    <Label className="text-xs text-muted-foreground">Unit</Label>
+                    <Input
                       type="text"
                       value={editingType.unit ?? ""}
                       onChange={(e) =>
@@ -1241,7 +1166,7 @@ export function ActivityTypeManager({
                         })
                       }
                       placeholder="e.g., drink, minute, glass"
-                      className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="h-8"
                     />
                   </div>
                 )}
@@ -1250,10 +1175,8 @@ export function ActivityTypeManager({
                 {editingType.uiType === "slider" && (
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        Min
-                      </label>
-                      <input
+                      <Label className="text-xs text-muted-foreground">Min</Label>
+                      <Input
                         type="number"
                         value={editingType.minValue ?? 0}
                         onChange={(e) =>
@@ -1262,14 +1185,12 @@ export function ActivityTypeManager({
                             minValue: Number(e.target.value),
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="h-8"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        Max
-                      </label>
-                      <input
+                      <Label className="text-xs text-muted-foreground">Max</Label>
+                      <Input
                         type="number"
                         value={editingType.maxValue ?? 10}
                         onChange={(e) =>
@@ -1278,14 +1199,12 @@ export function ActivityTypeManager({
                             maxValue: Number(e.target.value),
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="h-8"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        Step
-                      </label>
-                      <input
+                      <Label className="text-xs text-muted-foreground">Step</Label>
+                      <Input
                         type="number"
                         value={editingType.step ?? 1}
                         onChange={(e) =>
@@ -1294,7 +1213,7 @@ export function ActivityTypeManager({
                             step: Number(e.target.value),
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                        className="h-8"
                       />
                     </div>
                   </div>
@@ -1322,15 +1241,11 @@ export function ActivityTypeManager({
                 />
               )}
               <div className="flex-1" />
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-              >
+              <Button variant="muted" size="sm" onClick={handleCancel}>
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                size="pill"
                 onClick={handleSave}
                 disabled={
                   !editingType.name.trim() ||
@@ -1339,13 +1254,9 @@ export function ActivityTypeManager({
                   (editingType.uiType === "buttonGroup" &&
                     !validateButtonOptions(editingType.buttonOptions))
                 }
-                className={cn(
-                  "px-6 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
-                  "bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
               >
                 Save
-              </button>
+              </Button>
             </DialogFooter>
           </div>
         ) : (
@@ -1399,20 +1310,7 @@ export function ActivityTypeManager({
                             : "+/- buttons"}
                         </div>
                       </div>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-muted-foreground"
-                      >
-                        <path d="m9 18 6-6-6-6" />
-                      </svg>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </button>
                   );
                 })}
@@ -1425,24 +1323,20 @@ export function ActivityTypeManager({
               </p>
             )}
             <DialogFooter className="pt-4">
-              <button
-                type="button"
+              <Button
+                variant="muted"
+                size="sm"
                 onClick={() => onOpenChange(false)}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 Close
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                size="pill"
                 onClick={() => setShowAddNew(true)}
                 disabled={!canAddType}
-                className={cn(
-                  "px-6 py-2 rounded-full text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed",
-                  "bg-primary text-primary-foreground hover:bg-primary/90"
-                )}
               >
                 Add Activity Type
-              </button>
+              </Button>
             </DialogFooter>
           </div>
         )}
