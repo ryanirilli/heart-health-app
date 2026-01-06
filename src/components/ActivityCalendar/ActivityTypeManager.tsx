@@ -983,10 +983,10 @@ export function ActivityTypeManager({
                       onClick={() => !isAlreadyAdded && handleAddPreset(preset)}
                       disabled={isAlreadyAdded || !canAddType}
                       className={cn(
-                        "w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left",
+                        "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
                         isAlreadyAdded
-                          ? "border-border/50 bg-muted/30 opacity-50 cursor-not-allowed"
-                          : "border-border hover:border-muted-foreground/50 hover:bg-muted/50"
+                          ? "bg-muted/30 opacity-50 cursor-not-allowed"
+                          : "bg-muted/70 hover:bg-muted"
                       )}
                     >
                       <div
@@ -1366,7 +1366,7 @@ export function ActivityTypeManager({
                     <button
                       key={type.id}
                       onClick={() => handleEdit(type)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-muted-foreground/50 hover:bg-muted/50 transition-all text-left"
+                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-muted/70 hover:bg-muted transition-all text-left"
                     >
                       <div
                         className={cn(
