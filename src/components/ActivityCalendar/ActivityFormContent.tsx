@@ -164,7 +164,7 @@ function ActivityTypeCard({
   return (
     <div
       className={cn(
-        "rounded-lg transition-all overflow-hidden pb-4",
+        "rounded-lg transition-all overflow-hidden",
         type.deleted
           ? "bg-muted/50"
           : isTracked
