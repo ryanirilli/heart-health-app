@@ -155,7 +155,7 @@ a {
   width: 100%;
   height: 8px;
   border-radius: 9999px;
-  background: hsl(var(--muted));
+  background: hsl(var(--border));
   cursor: pointer;
 }
 
@@ -172,8 +172,8 @@ a {
     to right,
     hsl(var(--ring)) 0%,
     hsl(var(--ring)) var(--slider-progress, 0%),
-    hsl(var(--muted)) var(--slider-progress, 0%),
-    hsl(var(--muted)) 100%
+    hsl(var(--border)) var(--slider-progress, 0%),
+    hsl(var(--border)) 100%
   );
 }
 
@@ -181,7 +181,7 @@ a {
 .activity-slider::-moz-range-track {
   height: 8px;
   border-radius: 9999px;
-  background: hsl(var(--muted));
+  background: hsl(var(--border));
 }
 
 .activity-slider::-moz-range-progress {
