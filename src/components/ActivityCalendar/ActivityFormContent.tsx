@@ -14,6 +14,12 @@ import { useActivityTypes } from "./ActivityProvider";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type FormMode = "view" | "edit";
 
@@ -333,7 +339,6 @@ export function ActivityFormContent({
     [typeId: string]: number | undefined;
   }>({});
   const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
-  const [showUnsetTypes, setShowUnsetTypes] = useState(false);
   const [internalMode, setInternalMode] = useState<FormMode>("view");
 
   // Use controlled mode if provided, otherwise use internal state
@@ -361,7 +366,6 @@ export function ActivityFormContent({
 
     setEntries(initialEntries);
     setTrackedTypes(initialTracked);
-    setShowUnsetTypes(false);
     // Start in view mode if there's existing data, otherwise edit mode for new entries
     if (!controlledMode) {
       setInternalMode(existingActivity ? "view" : "edit");
@@ -547,52 +551,34 @@ export function ActivityFormContent({
 
           {/* Accordion for untracked types */}
           {untrackedTypesList.length > 0 && (
-            <div className={cn(trackedTypesList.length > 0 && "pt-2")}>
-              <button
-                type="button"
-                onClick={() => setShowUnsetTypes(!showUnsetTypes)}
-                className="w-full flex items-center justify-between py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <span>
+            <Accordion
+              type="single"
+              collapsible
+              className={cn(trackedTypesList.length > 0 && "pt-2")}
+            >
+              <AccordionItem value="untracked">
+                <AccordionTrigger>
                   {untrackedTypesList.length} untracked{" "}
                   {untrackedTypesList.length === 1 ? "activity" : "activities"}
-                </span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={cn(
-                    "transition-transform duration-200",
-                    showUnsetTypes && "rotate-180"
-                  )}
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </button>
-
-              {showUnsetTypes && (
-                <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {untrackedTypesList.map((type) => (
-                    <ActivityTypeCard
-                      key={type.id}
-                      type={type}
-                      value={entries[type.id]}
-                      isTracked={false}
-                      onChange={(value) => handleEntryChange(type.id, value)}
-                      onToggleTracked={(tracked) =>
-                        handleToggleTracked(type.id, tracked)
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-3">
+                    {untrackedTypesList.map((type) => (
+                      <ActivityTypeCard
+                        key={type.id}
+                        type={type}
+                        value={entries[type.id]}
+                        isTracked={false}
+                        onChange={(value) => handleEntryChange(type.id, value)}
+                        onToggleTracked={(tracked) =>
+                          handleToggleTracked(type.id, tracked)
+                        }
+                      />
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           )}
 
           {/* Show message if no tracked types yet */}

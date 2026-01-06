@@ -22,7 +22,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Pencil, ChevronDown, Loader2 } from "lucide-react";
+import { Pencil, Loader2 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type FormMode = "view" | "edit";
 
@@ -84,7 +90,6 @@ export function DayView({
     [typeId: string]: number | undefined;
   }>({});
   const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
-  const [showUnsetTypes, setShowUnsetTypes] = useState(false);
 
   // Reset state when existingActivity or selectedDate changes
   useEffect(() => {
@@ -100,7 +105,6 @@ export function DayView({
 
     setEntries(initialEntries);
     setTrackedTypes(initialTracked);
-    setShowUnsetTypes(false);
     setMode(existingActivity ? "view" : "edit");
   }, [existingActivity, selectedDateStr]);
 
@@ -311,42 +315,34 @@ export function DayView({
           )}
 
           {untrackedTypesList.length > 0 && (
-            <div className={cn(trackedTypesList.length > 0 && "pt-2")}>
-              <Button
-                variant="muted"
-                size="sm"
-                onClick={() => setShowUnsetTypes(!showUnsetTypes)}
-                className="w-full justify-between"
-              >
-                <span>
+            <Accordion
+              type="single"
+              collapsible
+              className={cn(trackedTypesList.length > 0 && "pt-2")}
+            >
+              <AccordionItem value="untracked">
+                <AccordionTrigger>
                   {untrackedTypesList.length} untracked{" "}
                   {untrackedTypesList.length === 1 ? "activity" : "activities"}
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "h-4 w-4 transition-transform duration-200",
-                    showUnsetTypes && "rotate-180"
-                  )}
-                />
-              </Button>
-
-              {showUnsetTypes && (
-                <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                  {untrackedTypesList.map((type) => (
-                    <ActivityTypeCard
-                      key={type.id}
-                      type={type}
-                      value={entries[type.id]}
-                      isTracked={false}
-                      onChange={(value) => handleEntryChange(type.id, value)}
-                      onToggleTracked={(tracked) =>
-                        handleToggleTracked(type.id, tracked)
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-3">
+                    {untrackedTypesList.map((type) => (
+                      <ActivityTypeCard
+                        key={type.id}
+                        type={type}
+                        value={entries[type.id]}
+                        isTracked={false}
+                        onChange={(value) => handleEntryChange(type.id, value)}
+                        onToggleTracked={(tracked) =>
+                          handleToggleTracked(type.id, tracked)
+                        }
+                      />
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           )}
 
           {trackedTypesList.length === 0 && (

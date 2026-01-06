@@ -44,6 +44,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { GripVertical, X, ChevronRight, Plus } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 // Preset activity type definitions
 interface PresetActivityType {
@@ -484,7 +490,6 @@ function CustomTypeForm({
   const [editingType, setEditingType] = useState<ActivityType>(() =>
     createDefaultType({ order: activeTypes.length })
   );
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSave = async () => {
     if (!editingType || !editingType.name.trim()) return;
@@ -609,155 +614,153 @@ function CustomTypeForm({
         </div>
       </div>
 
-      {/* Advanced Settings Toggle */}
-      <Button
-        type="button"
-        variant="muted"
-        size="sm"
-        onClick={() => setShowAdvanced(!showAdvanced)}
-        className="justify-start"
-      >
-        <ChevronRight
-          className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-90")}
-        />
-        Advanced Settings
-      </Button>
-
       {/* Advanced Settings */}
-      {showAdvanced && (
-        <div className="space-y-4 pl-4 border-l-2 border-border animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* UI Type */}
-          <div className="space-y-2">
-            <Label>Input Type</Label>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setEditingType({ ...editingType, uiType: "increment" })
-                }
-                className={cn(
-                  "flex-1 text-xs",
-                  editingType.uiType === "increment" &&
-                    "border-primary bg-primary/10"
-                )}
-              >
-                +/- Buttons
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setEditingType({ ...editingType, uiType: "slider" })
-                }
-                className={cn(
-                  "flex-1 text-xs",
-                  editingType.uiType === "slider" &&
-                    "border-primary bg-primary/10"
-                )}
-              >
-                Slider
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setEditingType({ ...editingType, uiType: "buttonGroup" })
-                }
-                className={cn(
-                  "flex-1 text-xs",
-                  editingType.uiType === "buttonGroup" &&
-                    "border-primary bg-primary/10"
-                )}
-              >
-                Options
-              </Button>
-            </div>
-          </div>
+      <Accordion type="single" collapsible>
+        <AccordionItem value="advanced">
+          <AccordionTrigger>Advanced Settings</AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4">
+              {/* UI Type */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">
+                  Input Type
+                </Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setEditingType({ ...editingType, uiType: "increment" })
+                    }
+                    className={cn(
+                      "flex-1 text-xs",
+                      editingType.uiType === "increment" &&
+                        "border-primary bg-primary/10"
+                    )}
+                  >
+                    +/- Buttons
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setEditingType({ ...editingType, uiType: "slider" })
+                    }
+                    className={cn(
+                      "flex-1 text-xs",
+                      editingType.uiType === "slider" &&
+                        "border-primary bg-primary/10"
+                    )}
+                  >
+                    Slider
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setEditingType({ ...editingType, uiType: "buttonGroup" })
+                    }
+                    className={cn(
+                      "flex-1 text-xs",
+                      editingType.uiType === "buttonGroup" &&
+                        "border-primary bg-primary/10"
+                    )}
+                  >
+                    Options
+                  </Button>
+                </div>
+              </div>
 
-          {/* Unit (for increment and slider only) */}
-          {(editingType.uiType === "increment" ||
-            editingType.uiType === "slider") && (
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Unit</Label>
-              <Input
-                type="text"
-                value={editingType.unit ?? ""}
-                onChange={(e) =>
-                  setEditingType({
-                    ...editingType,
-                    unit: e.target.value,
-                    pluralize: true,
-                  })
-                }
-                placeholder="e.g., drink, minute, glass"
-                className="h-8"
-              />
-            </div>
-          )}
+              {/* Unit (for increment and slider only) */}
+              {(editingType.uiType === "increment" ||
+                editingType.uiType === "slider") && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Unit</Label>
+                  <Input
+                    type="text"
+                    value={editingType.unit ?? ""}
+                    onChange={(e) =>
+                      setEditingType({
+                        ...editingType,
+                        unit: e.target.value,
+                        pluralize: true,
+                      })
+                    }
+                    placeholder="e.g., drink, minute, glass"
+                    className="h-8"
+                  />
+                </div>
+              )}
 
-          {/* Range values (for slider) */}
-          {editingType.uiType === "slider" && (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Min</Label>
-                <Input
-                  type="number"
-                  value={editingType.minValue ?? 0}
-                  onChange={(e) =>
+              {/* Range values (for slider) */}
+              {editingType.uiType === "slider" && (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Min</Label>
+                    <Input
+                      type="number"
+                      value={editingType.minValue ?? 0}
+                      onChange={(e) =>
+                        setEditingType({
+                          ...editingType,
+                          minValue: Number(e.target.value),
+                        })
+                      }
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Max</Label>
+                    <Input
+                      type="number"
+                      value={editingType.maxValue ?? 10}
+                      onChange={(e) =>
+                        setEditingType({
+                          ...editingType,
+                          maxValue: Number(e.target.value),
+                        })
+                      }
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">
+                      Step
+                    </Label>
+                    <Input
+                      type="number"
+                      value={editingType.step ?? 1}
+                      onChange={(e) =>
+                        setEditingType({
+                          ...editingType,
+                          step: Number(e.target.value),
+                        })
+                      }
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Button options (for buttonGroup) */}
+              {editingType.uiType === "buttonGroup" && (
+                <ButtonOptionsEditor
+                  options={editingType.buttonOptions ?? []}
+                  onChange={(newOptions) =>
                     setEditingType({
                       ...editingType,
-                      minValue: Number(e.target.value),
+                      buttonOptions: newOptions,
                     })
                   }
-                  className="h-8"
                 />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Max</Label>
-                <Input
-                  type="number"
-                  value={editingType.maxValue ?? 10}
-                  onChange={(e) =>
-                    setEditingType({
-                      ...editingType,
-                      maxValue: Number(e.target.value),
-                    })
-                  }
-                  className="h-8"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Step</Label>
-                <Input
-                  type="number"
-                  value={editingType.step ?? 1}
-                  onChange={(e) =>
-                    setEditingType({
-                      ...editingType,
-                      step: Number(e.target.value),
-                    })
-                  }
-                  className="h-8"
-                />
-              </div>
+              )}
             </div>
-          )}
-
-          {/* Button options (for buttonGroup) */}
-          {editingType.uiType === "buttonGroup" && (
-            <ButtonOptionsEditor
-              options={editingType.buttonOptions ?? []}
-              onChange={(newOptions) =>
-                setEditingType({ ...editingType, buttonOptions: newOptions })
-              }
-            />
-          )}
-        </div>
-      )}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <DialogFooter className="flex-row gap-2 pt-4">
         <div className="flex-1" />
@@ -802,14 +805,12 @@ export function ActivityTypeManager({
   } = useActivityTypes();
 
   const [editingType, setEditingType] = useState<ActivityType | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [showAddNew, setShowAddNew] = useState(false);
 
   const handleAddNew = () => {
     if (!canAddType) return;
     const newType = createDefaultType({ order: activeTypes.length });
     setEditingType(newType);
-    setShowAdvanced(false);
     setShowAddNew(false);
   };
 
@@ -845,7 +846,6 @@ export function ActivityTypeManager({
 
   const handleEdit = (type: ActivityType) => {
     setEditingType({ ...type });
-    setShowAdvanced(type.uiType === "slider" || type.uiType === "buttonGroup");
   };
 
   const handleSave = async () => {
@@ -1078,161 +1078,165 @@ export function ActivityTypeManager({
               </div>
             </div>
 
-            {/* Advanced Settings Toggle */}
-            <Button
-              type="button"
-              variant="muted"
-              size="sm"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="justify-start"
-            >
-              <ChevronRight
-                className={cn("h-4 w-4 transition-transform", showAdvanced && "rotate-90")}
-              />
-              Advanced Settings
-            </Button>
-
             {/* Advanced Settings */}
-            {showAdvanced && (
-              <div className="space-y-4 pl-4 border-l-2 border-border animate-in fade-in slide-in-from-top-2 duration-200">
-                {/* UI Type */}
-                <div className="space-y-2">
-                  <Label>Input Type</Label>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setEditingType({ ...editingType, uiType: "increment" })
-                      }
-                      className={cn(
-                        "flex-1 text-xs",
-                        editingType.uiType === "increment" &&
-                          "border-primary bg-primary/10"
-                      )}
-                    >
-                      +/- Buttons
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setEditingType({ ...editingType, uiType: "slider" })
-                      }
-                      className={cn(
-                        "flex-1 text-xs",
-                        editingType.uiType === "slider" &&
-                          "border-primary bg-primary/10"
-                      )}
-                    >
-                      Slider
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setEditingType({
-                          ...editingType,
-                          uiType: "buttonGroup",
-                        })
-                      }
-                      className={cn(
-                        "flex-1 text-xs",
-                        editingType.uiType === "buttonGroup" &&
-                          "border-primary bg-primary/10"
-                      )}
-                    >
-                      Options
-                    </Button>
-                  </div>
-                </div>
+            <Accordion type="single" collapsible>
+              <AccordionItem value="advanced">
+                <AccordionTrigger>Advanced Settings</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-4">
+                    {/* UI Type */}
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">
+                        Input Type
+                      </Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setEditingType({
+                              ...editingType,
+                              uiType: "increment",
+                            })
+                          }
+                          className={cn(
+                            "flex-1 text-xs",
+                            editingType.uiType === "increment" &&
+                              "border-primary bg-primary/10"
+                          )}
+                        >
+                          +/- Buttons
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setEditingType({ ...editingType, uiType: "slider" })
+                          }
+                          className={cn(
+                            "flex-1 text-xs",
+                            editingType.uiType === "slider" &&
+                              "border-primary bg-primary/10"
+                          )}
+                        >
+                          Slider
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setEditingType({
+                              ...editingType,
+                              uiType: "buttonGroup",
+                            })
+                          }
+                          className={cn(
+                            "flex-1 text-xs",
+                            editingType.uiType === "buttonGroup" &&
+                              "border-primary bg-primary/10"
+                          )}
+                        >
+                          Options
+                        </Button>
+                      </div>
+                    </div>
 
-                {/* Unit (for increment and slider only) */}
-                {(editingType.uiType === "increment" ||
-                  editingType.uiType === "slider") && (
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Unit</Label>
-                    <Input
-                      type="text"
-                      value={editingType.unit ?? ""}
-                      onChange={(e) =>
-                        setEditingType({
-                          ...editingType,
-                          unit: e.target.value,
-                          pluralize: true,
-                        })
-                      }
-                      placeholder="e.g., drink, minute, glass"
-                      className="h-8"
-                    />
-                  </div>
-                )}
+                    {/* Unit (for increment and slider only) */}
+                    {(editingType.uiType === "increment" ||
+                      editingType.uiType === "slider") && (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Unit
+                        </Label>
+                        <Input
+                          type="text"
+                          value={editingType.unit ?? ""}
+                          onChange={(e) =>
+                            setEditingType({
+                              ...editingType,
+                              unit: e.target.value,
+                              pluralize: true,
+                            })
+                          }
+                          placeholder="e.g., drink, minute, glass"
+                          className="h-8"
+                        />
+                      </div>
+                    )}
 
-                {/* Range values (for slider) */}
-                {editingType.uiType === "slider" && (
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Min</Label>
-                      <Input
-                        type="number"
-                        value={editingType.minValue ?? 0}
-                        onChange={(e) =>
+                    {/* Range values (for slider) */}
+                    {editingType.uiType === "slider" && (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">
+                            Min
+                          </Label>
+                          <Input
+                            type="number"
+                            value={editingType.minValue ?? 0}
+                            onChange={(e) =>
+                              setEditingType({
+                                ...editingType,
+                                minValue: Number(e.target.value),
+                              })
+                            }
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">
+                            Max
+                          </Label>
+                          <Input
+                            type="number"
+                            value={editingType.maxValue ?? 10}
+                            onChange={(e) =>
+                              setEditingType({
+                                ...editingType,
+                                maxValue: Number(e.target.value),
+                              })
+                            }
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">
+                            Step
+                          </Label>
+                          <Input
+                            type="number"
+                            value={editingType.step ?? 1}
+                            onChange={(e) =>
+                              setEditingType({
+                                ...editingType,
+                                step: Number(e.target.value),
+                              })
+                            }
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Button options (for buttonGroup) */}
+                    {editingType.uiType === "buttonGroup" && (
+                      <ButtonOptionsEditor
+                        options={editingType.buttonOptions ?? []}
+                        onChange={(newOptions) =>
                           setEditingType({
                             ...editingType,
-                            minValue: Number(e.target.value),
+                            buttonOptions: newOptions,
                           })
                         }
-                        className="h-8"
                       />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Max</Label>
-                      <Input
-                        type="number"
-                        value={editingType.maxValue ?? 10}
-                        onChange={(e) =>
-                          setEditingType({
-                            ...editingType,
-                            maxValue: Number(e.target.value),
-                          })
-                        }
-                        className="h-8"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">Step</Label>
-                      <Input
-                        type="number"
-                        value={editingType.step ?? 1}
-                        onChange={(e) =>
-                          setEditingType({
-                            ...editingType,
-                            step: Number(e.target.value),
-                          })
-                        }
-                        className="h-8"
-                      />
-                    </div>
+                    )}
                   </div>
-                )}
-
-                {/* Button options (for buttonGroup) */}
-                {editingType.uiType === "buttonGroup" && (
-                  <ButtonOptionsEditor
-                    options={editingType.buttonOptions ?? []}
-                    onChange={(newOptions) =>
-                      setEditingType({
-                        ...editingType,
-                        buttonOptions: newOptions,
-                      })
-                    }
-                  />
-                )}
-              </div>
-            )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
             <DialogFooter className="flex-row gap-2 pt-4">
               {activeTypes.find((t) => t.id === editingType.id) && (
