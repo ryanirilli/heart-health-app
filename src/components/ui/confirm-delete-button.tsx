@@ -71,10 +71,10 @@ export function ConfirmDeleteButton({
       onClick={handleClick}
       disabled={disabled || isDeleting}
       className={cn(
-        "h-9 flex items-center justify-center rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+        "h-8 flex items-center justify-center rounded-full bg-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed",
         isConfirming
           ? "px-3 bg-destructive text-destructive-foreground"
-          : "w-9 text-destructive hover:bg-destructive/10",
+          : "w-8 text-destructive hover:bg-destructive/10",
         className
       )}
       aria-label={isConfirming ? 'Click again to confirm delete' : 'Delete'}
