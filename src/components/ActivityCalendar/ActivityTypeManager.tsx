@@ -810,6 +810,7 @@ export function ActivityTypeManager({
   const [editingType, setEditingType] = useState<ActivityType | null>(null);
   const [showAddNew, setShowAddNew] = useState(false);
   const [wasOpen, setWasOpen] = useState(false);
+  const [addingPreset, setAddingPreset] = useState<string | null>(null);
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -829,7 +830,9 @@ export function ActivityTypeManager({
   };
 
   const handleAddPreset = async (preset: PresetActivityType) => {
-    if (!canAddType) return;
+    if (!canAddType || addingPreset) return;
+
+    setAddingPreset(preset.name);
 
     const typeData = preset.getType(activeTypes.length);
     const newType: ActivityType = {
@@ -850,6 +853,8 @@ export function ActivityTypeManager({
       setShowAddNew(false);
     } catch (error) {
       console.error("Failed to add preset activity type:", error);
+    } finally {
+      setAddingPreset(null);
     }
   };
 
@@ -947,37 +952,76 @@ export function ActivityTypeManager({
                   const isAlreadyAdded = existingPresetNames.has(
                     preset.name.toLowerCase()
                   );
+                  const isLoading = addingPreset === preset.name;
+                  const isDisabled =
+                    isAlreadyAdded || !canAddType || !!addingPreset;
                   return (
                     <button
                       key={preset.name}
-                      onClick={() => !isAlreadyAdded && handleAddPreset(preset)}
-                      disabled={isAlreadyAdded || !canAddType}
+                      onClick={() => !isDisabled && handleAddPreset(preset)}
+                      disabled={isDisabled}
                       className={cn(
                         "w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left",
                         isAlreadyAdded
                           ? "bg-muted/30 opacity-50 cursor-not-allowed"
+                          : isLoading
+                          ? "bg-muted/70 animate-pulse cursor-wait"
+                          : isDisabled
+                          ? "bg-muted/50 opacity-60 cursor-not-allowed"
                           : "bg-muted/70 hover:bg-muted"
                       )}
                     >
                       <div
                         className={cn(
-                          "w-10 h-10 rounded-lg flex items-center justify-center",
+                          "w-10 h-10 rounded-lg flex items-center justify-center transition-opacity",
                           preset.colorClasses.bg,
-                          preset.colorClasses.text
+                          preset.colorClasses.text,
+                          isLoading && "opacity-70"
                         )}
                       >
                         {preset.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-foreground">
+                        <div
+                          className={cn(
+                            "font-medium text-foreground transition-opacity",
+                            isLoading && "opacity-70"
+                          )}
+                        >
                           {preset.name}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div
+                          className={cn(
+                            "text-xs text-muted-foreground transition-opacity",
+                            isLoading && "opacity-70"
+                          )}
+                        >
                           {preset.description}
                         </div>
                       </div>
                       {isAlreadyAdded ? (
                         <Badge variant="muted">Added</Badge>
+                      ) : isLoading ? (
+                        <svg
+                          className="animate-spin h-5 w-5 text-muted-foreground"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
                       ) : (
                         <Plus className="h-5 w-5 text-muted-foreground" />
                       )}
