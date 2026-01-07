@@ -30,6 +30,7 @@ export function ConfirmDeleteButton({
 }: ConfirmDeleteButtonProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | HTMLDivElement | null>(null);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -39,6 +40,28 @@ export function ConfirmDeleteButton({
       }
     };
   }, []);
+
+  // When confirming, listen for clicks outside the button to reset state
+  useEffect(() => {
+    if (!isConfirming) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
+        // Clicked outside - reset confirmation state
+        setIsConfirming(false);
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      }
+    };
+
+    // Use capture phase to intercept before other handlers
+    document.addEventListener('click', handleClickOutside, true);
+    return () => {
+      document.removeEventListener('click', handleClickOutside, true);
+    };
+  }, [isConfirming]);
 
   const handleClick = (e: React.MouseEvent) => {
     // Always stop propagation to prevent parent handlers (e.g., accordion toggle)
@@ -154,6 +177,7 @@ export function ConfirmDeleteButton({
   if (asDiv) {
     return (
       <div
+        ref={buttonRef as React.RefObject<HTMLDivElement>}
         role="button"
         tabIndex={disabled || isDeleting ? -1 : 0}
         aria-disabled={disabled || isDeleting}
@@ -172,6 +196,7 @@ export function ConfirmDeleteButton({
 
   return (
     <button
+      ref={buttonRef as React.RefObject<HTMLButtonElement>}
       type="button"
       disabled={disabled || isDeleting}
       {...sharedProps}

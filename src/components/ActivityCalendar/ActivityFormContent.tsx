@@ -166,11 +166,17 @@ function ActivityTypeCard({
   const goalType = getGoalType(type);
   const isDisabled = disabled || type.deleted;
 
+  // For existing entries that are tracked, disable accordion behavior (always open)
+  // Only allow closing via the delete button
+  const isLockedOpen = !isNewEntry && isTracked;
+
   // Control accordion state based on isTracked
   const accordionValue = isTracked ? type.id : "";
 
   const handleAccordionChange = (value: string) => {
     if (isDisabled) return;
+    // If locked open, don't allow accordion to close
+    if (isLockedOpen && value === "") return;
     // Opening accordion (value matches type.id) = tracking
     // Closing accordion (value is empty) = untracking
     onToggleTracked(value === type.id);
@@ -179,7 +185,7 @@ function ActivityTypeCard({
   return (
     <Accordion
       type="single"
-      collapsible
+      collapsible={!isLockedOpen}
       value={accordionValue}
       onValueChange={handleAccordionChange}
       className={cn(
@@ -195,7 +201,8 @@ function ActivityTypeCard({
         <AccordionTrigger
           className={cn(
             "w-full flex items-center gap-2 pl-4 pr-2 py-3 text-left transition-colors hover:no-underline [&>svg]:hidden",
-            isDisabled && "opacity-50 pointer-events-none"
+            isDisabled && "opacity-50 pointer-events-none",
+            isLockedOpen && "cursor-default"
           )}
         >
           <div
