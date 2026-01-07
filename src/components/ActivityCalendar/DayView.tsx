@@ -539,57 +539,61 @@ export function DayView({
 
   // Mobile swipe animation controls (similar to flashcard pattern)
   const mobileControls = useAnimation();
-  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(
-    null
-  );
 
-  // Reset animation controls when date changes
+  // Initialize controls on mount
   useEffect(() => {
-    mobileControls.set({ x: 0, opacity: 1, rotate: 0 });
-  }, [selectedDateStr, mobileControls]);
-
-  // Handle swipe direction change - animate off screen then navigate
-  useEffect(() => {
-    if (swipeDirection) {
-      mobileControls
-        .start({
-          x: swipeDirection === "left" ? -window.innerWidth : window.innerWidth,
-          rotate: swipeDirection === "left" ? -15 : 15,
-          opacity: 0,
-          transition: { duration: 0.3, ease: "easeInOut" },
-        })
-        .then(() => {
-          if (swipeDirection === "left" && canGoNext) {
-            onNextDay();
-          } else if (swipeDirection === "right") {
-            onPreviousDay();
-          }
-          setSwipeDirection(null);
-        });
-    }
-  }, [swipeDirection, mobileControls, canGoNext, onNextDay, onPreviousDay]);
+    mobileControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
+  }, [mobileControls]);
 
   // Handle mobile swipe gesture
   const handleMobileDragEnd = useCallback(
-    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    async (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       const { offset } = info;
       const absX = Math.abs(offset.x);
 
       if (absX > SWIPE_THRESHOLD) {
-        if (offset.x > 0) {
-          // Swiped right → go to previous day
-          setSwipeDirection("right");
-        } else if (canGoNext) {
-          // Swiped left → go to next day
-          setSwipeDirection("left");
-        } else {
-          // Can't go next, spring back
+        const isSwipeLeft = offset.x < 0;
+        const isSwipeRight = offset.x > 0;
+
+        // Check if we can navigate in the swiped direction
+        if ((isSwipeLeft && !canGoNext) || (!isSwipeLeft && !isSwipeRight)) {
+          // Can't navigate, spring back
           mobileControls.start({
             x: 0,
             rotate: 0,
             transition: { type: "spring", stiffness: 300 },
           });
+          return;
         }
+
+        // Animate card off screen
+        await mobileControls.start({
+          x: isSwipeLeft ? -window.innerWidth : window.innerWidth,
+          rotate: isSwipeLeft ? -15 : 15,
+          opacity: 0,
+          transition: { duration: 0.25, ease: "easeIn" },
+        });
+
+        // Navigate to new day
+        if (isSwipeRight) {
+          onPreviousDay();
+        } else if (isSwipeLeft && canGoNext) {
+          onNextDay();
+        }
+
+        // Instantly reset position to opposite side (still hidden)
+        mobileControls.set({
+          x: isSwipeLeft ? window.innerWidth : -window.innerWidth,
+          rotate: 0,
+          opacity: 0,
+        });
+
+        // Animate new card in from the side
+        await mobileControls.start({
+          x: 0,
+          opacity: 1,
+          transition: { duration: 0.25, ease: "easeOut" },
+        });
       } else {
         // Not enough swipe, spring back
         mobileControls.start({
@@ -599,7 +603,7 @@ export function DayView({
         });
       }
     },
-    [canGoNext, mobileControls]
+    [canGoNext, mobileControls, onNextDay, onPreviousDay]
   );
 
   // Calculate previous and next dates for desktop preview
@@ -706,10 +710,7 @@ export function DayView({
       {/* Mobile: Single card with swipe gesture (flashcard-style animation) */}
       <div className="md:hidden overflow-hidden relative">
         <motion.div
-          key={selectedDateStr}
-          initial={{ y: 20, opacity: 0 }}
           animate={mobileControls}
-          transition={{ type: "tween", ease: "linear" }}
           drag={canSwipe ? "x" : false}
           onDragEnd={handleMobileDragEnd}
           className="touch-none"
