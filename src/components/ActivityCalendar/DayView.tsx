@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { formatDate, ActivityEntry, Activity } from "@/lib/activities";
 import { useActivities, useActivityTypes } from "./ActivityProvider";
 import {
@@ -10,13 +10,7 @@ import {
 } from "./ActivityFormContent";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
-import {
-  motion,
-  AnimatePresence,
-  PanInfo,
-  useMotionValue,
-  useTransform,
-} from "framer-motion";
+import { motion, AnimatePresence, PanInfo, useAnimation } from "framer-motion";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +34,6 @@ import { ActivityType } from "@/lib/activityTypes";
 type FormMode = "view" | "edit";
 
 const SWIPE_THRESHOLD = 50;
-const SWIPE_VELOCITY = 500;
 
 // Helper to check if a date is today
 function isToday(date: Date): boolean {
@@ -544,83 +537,69 @@ export function DayView({
   const hasOpenItems = mode === "edit" && trackedTypes.size > 0;
   const canSwipe = isMobile && !hasOpenItems;
 
-  // Motion value for tracking drag position (for peeking cards only)
-  // We use a separate motion value so it doesn't interfere with exit animations
-  const peekX = useMotionValue(0);
-
-  // Reset peekX when navigating to a new date
-  useEffect(() => {
-    peekX.set(0);
-  }, [selectedDateStr, peekX]);
-
-  // Transform drag position to peek card opacity (0 at rest, 1 at full swipe)
-  // Peek starts appearing after 20px of drag, fully visible at 120px
-  const prevCardOpacity = useTransform(peekX, [0, 20, 120], [0, 0, 0.6]);
-  const nextCardOpacity = useTransform(peekX, [-120, -20, 0], [0.6, 0, 0]);
-
-  // Transform drag position to peek card position (slide in from edge)
-  const prevCardX = useTransform(peekX, [0, 120], [-60, 0]);
-  const nextCardX = useTransform(peekX, [-120, 0], [0, 60]);
-
-  // Sync the main card's drag position to the peek motion value
-  const handleDrag = useCallback(
-    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      peekX.set(info.offset.x);
-    },
-    [peekX]
+  // Mobile swipe animation controls (similar to flashcard pattern)
+  const mobileControls = useAnimation();
+  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(
+    null
   );
 
-  // Track if an animation/swipe is in progress to prevent race conditions
-  const isAnimatingRef = useRef(false);
-  const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Clear any pending timeout on unmount
+  // Reset animation controls when date changes
   useEffect(() => {
-    return () => {
-      if (animationTimeoutRef.current) {
-        clearTimeout(animationTimeoutRef.current);
-      }
-    };
-  }, []);
+    mobileControls.set({ x: 0, opacity: 1, rotate: 0 });
+  }, [selectedDateStr, mobileControls]);
 
-  // Handle swipe gesture (mobile only)
-  const handleDragEnd = useCallback(
+  // Handle swipe direction change - animate off screen then navigate
+  useEffect(() => {
+    if (swipeDirection) {
+      mobileControls
+        .start({
+          x: swipeDirection === "left" ? -window.innerWidth : window.innerWidth,
+          rotate: swipeDirection === "left" ? -15 : 15,
+          opacity: 0,
+          transition: { duration: 0.3, ease: "easeInOut" },
+        })
+        .then(() => {
+          if (swipeDirection === "left" && canGoNext) {
+            onNextDay();
+          } else if (swipeDirection === "right") {
+            onPreviousDay();
+          }
+          setSwipeDirection(null);
+        });
+    }
+  }, [swipeDirection, mobileControls, canGoNext, onNextDay, onPreviousDay]);
+
+  // Handle mobile swipe gesture
+  const handleMobileDragEnd = useCallback(
     (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      // Prevent new swipes while animating
-      if (isAnimatingRef.current) {
-        return;
-      }
-
-      const { offset, velocity } = info;
+      const { offset } = info;
       const absX = Math.abs(offset.x);
-      const absVelocity = Math.abs(velocity.x);
 
-      const isSwipe = absX > SWIPE_THRESHOLD || absVelocity > SWIPE_VELOCITY;
-
-      if (isSwipe) {
-        // Lock animations for the duration of the transition
-        isAnimatingRef.current = true;
-
-        // Clear any existing timeout
-        if (animationTimeoutRef.current) {
-          clearTimeout(animationTimeoutRef.current);
-        }
-
-        // Unlock after animation completes (match the spring animation duration)
-        animationTimeoutRef.current = setTimeout(() => {
-          isAnimatingRef.current = false;
-        }, 250);
-
+      if (absX > SWIPE_THRESHOLD) {
         if (offset.x > 0) {
           // Swiped right → go to previous day
-          onPreviousDay();
+          setSwipeDirection("right");
         } else if (canGoNext) {
           // Swiped left → go to next day
-          onNextDay();
+          setSwipeDirection("left");
+        } else {
+          // Can't go next, spring back
+          mobileControls.start({
+            x: 0,
+            rotate: 0,
+            transition: { type: "spring", stiffness: 300 },
+          });
         }
+      } else {
+        // Not enough swipe, spring back
+        mobileControls.start({
+          x: 0,
+          rotate: 0,
+          transition: { type: "spring", stiffness: 300 },
+        });
       }
     },
-    [canGoNext, onPreviousDay, onNextDay]
+    [canGoNext, mobileControls]
   );
 
   // Calculate previous and next dates for desktop preview
@@ -724,70 +703,22 @@ export function DayView({
         </AnimatePresence>
       </div>
 
-      {/* Mobile: Single card with swipe gesture and peeking adjacent cards */}
+      {/* Mobile: Single card with swipe gesture (flashcard-style animation) */}
       <div className="md:hidden overflow-hidden relative">
-        {/* Previous day peek card (left side) */}
-        {canSwipe && (
-          <motion.div
-            className="absolute inset-y-0 left-0 w-[85%] pointer-events-none z-0"
-            style={{
-              opacity: prevCardOpacity,
-              x: prevCardX,
-            }}
-          >
-            <PreviewDayCard
-              date={previousDate}
-              activity={previousActivity}
-              activityTypes={activityTypes}
-            />
-          </motion.div>
-        )}
-
-        {/* Next day peek card (right side) */}
-        {canSwipe && canGoNext && (
-          <motion.div
-            className="absolute inset-y-0 right-0 w-[85%] pointer-events-none z-0"
-            style={{
-              opacity: nextCardOpacity,
-              x: nextCardX,
-            }}
-          >
-            {isNextFuture ? (
-              <SkeletonDayCard date={nextDate} />
-            ) : (
-              <PreviewDayCard
-                date={nextDate}
-                activity={nextActivity}
-                activityTypes={activityTypes}
-              />
-            )}
-          </motion.div>
-        )}
-
-        {/* Main card with drag gesture */}
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.div
-            key={animationKey}
-            custom={slideDirection}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={transition}
-            drag={canSwipe ? "x" : false}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.3}
-            dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
-            onDrag={handleDrag}
-            onDragEnd={handleDragEnd}
-            style={{
-              touchAction: canSwipe ? "pan-y" : "auto",
-            }}
-            className="relative z-10"
-          >
-            {mainCard}
-          </motion.div>
-        </AnimatePresence>
+        <motion.div
+          key={selectedDateStr}
+          initial={{ y: 20, opacity: 0 }}
+          animate={mobileControls}
+          transition={{ type: "tween", ease: "linear" }}
+          drag={canSwipe ? "x" : false}
+          onDragEnd={handleMobileDragEnd}
+          className="touch-none"
+          style={{
+            touchAction: canSwipe ? "pan-y" : "auto",
+          }}
+        >
+          {mainCard}
+        </motion.div>
 
         {/* Swipe hint */}
         {canSwipe && (
