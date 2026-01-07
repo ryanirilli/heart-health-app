@@ -70,6 +70,37 @@ function addDays(date: Date, days: number): Date {
   return result;
 }
 
+// Shared Add button component with dashed border style
+export function AddButton({
+  onClick,
+  label = "Add",
+  className,
+}: {
+  onClick: () => void;
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "w-full py-8 rounded-xl",
+        "border border-dashed border-muted-foreground/25",
+        "bg-muted/30",
+        "flex items-center justify-center gap-2",
+        "text-muted-foreground",
+        "hover:border-muted-foreground/40 hover:bg-muted/50",
+        "transition-colors duration-200",
+        "cursor-pointer",
+        className
+      )}
+    >
+      <Plus className="h-5 w-5" />
+      <span className="text-sm font-medium">{label}</span>
+    </button>
+  );
+}
+
 // Skeleton card for future dates
 function SkeletonDayCard({ date }: { date: Date }) {
   return (
@@ -112,22 +143,7 @@ function EmptyPastDayCard({
         </div>
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
-        <button
-          onClick={onLogActivity}
-          className={cn(
-            "w-full py-8 rounded-xl",
-            "border border-dashed border-muted-foreground/25",
-            "bg-muted/30",
-            "flex items-center justify-center gap-2",
-            "text-muted-foreground",
-            "hover:border-muted-foreground/40 hover:bg-muted/50",
-            "transition-colors duration-200",
-            "cursor-pointer"
-          )}
-        >
-          <Plus className="h-5 w-5" />
-          <span className="text-sm font-medium">Add</span>
-        </button>
+        <AddButton onClick={onLogActivity} />
       </CardContent>
     </Card>
   );

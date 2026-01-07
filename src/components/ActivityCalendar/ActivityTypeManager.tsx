@@ -37,13 +37,21 @@ import {
   generateActivityTypeId,
 } from "@/lib/activityTypes";
 import { useActivityTypes } from "./ActivityProvider";
+import { AddButton } from "./DayView";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { GripVertical, X, ChevronRight, Plus } from "lucide-react";
+import {
+  GripVertical,
+  X,
+  ChevronRight,
+  Plus,
+  Check,
+  ArrowLeft,
+} from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -850,7 +858,7 @@ export function ActivityTypeManager({
       if (!response.ok) throw new Error("Failed to save activity type");
 
       addActivityType(newType);
-      setShowAddNew(false);
+      // Stay on the presets screen so user can add more
     } catch (error) {
       console.error("Failed to add preset activity type:", error);
     } finally {
@@ -1000,7 +1008,7 @@ export function ActivityTypeManager({
                         </div>
                       </div>
                       {isAlreadyAdded ? (
-                        <Badge variant="muted">Added</Badge>
+                        <Check className="h-5 w-5 text-chart-2" />
                       ) : isLoading ? (
                         <svg
                           className="animate-spin h-5 w-5 text-muted-foreground"
@@ -1029,12 +1037,13 @@ export function ActivityTypeManager({
                   );
                 })}
               </div>
-              <DialogFooter className="pt-4">
+              <DialogFooter className="pt-4 sm:justify-start">
                 <Button
-                  variant="muted"
-                  size="sm"
+                  variant="outline"
+                  size="pill"
                   onClick={() => setShowAddNew(false)}
                 >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
                   Back
                 </Button>
               </DialogFooter>
@@ -1378,6 +1387,9 @@ export function ActivityTypeManager({
                 })}
               </div>
             )}
+            {canAddType && (
+              <AddButton onClick={() => setShowAddNew(true)} className="py-3" />
+            )}
             {!canAddType && (
               <p className="text-xs text-left text-muted-foreground">
                 Maximum of {maxTypes} activity types reached. Delete one to add
@@ -1385,19 +1397,8 @@ export function ActivityTypeManager({
               </p>
             )}
             <DialogFooter className="pt-4">
-              <Button
-                variant="muted"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-              >
-                Close
-              </Button>
-              <Button
-                size="pill"
-                onClick={() => setShowAddNew(true)}
-                disabled={!canAddType}
-              >
-                Add Activity Type
+              <Button size="pill" onClick={() => onOpenChange(false)}>
+                Done
               </Button>
             </DialogFooter>
           </div>
