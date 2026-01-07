@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { formatDate, ActivityEntry, Activity } from "@/lib/activities";
 import { useActivities, useActivityTypes } from "./ActivityProvider";
 import {
@@ -538,9 +538,27 @@ export function DayView({
   const hasOpenItems = mode === "edit" && trackedTypes.size > 0;
   const canSwipe = isMobile && !hasOpenItems;
 
+  // Track if an animation/swipe is in progress to prevent race conditions
+  const isAnimatingRef = useRef(false);
+  const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clear any pending timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Handle swipe gesture (mobile only)
   const handleDragEnd = useCallback(
     (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      // Prevent new swipes while animating
+      if (isAnimatingRef.current) {
+        return;
+      }
+
       const { offset, velocity } = info;
       const absX = Math.abs(offset.x);
       const absVelocity = Math.abs(velocity.x);
@@ -548,6 +566,19 @@ export function DayView({
       const isSwipe = absX > SWIPE_THRESHOLD || absVelocity > SWIPE_VELOCITY;
 
       if (isSwipe) {
+        // Lock animations for the duration of the transition
+        isAnimatingRef.current = true;
+
+        // Clear any existing timeout
+        if (animationTimeoutRef.current) {
+          clearTimeout(animationTimeoutRef.current);
+        }
+
+        // Unlock after animation completes (match the spring animation duration)
+        animationTimeoutRef.current = setTimeout(() => {
+          isAnimatingRef.current = false;
+        }, 300);
+
         if (offset.x > 0) {
           // Swiped right → go to previous day
           onPreviousDay();
@@ -596,6 +627,28 @@ export function DayView({
   // slideDirection="right" = going backward in time (prev day) = content enters from LEFT
   const slideOffset = 350;
 
+  // Use a monotonically increasing counter combined with direction to create unique keys
+  // This ensures each animation "remembers" its direction even if the prop changes
+  const animationCounterRef = useRef(0);
+  const [animationKey, setAnimationKey] = useState(
+    () => `${selectedDateStr}-0-${slideDirection}`
+  );
+
+  // Update the animation key when the date changes, capturing the current direction
+  const prevDateRef = useRef(selectedDateStr);
+  useEffect(() => {
+    if (prevDateRef.current !== selectedDateStr) {
+      animationCounterRef.current += 1;
+      setAnimationKey(
+        `${selectedDateStr}-${animationCounterRef.current}-${slideDirection}`
+      );
+      prevDateRef.current = selectedDateStr;
+    }
+  }, [selectedDateStr, slideDirection]);
+
+  // Extract the direction from the animation key for use in variants
+  const keyDirection = animationKey.endsWith("-left") ? "left" : "right";
+
   // Custom variants that respond to slideDirection
   const variants = {
     enter: (direction: "left" | "right") => ({
@@ -621,14 +674,10 @@ export function DayView({
     <>
       {/* Desktop: Three-column layout with animation */}
       <div className="hidden md:block overflow-hidden">
-        <AnimatePresence
-          mode="popLayout"
-          initial={false}
-          custom={slideDirection}
-        >
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
-            key={selectedDateStr}
-            custom={slideDirection}
+            key={animationKey}
+            custom={keyDirection}
             variants={variants}
             initial="enter"
             animate="center"
@@ -662,14 +711,10 @@ export function DayView({
 
       {/* Mobile: Single card with swipe gesture */}
       <div className="md:hidden overflow-hidden">
-        <AnimatePresence
-          mode="popLayout"
-          initial={false}
-          custom={slideDirection}
-        >
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
-            key={selectedDateStr}
-            custom={slideDirection}
+            key={animationKey}
+            custom={keyDirection}
             variants={variants}
             initial="enter"
             animate="center"
