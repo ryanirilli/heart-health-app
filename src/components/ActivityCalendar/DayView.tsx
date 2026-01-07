@@ -780,7 +780,6 @@ export function DayView({
           animate={mobileControls}
           drag={canSwipe ? "x" : false}
           onDragEnd={handleMobileDragEnd}
-          className="touch-none"
           style={{
             touchAction: canSwipe ? "pan-y" : "auto",
           }}
