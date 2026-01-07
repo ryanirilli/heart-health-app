@@ -14,6 +14,8 @@ interface ConfirmDeleteButtonProps {
   /** If true, skips confirmation and deletes immediately on first click */
   bypassConfirm?: boolean;
   className?: string;
+  /** Use div with role="button" instead of button element (for nesting inside buttons) */
+  asDiv?: boolean;
 }
 
 export function ConfirmDeleteButton({
@@ -24,6 +26,7 @@ export function ConfirmDeleteButton({
   confirmLabel = 'Confirm?',
   bypassConfirm = false,
   className,
+  asDiv = false,
 }: ConfirmDeleteButtonProps) {
   const [isConfirming, setIsConfirming] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -77,76 +80,103 @@ export function ConfirmDeleteButton({
     }
   }, [disabled, isDeleting]);
 
+  const content = isDeleting ? (
+    <svg 
+      className="animate-spin" 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="18" 
+      height="18" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+    </svg>
+  ) : isConfirming ? (
+    <span className="flex items-center gap-1.5 px-1 text-sm font-medium">
+      <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="16" 
+        height="16" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+      >
+        <path d="M3 6h18"/>
+        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+        <line x1="10" x2="10" y1="11" y2="17"/>
+        <line x1="14" x2="14" y1="11" y2="17"/>
+      </svg>
+      {confirmLabel}
+    </span>
+  ) : (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      width="18" 
+      height="18" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"
+    >
+      <path d="M3 6h18"/>
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+      <line x1="10" x2="10" y1="11" y2="17"/>
+      <line x1="14" x2="14" y1="11" y2="17"/>
+    </svg>
+  );
+
+  const sharedProps = {
+    onClick: handleClick,
+    className: cn(
+      "h-8 flex items-center justify-center rounded-full bg-transparent transition-all",
+      (disabled || isDeleting) && "opacity-50 cursor-not-allowed",
+      !disabled && !isDeleting && "cursor-pointer",
+      isConfirming
+        ? "px-3 bg-destructive text-destructive-foreground"
+        : "w-8 text-destructive hover:bg-destructive/10",
+      className
+    ),
+    'aria-label': isConfirming ? 'Click again to confirm delete' : 'Delete',
+    title: isConfirming ? 'Click again to confirm' : 'Delete',
+  };
+
+  if (asDiv) {
+    return (
+      <div
+        role="button"
+        tabIndex={disabled || isDeleting ? -1 : 0}
+        aria-disabled={disabled || isDeleting}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick(e as unknown as React.MouseEvent);
+          }
+        }}
+        {...sharedProps}
+      >
+        {content}
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
-      onClick={handleClick}
       disabled={disabled || isDeleting}
-      className={cn(
-        "h-8 flex items-center justify-center rounded-full bg-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed",
-        isConfirming
-          ? "px-3 bg-destructive text-destructive-foreground"
-          : "w-8 text-destructive hover:bg-destructive/10",
-        className
-      )}
-      aria-label={isConfirming ? 'Click again to confirm delete' : 'Delete'}
-      title={isConfirming ? 'Click again to confirm' : 'Delete'}
+      {...sharedProps}
     >
-      {isDeleting ? (
-        <svg 
-          className="animate-spin" 
-          xmlns="http://www.w3.org/2000/svg" 
-          width="18" 
-          height="18" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          strokeWidth="2" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        >
-          <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-        </svg>
-      ) : isConfirming ? (
-        <span className="flex items-center gap-1.5 px-1 text-sm font-medium">
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="16" 
-            height="16" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-          >
-            <path d="M3 6h18"/>
-            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-            <line x1="10" x2="10" y1="11" y2="17"/>
-            <line x1="14" x2="14" y1="11" y2="17"/>
-          </svg>
-          {confirmLabel}
-        </span>
-      ) : (
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          width="18" 
-          height="18" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          strokeWidth="2" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        >
-          <path d="M3 6h18"/>
-          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-          <line x1="10" x2="10" y1="11" y2="17"/>
-          <line x1="14" x2="14" y1="11" y2="17"/>
-        </svg>
-      )}
+      {content}
     </button>
   );
 }

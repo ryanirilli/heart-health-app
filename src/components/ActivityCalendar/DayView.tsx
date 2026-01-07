@@ -22,7 +22,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Pencil, Loader2, Settings } from "lucide-react";
+import { Pencil, Loader2, Settings, Plus } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -55,6 +55,15 @@ function isFuture(date: Date): boolean {
   return compareDate > today;
 }
 
+// Helper to check if a date is in the past (before today)
+function isPast(date: Date): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const compareDate = new Date(date);
+  compareDate.setHours(0, 0, 0, 0);
+  return compareDate < today;
+}
+
 // Helper to add days to a date
 function addDays(date: Date, days: number): Date {
   const result = new Date(date);
@@ -78,6 +87,44 @@ function SkeletonDayCard({ date }: { date: Date }) {
           <div className="h-12 bg-muted rounded-lg animate-pulse" />
           <div className="h-12 bg-muted rounded-lg animate-pulse" />
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Empty past day card - tap to log
+function EmptyPastDayCard({
+  date,
+  onLogActivity,
+}: {
+  date: Date;
+  onLogActivity: () => void;
+}) {
+  const formattedDate = formatDialogDate(date);
+
+  return (
+    <Card>
+      <CardHeader className="p-4 pt-3">
+        <CardTitle className="text-lg">No Activity</CardTitle>
+        <CardDescription>{formattedDate}</CardDescription>
+      </CardHeader>
+      <CardContent className="px-4 py-2 pb-4">
+        <button
+          onClick={onLogActivity}
+          className={cn(
+            "w-full py-8 rounded-xl",
+            "border-2 border-dashed border-muted-foreground/25",
+            "bg-muted/30",
+            "flex flex-col items-center justify-center gap-2",
+            "text-muted-foreground",
+            "hover:border-muted-foreground/40 hover:bg-muted/50",
+            "transition-colors duration-200",
+            "cursor-pointer"
+          )}
+        >
+          <Plus className="h-6 w-6" />
+          <span className="text-sm font-medium">Log activity for this day</span>
+        </button>
       </CardContent>
     </Card>
   );
@@ -185,6 +232,7 @@ export function DayView({
   const formattedDate = formatDialogDate(selectedDate);
 
   const isCurrentlyToday = isToday(selectedDate);
+  const isCurrentlyPast = isPast(selectedDate);
 
   // All hooks must be called unconditionally
   const [mode, setMode] = useState<FormMode>("edit");
@@ -192,6 +240,8 @@ export function DayView({
     [typeId: string]: number | undefined;
   }>({});
   const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
+  // Track if user explicitly wants to log activity for a past day with no existing activity
+  const [showPastDayForm, setShowPastDayForm] = useState(false);
 
   // Reset state when existingActivity or selectedDate changes
   useEffect(() => {
@@ -208,6 +258,7 @@ export function DayView({
     setEntries(initialEntries);
     setTrackedTypes(initialTracked);
     setMode(existingActivity ? "view" : "edit");
+    setShowPastDayForm(false); // Reset when navigating to a new day
   }, [existingActivity, selectedDateStr]);
 
   const handleEntryChange = useCallback(
@@ -265,8 +316,15 @@ export function DayView({
       setEntries(initialEntries);
       setTrackedTypes(initialTracked);
       setMode("view");
+    } else {
+      // For new entries on past days, hide the form and show the empty state again
+      setShowPastDayForm(false);
     }
   }, [existingActivity]);
+
+  const handleLogPastDay = useCallback(() => {
+    setShowPastDayForm(true);
+  }, []);
 
   // Compute derived values
   const typesWithExistingEntries = useMemo(() => {
@@ -438,7 +496,7 @@ export function DayView({
         />
       )}
       <div className="flex-1" />
-      {existingActivity && (
+      {(existingActivity || showPastDayForm) && (
         <Button
           variant="muted"
           size="sm"
@@ -464,6 +522,11 @@ export function DayView({
       </Button>
     </div>
   );
+
+  // Determine if we should show the empty past day card
+  // Show it for past days with no activity, unless user has clicked to log
+  const shouldShowEmptyPastCard =
+    isNewEntry && isCurrentlyPast && !showPastDayForm;
 
   const content = mode === "view" ? viewContent : editContent;
   // Hide footer when there are no activity types (show CTA instead)
@@ -507,7 +570,9 @@ export function DayView({
   const isNextFuture = isFuture(nextDate);
 
   // Main card content
-  const mainCard = (
+  const mainCard = shouldShowEmptyPastCard ? (
+    <EmptyPastDayCard date={selectedDate} onLogActivity={handleLogPastDay} />
+  ) : (
     <Card>
       <CardHeader className="relative flex-row items-start justify-between space-y-0 p-4 pr-3 pt-3">
         <div className="flex-1 text-center md:text-left space-y-1">

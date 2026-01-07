@@ -238,6 +238,7 @@ function ActivityTypeCard({
                 disabled={isDisabled}
                 confirmLabel="Remove?"
                 bypassConfirm={isNewEntry}
+                asDiv
               />
             </div>
           </div>
