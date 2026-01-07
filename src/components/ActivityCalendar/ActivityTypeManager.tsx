@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -788,11 +788,14 @@ function CustomTypeForm({
 interface ActivityTypeManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** If true, opens directly to the "add new" view */
+  startInAddMode?: boolean;
 }
 
 export function ActivityTypeManager({
   open,
   onOpenChange,
+  startInAddMode = false,
 }: ActivityTypeManagerProps) {
   const {
     activeTypes,
@@ -806,6 +809,17 @@ export function ActivityTypeManager({
 
   const [editingType, setEditingType] = useState<ActivityType | null>(null);
   const [showAddNew, setShowAddNew] = useState(false);
+  const [wasOpen, setWasOpen] = useState(false);
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (open && !wasOpen) {
+      // Dialog just opened
+      setShowAddNew(startInAddMode);
+      setEditingType(null);
+    }
+    setWasOpen(open);
+  }, [open, startInAddMode, wasOpen]);
 
   const handleAddNew = () => {
     if (!canAddType) return;

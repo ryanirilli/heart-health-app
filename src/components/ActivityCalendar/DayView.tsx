@@ -22,7 +22,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2, Settings } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -34,6 +34,7 @@ import { ActivityType } from "@/lib/activityTypes";
 type FormMode = "view" | "edit";
 
 const SWIPE_THRESHOLD = 50;
+const SWIPE_VELOCITY = 500;
 
 // Helper to check if a date is today
 function isToday(date: Date): boolean {
@@ -64,7 +65,7 @@ function addDays(date: Date, days: number): Date {
 // Skeleton card for future dates
 function SkeletonDayCard({ date }: { date: Date }) {
   const formattedDate = formatDialogDate(date);
-  
+
   return (
     <Card className="opacity-25">
       <CardHeader className="p-4 pt-3">
@@ -134,6 +135,29 @@ function PreviewDayCard({
   );
 }
 
+// Empty state component when no activity types are defined
+function EmptyActivityTypesState() {
+  const { openSettingsToAdd } = useActivityTypes();
+
+  return (
+    <div className="text-center py-8">
+      <p className="text-muted-foreground">No activity types defined yet.</p>
+      <p className="text-sm text-muted-foreground mb-4">
+        Add activity types to start tracking.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={openSettingsToAdd}
+        className="gap-2 rounded-full"
+      >
+        <Settings className="h-4 w-4" />
+        Add Activity Type
+      </Button>
+    </div>
+  );
+}
+
 interface DayViewProps {
   selectedDate: Date;
   slideDirection: "left" | "right";
@@ -162,18 +186,6 @@ export function DayView({
 
   const isCurrentlyToday = isToday(selectedDate);
 
-  // Track if this is the initial mount to skip animation
-  const [isInitialMount, setIsInitialMount] = useState(true);
-
-  // After first render, allow animations
-  useEffect(() => {
-    // Use a small timeout to ensure the initial render completes without animation
-    const timer = setTimeout(() => {
-      setIsInitialMount(false);
-    }, 50);
-    return () => clearTimeout(timer);
-  }, []);
-
   // All hooks must be called unconditionally
   const [mode, setMode] = useState<FormMode>("edit");
   const [entries, setEntries] = useState<{
@@ -197,52 +209,6 @@ export function DayView({
     setTrackedTypes(initialTracked);
     setMode(existingActivity ? "view" : "edit");
   }, [existingActivity, selectedDateStr]);
-
-  // Handle swipe gesture completion (mobile only)
-  const handleDragEnd = useCallback(
-    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      const { offset, velocity } = info;
-      const absX = Math.abs(offset.x);
-      const absVelocity = Math.abs(velocity.x);
-
-      // Consider both distance and velocity for swipe detection
-      const isSwipe = absX > SWIPE_THRESHOLD || absVelocity > 500;
-
-      if (isSwipe) {
-        if (offset.x > 0) {
-          // Swiped right → go to previous day (always allowed)
-          onPreviousDay();
-        } else {
-          // Swiped left → go to next day (only if not at today)
-          if (canGoNext) {
-            onNextDay();
-          }
-        }
-      }
-    },
-    [canGoNext, onPreviousDay, onNextDay]
-  );
-
-  // Animation variants for AnimatePresence
-  // direction="left" means going forward in time (next day) - content enters from right, exits to left
-  // direction="right" means going back in time (previous day) - content enters from left, exits to right
-  const slideVariants = useMemo(
-    () => ({
-      enter: {
-        x: slideDirection === "left" ? 300 : -300,
-        opacity: 0,
-      },
-      center: {
-        x: 0,
-        opacity: 1,
-      },
-      exit: {
-        x: slideDirection === "left" ? -300 : 300,
-        opacity: 0,
-      },
-    }),
-    [slideDirection]
-  );
 
   const handleEntryChange = useCallback(
     (typeId: string, value: number | undefined) => {
@@ -369,12 +335,7 @@ export function DayView({
   const editContent = (
     <div className="space-y-4">
       {activeTypes.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>No activity types defined yet.</p>
-          <p className="text-sm">
-            Add activity types in settings to start tracking.
-          </p>
-        </div>
+        <EmptyActivityTypesState />
       ) : isNewEntry ? (
         <div className="space-y-3">
           {allRelevantTypes.map((type) => (
@@ -387,6 +348,7 @@ export function DayView({
               onToggleTracked={(tracked) =>
                 handleToggleTracked(type.id, tracked)
               }
+              isNewEntry={true}
             />
           ))}
         </div>
@@ -404,6 +366,7 @@ export function DayView({
                   onToggleTracked={(tracked) =>
                     handleToggleTracked(type.id, tracked)
                   }
+                  isNewEntry={false}
                 />
               ))}
             </div>
@@ -432,6 +395,7 @@ export function DayView({
                         onToggleTracked={(tracked) =>
                           handleToggleTracked(type.id, tracked)
                         }
+                        isNewEntry={false}
                       />
                     ))}
                   </div>
@@ -502,13 +466,36 @@ export function DayView({
   );
 
   const content = mode === "view" ? viewContent : editContent;
-  const footer = mode === "view" ? null : editFooter;
+  // Hide footer when there are no activity types (show CTA instead)
+  const footer =
+    mode === "view" || activeTypes.length === 0 ? null : editFooter;
 
   // Only enable drag/swipe on mobile when no activity items are open (tracked)
-  // In view mode, always allow swipe. In edit mode, only allow if no items are being edited.
   const isMobile = useIsMobile();
   const hasOpenItems = mode === "edit" && trackedTypes.size > 0;
   const canSwipe = isMobile && !hasOpenItems;
+
+  // Handle swipe gesture (mobile only)
+  const handleDragEnd = useCallback(
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const { offset, velocity } = info;
+      const absX = Math.abs(offset.x);
+      const absVelocity = Math.abs(velocity.x);
+
+      const isSwipe = absX > SWIPE_THRESHOLD || absVelocity > SWIPE_VELOCITY;
+
+      if (isSwipe) {
+        if (offset.x > 0) {
+          // Swiped right → go to previous day
+          onPreviousDay();
+        } else if (canGoNext) {
+          // Swiped left → go to next day
+          onNextDay();
+        }
+      }
+    },
+    [canGoNext, onPreviousDay, onNextDay]
+  );
 
   // Calculate previous and next dates for desktop preview
   const previousDate = useMemo(() => addDays(selectedDate, -1), [selectedDate]);
@@ -519,7 +506,7 @@ export function DayView({
   const nextActivity = activities[nextDateStr];
   const isNextFuture = isFuture(nextDate);
 
-  // Main card content (used for both mobile and desktop center column)
+  // Main card content
   const mainCard = (
     <Card>
       <CardHeader className="relative flex-row items-start justify-between space-y-0 p-4 pr-3 pt-3">
@@ -535,46 +522,53 @@ export function DayView({
 
       <CardContent className="px-4 py-2 pb-4">{content}</CardContent>
 
-      {footer && (
-        <CardFooter className="px-4 pt-4 pb-4">{footer}</CardFooter>
-      )}
+      {footer && <CardFooter className="px-4 pt-4 pb-4">{footer}</CardFooter>}
     </Card>
   );
 
-  // Desktop carousel animation - animate entire row together
-  const carouselVariants = useMemo(
-    () => ({
-      enter: {
-        x: slideDirection === "left" ? "33%" : "-33%",
-        opacity: 0,
-      },
-      center: {
-        x: 0,
-        opacity: 1,
-      },
-      exit: {
-        x: slideDirection === "left" ? "-33%" : "33%",
-        opacity: 0,
-      },
+  // Animation config
+  // slideDirection="left" = going forward in time (next day) = content enters from RIGHT
+  // slideDirection="right" = going backward in time (prev day) = content enters from LEFT
+  const slideOffset = 350;
+
+  // Custom variants that respond to slideDirection
+  const variants = {
+    enter: (direction: "left" | "right") => ({
+      x: direction === "left" ? slideOffset : -slideOffset,
+      opacity: 0,
     }),
-    [slideDirection]
-  );
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: "left" | "right") => ({
+      x: direction === "left" ? -slideOffset : slideOffset,
+      opacity: 0,
+    }),
+  };
+
+  const transition = {
+    x: { type: "spring" as const, stiffness: 350, damping: 30 },
+    opacity: { duration: 0.15 },
+  };
 
   return (
     <>
-      {/* Desktop: Three-column layout with prev/next previews */}
+      {/* Desktop: Three-column layout with animation */}
       <div className="hidden md:block overflow-hidden">
-        <AnimatePresence mode="popLayout" initial={false}>
+        <AnimatePresence
+          mode="popLayout"
+          initial={false}
+          custom={slideDirection}
+        >
           <motion.div
             key={selectedDateStr}
-            variants={carouselVariants}
-            initial={isInitialMount ? "center" : "enter"}
+            custom={slideDirection}
+            variants={variants}
+            initial="enter"
             animate="center"
             exit="exit"
-            transition={{
-              x: { type: "tween", duration: 0.4, ease: [0.4, 0, 0.2, 1] },
-              opacity: { duration: 0.3, ease: "easeInOut" },
-            }}
+            transition={transition}
             className="grid grid-cols-[1fr_1.2fr_1fr] gap-4 items-start"
           >
             {/* Previous day */}
@@ -601,30 +595,32 @@ export function DayView({
         </AnimatePresence>
       </div>
 
-      {/* Mobile: Single card with swipe */}
-      <div className="md:hidden relative overflow-hidden">
-        <AnimatePresence mode="popLayout">
+      {/* Mobile: Single card with swipe gesture */}
+      <div className="md:hidden overflow-hidden">
+        <AnimatePresence
+          mode="popLayout"
+          initial={false}
+          custom={slideDirection}
+        >
           <motion.div
             key={selectedDateStr}
-            variants={slideVariants}
-            initial={isInitialMount ? "center" : "enter"}
+            custom={slideDirection}
+            variants={variants}
+            initial="enter"
             animate="center"
             exit="exit"
-            transition={{
-              x: { type: "spring", stiffness: 400, damping: 35 },
-              opacity: { duration: 0.15 },
-            }}
+            transition={transition}
             drag={canSwipe ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.5}
             onDragEnd={handleDragEnd}
-            className={cn(canSwipe && "touch-none")}
+            style={{ touchAction: canSwipe ? "pan-y" : "auto" }}
           >
             {mainCard}
           </motion.div>
         </AnimatePresence>
 
-        {/* Swipe hint - mobile only when swipe is enabled */}
+        {/* Swipe hint */}
         {canSwipe && (
           <div className="mt-4 text-center text-xs text-muted-foreground/50">
             Swipe to navigate between days

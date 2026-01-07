@@ -1,13 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import { ActivityTypeManager, useActivityTypes } from './ActivityCalendar';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 
 export function ActivityHeader() {
-  const [managerOpen, setManagerOpen] = useState(false);
-  const { activeTypes } = useActivityTypes();
+  const { activeTypes, settingsOpen, setSettingsOpen, settingsStartInAddMode } = useActivityTypes();
 
   return (
     <>
@@ -25,7 +23,7 @@ export function ActivityHeader() {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setManagerOpen(true)}
+          onClick={() => setSettingsOpen(true)}
           className="sm:w-auto sm:h-auto sm:px-4 sm:py-2"
         >
           <Settings className="h-4 w-4" />
@@ -33,7 +31,11 @@ export function ActivityHeader() {
         </Button>
       </div>
 
-      <ActivityTypeManager open={managerOpen} onOpenChange={setManagerOpen} />
+      <ActivityTypeManager 
+        open={settingsOpen} 
+        onOpenChange={setSettingsOpen}
+        startInAddMode={settingsStartInAddMode}
+      />
     </>
   );
 }

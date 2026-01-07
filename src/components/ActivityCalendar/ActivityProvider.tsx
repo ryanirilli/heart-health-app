@@ -35,6 +35,12 @@ interface ActivityContextValue {
   isLoading: boolean;
   isSaving: boolean;
   isDeleting: boolean;
+  
+  // Settings
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
+  settingsStartInAddMode: boolean;
+  openSettingsToAdd: () => void;
 }
 
 const ActivityContext = createContext<ActivityContextValue>({
@@ -51,6 +57,10 @@ const ActivityContext = createContext<ActivityContextValue>({
   isLoading: false,
   isSaving: false,
   isDeleting: false,
+  settingsOpen: false,
+  setSettingsOpen: () => {},
+  settingsStartInAddMode: false,
+  openSettingsToAdd: () => {},
 });
 
 interface ActivityProviderProps {
@@ -65,7 +75,23 @@ export function ActivityProvider({
   initialActivities = {} 
 }: ActivityProviderProps) {
   const [activityTypes, setActivityTypes] = useState<ActivityTypeMap>(initialTypes);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsStartInAddMode, setSettingsStartInAddMode] = useState(false);
   const queryClient = useQueryClient();
+
+  // Helper to open settings directly to add mode
+  const openSettingsToAdd = useCallback(() => {
+    setSettingsStartInAddMode(true);
+    setSettingsOpen(true);
+  }, []);
+
+  // Reset add mode flag when settings closes
+  const handleSetSettingsOpen = useCallback((open: boolean) => {
+    setSettingsOpen(open);
+    if (!open) {
+      setSettingsStartInAddMode(false);
+    }
+  }, []);
   
   // Use React Query for activities
   const { data: activities = {}, isLoading } = useActivitiesQuery(initialActivities);
@@ -149,6 +175,10 @@ export function ActivityProvider({
     isLoading,
     isSaving,
     isDeleting,
+    settingsOpen,
+    setSettingsOpen: handleSetSettingsOpen,
+    settingsStartInAddMode,
+    openSettingsToAdd,
   }), [
     activityTypes,
     activeTypes,
@@ -163,6 +193,10 @@ export function ActivityProvider({
     isLoading,
     isSaving,
     isDeleting,
+    settingsOpen,
+    handleSetSettingsOpen,
+    settingsStartInAddMode,
+    openSettingsToAdd,
   ]);
 
   return (
@@ -179,7 +213,11 @@ export function useActivityTypes() {
     canAddType, 
     addActivityType, 
     updateActivityType, 
-    deleteActivityType 
+    deleteActivityType,
+    settingsOpen,
+    setSettingsOpen,
+    settingsStartInAddMode,
+    openSettingsToAdd,
   } = useContext(ActivityContext);
   
   return { 
@@ -191,6 +229,10 @@ export function useActivityTypes() {
     deleteActivityType,
     maxTypes: MAX_ACTIVITY_TYPES,
     createDefaultType: createDefaultActivityType,
+    settingsOpen,
+    setSettingsOpen,
+    settingsStartInAddMode,
+    openSettingsToAdd,
   };
 }
 

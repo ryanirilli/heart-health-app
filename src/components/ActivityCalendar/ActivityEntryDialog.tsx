@@ -28,7 +28,7 @@ import {
   formatDialogDate,
 } from "./ActivityFormContent";
 import { Button } from "@/components/ui/button";
-import { Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2, Settings } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -59,7 +59,7 @@ export function ActivityEntryDialog({
   isSaving = false,
   isDeleting = false,
 }: ActivityEntryDialogProps) {
-  const { activeTypes, activityTypes } = useActivityTypes();
+  const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
   const [entries, setEntries] = useState<{
     [typeId: string]: number | undefined;
   }>({});
@@ -213,16 +213,33 @@ export function ActivityEntryDialog({
       </Button>
     ) : null;
 
+  // Empty state component
+  const emptyState = (
+    <div className="text-center py-8">
+      <p className="text-muted-foreground">No activity types defined yet.</p>
+      <p className="text-sm text-muted-foreground mb-4">
+        Add activity types to start tracking.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          onOpenChange(false);
+          openSettingsToAdd();
+        }}
+        className="gap-2"
+      >
+        <Settings className="h-4 w-4" />
+        Add Activity Type
+      </Button>
+    </div>
+  );
+
   // Edit mode content
   const editContent = (
     <div className="space-y-4 py-4">
       {activeTypes.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>No activity types defined yet.</p>
-          <p className="text-sm">
-            Add activity types in settings to start tracking.
-          </p>
-        </div>
+        emptyState
       ) : isNewEntry ? (
         // For new entries, show all activity types directly (no accordion)
         <div className="space-y-3">
@@ -236,6 +253,7 @@ export function ActivityEntryDialog({
               onToggleTracked={(tracked) =>
                 handleToggleTracked(type.id, tracked)
               }
+              isNewEntry={true}
             />
           ))}
         </div>
@@ -255,6 +273,7 @@ export function ActivityEntryDialog({
                   onToggleTracked={(tracked) =>
                     handleToggleTracked(type.id, tracked)
                   }
+                  isNewEntry={false}
                 />
               ))}
             </div>
@@ -284,6 +303,7 @@ export function ActivityEntryDialog({
                         onToggleTracked={(tracked) =>
                           handleToggleTracked(type.id, tracked)
                         }
+                        isNewEntry={false}
                       />
                     ))}
                   </div>
@@ -358,7 +378,8 @@ export function ActivityEntryDialog({
 
   const title = mode === "view" ? "Activity Summary" : "Log Activity";
   const content = mode === "view" ? viewContent : editContent;
-  const footer = mode === "view" ? viewFooter : editFooter;
+  // Hide footer when there are no activity types (show CTA instead)
+  const footer = mode === "view" ? viewFooter : (activeTypes.length === 0 ? null : editFooter);
 
   // Use Drawer on mobile, Dialog on desktop
   if (isMobile) {

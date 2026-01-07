@@ -11,6 +11,8 @@ interface ConfirmDeleteButtonProps {
   confirmTimeout?: number;
   /** Label shown during confirmation state */
   confirmLabel?: string;
+  /** If true, skips confirmation and deletes immediately on first click */
+  bypassConfirm?: boolean;
   className?: string;
 }
 
@@ -20,6 +22,7 @@ export function ConfirmDeleteButton({
   isDeleting = false,
   confirmTimeout = 3000,
   confirmLabel = 'Confirm?',
+  bypassConfirm = false,
   className,
 }: ConfirmDeleteButtonProps) {
   const [isConfirming, setIsConfirming] = useState(false);
@@ -36,6 +39,12 @@ export function ConfirmDeleteButton({
 
   const handleClick = () => {
     if (disabled || isDeleting) return;
+
+    // If bypassing confirmation, delete immediately
+    if (bypassConfirm) {
+      onDelete();
+      return;
+    }
 
     if (!isConfirming) {
       // First click - show confirmation

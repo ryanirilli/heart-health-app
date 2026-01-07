@@ -14,6 +14,8 @@ import { useActivityTypes } from "./ActivityProvider";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -150,6 +152,7 @@ function ActivityTypeCard({
   onChange,
   onToggleTracked,
   disabled,
+  isNewEntry,
 }: {
   type: ActivityType;
   value: number | undefined;
@@ -157,6 +160,8 @@ function ActivityTypeCard({
   onChange: (value: number | undefined) => void;
   onToggleTracked: (tracked: boolean) => void;
   disabled?: boolean;
+  /** If true, bypass delete confirmation (for unsaved entries) */
+  isNewEntry?: boolean;
 }) {
   const goalType = getGoalType(type);
   const isDisabled = disabled || type.deleted;
@@ -203,6 +208,7 @@ function ActivityTypeCard({
             onDelete={() => onToggleTracked(false)}
             disabled={isDisabled}
             confirmLabel="Remove?"
+            bypassConfirm={isNewEntry}
           />
         )}
       </div>
@@ -334,7 +340,7 @@ export function ActivityFormContent({
   mode: controlledMode,
   onModeChange,
 }: ActivityFormContentProps) {
-  const { activeTypes, activityTypes } = useActivityTypes();
+  const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
   const [entries, setEntries] = useState<{
     [typeId: string]: number | undefined;
   }>({});
@@ -502,16 +508,33 @@ export function ActivityFormContent({
     </div>
   );
 
+  // Empty state component
+  const emptyState = (
+    <div className="text-center py-8">
+      <p className="text-muted-foreground">No activity types defined yet.</p>
+      <p className="text-sm text-muted-foreground mb-4">
+        Add activity types to start tracking.
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          onClose?.();
+          openSettingsToAdd();
+        }}
+        className="gap-2"
+      >
+        <Settings className="h-4 w-4" />
+        Add Activity Type
+      </Button>
+    </div>
+  );
+
   // Edit mode content
   const editContent = (
     <div className="space-y-4">
       {activeTypes.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>No activity types defined yet.</p>
-          <p className="text-sm">
-            Add activity types in settings to start tracking.
-          </p>
-        </div>
+        emptyState
       ) : isNewEntry ? (
         // For new entries, show all activity types directly (no accordion)
         <div className="space-y-3">
@@ -525,6 +548,7 @@ export function ActivityFormContent({
               onToggleTracked={(tracked) =>
                 handleToggleTracked(type.id, tracked)
               }
+              isNewEntry={true}
             />
           ))}
         </div>
@@ -544,6 +568,7 @@ export function ActivityFormContent({
                   onToggleTracked={(tracked) =>
                     handleToggleTracked(type.id, tracked)
                   }
+                  isNewEntry={false}
                 />
               ))}
             </div>
@@ -573,6 +598,7 @@ export function ActivityFormContent({
                         onToggleTracked={(tracked) =>
                           handleToggleTracked(type.id, tracked)
                         }
+                        isNewEntry={false}
                       />
                     ))}
                   </div>
@@ -676,7 +702,9 @@ export function ActivityFormContent({
 
   const title = mode === "view" ? "Activity Summary" : "Log Activity";
   const content = mode === "view" ? viewContent : editContent;
-  const footer = mode === "view" ? null : editFooter;
+  // Hide footer when there are no activity types (show CTA instead)
+  const footer =
+    mode === "view" || activeTypes.length === 0 ? null : editFooter;
 
   // Return the content parts for use in dialog/drawer or inline
   return {
