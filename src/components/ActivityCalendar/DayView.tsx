@@ -72,19 +72,21 @@ function addDays(date: Date, days: number): Date {
 
 // Skeleton card for future dates
 function SkeletonDayCard({ date }: { date: Date }) {
-  const formattedDate = formatDialogDate(date);
-
   return (
     <Card className="opacity-25">
-      <CardHeader className="p-4 pt-3">
-        <CardTitle className="text-lg">Tomorrow</CardTitle>
-        <CardDescription>{formattedDate}</CardDescription>
+      <CardHeader className="p-4 pt-4">
+        <div className="flex flex-col items-center gap-2">
+          <DateTile date={date} />
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Tomorrow
+          </CardTitle>
+        </div>
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
-        <div className="space-y-3">
-          <div className="h-12 bg-muted rounded-lg animate-pulse" />
-          <div className="h-12 bg-muted rounded-lg animate-pulse" />
-          <div className="h-12 bg-muted rounded-lg animate-pulse" />
+        <div className="space-y-2">
+          <div className="h-10 bg-muted rounded-lg animate-pulse" />
+          <div className="h-10 bg-muted rounded-lg animate-pulse" />
+          <div className="h-10 bg-muted rounded-lg animate-pulse" />
         </div>
       </CardContent>
     </Card>
@@ -99,33 +101,77 @@ function EmptyPastDayCard({
   date: Date;
   onLogActivity: () => void;
 }) {
-  const formattedDate = formatDialogDate(date);
-
   return (
     <Card>
-      <CardHeader className="p-4 pt-3">
-        <CardTitle className="text-lg">No Activity</CardTitle>
-        <CardDescription>{formattedDate}</CardDescription>
+      <CardHeader className="p-4 pt-4">
+        <div className="flex flex-col items-center gap-2">
+          <DateTile date={date} />
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            No Activity
+          </CardTitle>
+        </div>
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
         <button
           onClick={onLogActivity}
           className={cn(
             "w-full py-8 rounded-xl",
-            "border-2 border-dashed border-muted-foreground/25",
+            "border border-dashed border-muted-foreground/25",
             "bg-muted/30",
-            "flex flex-col items-center justify-center gap-2",
+            "flex items-center justify-center gap-2",
             "text-muted-foreground",
             "hover:border-muted-foreground/40 hover:bg-muted/50",
             "transition-colors duration-200",
             "cursor-pointer"
           )}
         >
-          <Plus className="h-6 w-6" />
-          <span className="text-sm font-medium">Log activity for this day</span>
+          <Plus className="h-5 w-5" />
+          <span className="text-sm font-medium">Add</span>
         </button>
       </CardContent>
     </Card>
+  );
+}
+
+// Helper to get short month name
+function getShortMonth(date: Date): string {
+  return date.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
+}
+
+// Helper to get day number
+function getDayNumber(date: Date): number {
+  return date.getDate();
+}
+
+// App icon tile component for displaying date
+function DateTile({ date }: { date: Date }) {
+  const shortMonth = getShortMonth(date);
+  const dayNumber = getDayNumber(date);
+
+  return (
+    <div
+      className={cn(
+        "w-14 h-14 rounded-xl overflow-hidden shrink-0",
+        "bg-card border border-border",
+        "shadow-sm",
+        "flex flex-col items-center justify-center"
+      )}
+    >
+      {/* Month header */}
+      <div
+        className={cn(
+          "w-full py-0.5 text-center",
+          "bg-muted",
+          "text-[9px] font-bold tracking-wide text-foreground"
+        )}
+      >
+        {shortMonth}
+      </div>
+      {/* Day number */}
+      <div className="flex-1 flex items-center justify-center">
+        <span className="text-xl font-bold text-foreground">{dayNumber}</span>
+      </div>
+    </div>
   );
 }
 
@@ -139,7 +185,6 @@ function PreviewDayCard({
   activity: Activity | undefined;
   activityTypes: { [id: string]: ActivityType };
 }) {
-  const formattedDate = formatDialogDate(date);
   const isCurrentlyToday = isToday(date);
 
   const entriesWithTypes = useMemo(() => {
@@ -155,22 +200,24 @@ function PreviewDayCard({
 
   return (
     <Card className="opacity-30">
-      <CardHeader className="p-4 pt-3">
-        <CardTitle className="text-lg">
-          {activity ? "Activity Summary" : "No Activity"}
-        </CardTitle>
-        <CardDescription className="flex items-center gap-2">
-          {formattedDate}
-          {isCurrentlyToday && <Badge variant="today">Today</Badge>}
-        </CardDescription>
+      <CardHeader className="p-4 pt-4">
+        <div className="flex flex-col items-center gap-2">
+          <DateTile date={date} />
+          <div className="flex flex-col items-center gap-1">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {activity ? "Activity Summary" : "No Activity"}
+            </CardTitle>
+            {isCurrentlyToday && <Badge variant="today">Today</Badge>}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
         {entriesWithTypes.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">No activities logged.</p>
+          <div className="text-center py-4 text-muted-foreground">
+            <p className="text-xs">No activities logged.</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {entriesWithTypes.map(({ type, value }) => (
               <ActivityViewCard key={type.id} type={type} value={value} />
             ))}
@@ -619,19 +666,23 @@ export function DayView({
   const mainCard = shouldShowEmptyPastCard ? (
     <EmptyPastDayCard date={selectedDate} onLogActivity={handleLogPastDay} />
   ) : (
-    <Card>
-      <CardHeader className="relative flex-row items-start justify-between space-y-0 p-4 pr-3 pt-3">
-        <div className="flex-1 text-center md:text-left space-y-1">
-          <CardTitle className="text-lg">{title}</CardTitle>
-          <CardDescription className="flex items-center justify-center md:justify-start gap-2">
-            {formattedDate}
-            {isCurrentlyToday && <Badge variant="today">Today</Badge>}
-          </CardDescription>
+    <Card className="relative">
+      <CardHeader className="p-4 pt-4">
+        <div className="absolute top-3 right-3">{editButton}</div>
+        <div className="flex flex-col items-center">
+          <DateTile date={selectedDate} />
         </div>
-        {editButton}
       </CardHeader>
 
-      <CardContent className="px-4 py-2 pb-4">{content}</CardContent>
+      <CardContent className="px-4 py-2 pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {title}
+          </CardTitle>
+          {isCurrentlyToday && <Badge variant="today">Today</Badge>}
+        </div>
+        {content}
+      </CardContent>
 
       {footer && <CardFooter className="px-4 pt-4 pb-4">{footer}</CardFooter>}
     </Card>
