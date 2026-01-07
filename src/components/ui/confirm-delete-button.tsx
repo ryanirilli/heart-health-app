@@ -38,6 +38,9 @@ export function ConfirmDeleteButton({
   }, []);
 
   const handleClick = (e: React.MouseEvent) => {
+    // Always stop propagation to prevent parent handlers (e.g., accordion toggle)
+    e.stopPropagation();
+    
     if (disabled || isDeleting) return;
 
     // If bypassing confirmation, delete immediately
