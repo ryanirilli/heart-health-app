@@ -29,7 +29,23 @@ export interface DbActivity {
   updated_at: string;
 }
 
+export interface DbGoal {
+  id: string;
+  user_id: string;
+  activity_type_id: string;
+  name: string;
+  target_value: number;
+  icon: string;
+  date_type: 'daily' | 'weekly' | 'monthly' | 'by_date' | 'date_range';
+  target_date: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Insert types (without auto-generated fields)
 export type DbActivityTypeInsert = Omit<DbActivityType, 'created_at' | 'updated_at'>;
 export type DbActivityInsert = Omit<DbActivity, 'id' | 'created_at' | 'updated_at'>;
+export type DbGoalInsert = Omit<DbGoal, 'id' | 'created_at' | 'updated_at'>;
 

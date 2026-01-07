@@ -1,12 +1,9 @@
-import {
-  ActivityCalendar,
-  ActivityProvider,
-} from "@/components/ActivityCalendar";
-import { ActivityHeader } from "@/components/ActivityHeader";
 import { createClient } from "@/lib/supabase/server";
 import { ActivityTypeMap, ActivityType } from "@/lib/activityTypes";
 import { ActivityMap, ActivityEntry } from "@/lib/activities";
-import { DbActivityType, DbActivity } from "@/lib/supabase/types";
+import { GoalMap, Goal, isValidGoalIcon } from "@/lib/goals";
+import { DbActivityType, DbActivity, DbGoal } from "@/lib/supabase/types";
+import { DashboardContent } from "@/components/DashboardContent";
 
 async function getActivityData(userId: string) {
   const supabase = await createClient();
@@ -62,6 +59,35 @@ async function getActivityData(userId: string) {
   return { types, activities };
 }
 
+async function getGoalsData(userId: string) {
+  const supabase = await createClient();
+
+  // Fetch goals
+  const { data: dbGoals } = await supabase
+    .from("goals")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  // Convert DB goals to app format
+  const goals: GoalMap = {};
+  (dbGoals as DbGoal[] | null)?.forEach((g) => {
+    goals[g.id] = {
+      id: g.id,
+      activityTypeId: g.activity_type_id,
+      name: g.name,
+      targetValue: g.target_value,
+      icon: isValidGoalIcon(g.icon) ? g.icon : 'target',
+      dateType: g.date_type,
+      targetDate: g.target_date ?? undefined,
+      startDate: g.start_date ?? undefined,
+      endDate: g.end_date ?? undefined,
+    } as Goal;
+  });
+
+  return goals;
+}
+
 export default async function Dashboard() {
   const supabase = await createClient();
   const {
@@ -73,17 +99,11 @@ export default async function Dashboard() {
     return null;
   }
 
-  const { types, activities } = await getActivityData(user.id);
+  // Fetch all data in parallel
+  const [{ types, activities }, goals] = await Promise.all([
+    getActivityData(user.id),
+    getGoalsData(user.id),
+  ]);
 
-  return (
-    <main className="min-h-screen p-6 md:p-12">
-      <div className="max-w-5xl mx-auto space-y-6">
-        <ActivityProvider initialTypes={types} initialActivities={activities}>
-          <ActivityHeader />
-          <ActivityCalendar />
-        </ActivityProvider>
-      </div>
-    </main>
-  );
+  return <DashboardContent types={types} activities={activities} goals={goals} />;
 }
-

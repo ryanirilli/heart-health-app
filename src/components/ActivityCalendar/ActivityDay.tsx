@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, hasActivityData, getEntryCount } from "@/lib/activities";
+import { Star } from "lucide-react";
+import { Activity, hasActivityData, getEntryCount, formatDate } from "@/lib/activities";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -13,9 +14,11 @@ import {
   useActivities,
   formatValueWithUnit,
 } from "./ActivityProvider";
+import { useGoals } from "@/components/Goals";
 import { ActivityEntryDialog } from "./ActivityEntryDialog";
 import { ActivityEntry } from "@/lib/activities";
 import { getGoalType, ActivityTypeMap } from "@/lib/activityTypes";
+import { getGoalsWithIndicatorForDate } from "@/lib/goals";
 
 interface ActivityDayProps {
   date: Date | null;
@@ -67,6 +70,7 @@ export function ActivityDay({
   const { activityTypes } = useActivityTypes();
   const { updateActivity, deleteActivity, isSaving, isDeleting } =
     useActivities();
+  const { goals } = useGoals();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   if (!date) {
@@ -76,6 +80,11 @@ export function ActivityDay({
   const hasData = hasActivityData(activity);
   const entryCount = getEntryCount(activity);
   const dayNumber = date.getDate();
+  
+  // Check if there are goals that should show an indicator on this date
+  const dateStr = formatDate(date);
+  const goalsWithIndicator = getGoalsWithIndicatorForDate(goals, dateStr);
+  const hasGoalIndicator = goalsWithIndicator.length > 0;
 
   /**
    * Calculate the activity score for the day based on goal types and values.
@@ -205,7 +214,7 @@ export function ActivityDay({
     <div
       onClick={handleCellClick}
       className={cn(
-        "aspect-square transition-all duration-200 flex items-center justify-center rounded-sm",
+        "aspect-square transition-all duration-200 flex items-center justify-center rounded-sm relative",
         cellColor,
         isFutureDate
           ? "cursor-not-allowed opacity-50"
@@ -221,6 +230,15 @@ export function ActivityDay({
         >
           {dayNumber}
         </span>
+      )}
+      {/* Goal indicator star - shows on evaluation days */}
+      {hasGoalIndicator && !isFutureDate && (
+        <Star 
+          className={cn(
+            "absolute top-0.5 right-0.5 h-2.5 w-2.5",
+            "text-amber-500 fill-amber-500"
+          )} 
+        />
       )}
     </div>
   );

@@ -19,22 +19,13 @@ import {
 } from "@/components/ui/drawer";
 import { Activity, ActivityEntry, formatDate } from "@/lib/activities";
 import { useActivityTypes } from "./ActivityProvider";
+import { useGoals } from "@/components/Goals";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
-import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
-import {
-  ActivityTypeCard,
-  ActivityViewCard,
-  formatDialogDate,
-} from "./ActivityFormContent";
+import { formatDialogDate } from "./ActivityFormContent";
+import { DayContentView, DayContentEdit } from "./DayContent";
 import { Button } from "@/components/ui/button";
-import { Pencil, Loader2, Settings } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Pencil, Loader2 } from "lucide-react";
 
 type DialogMode = "view" | "edit";
 
@@ -60,12 +51,15 @@ export function ActivityEntryDialog({
   isDeleting = false,
 }: ActivityEntryDialogProps) {
   const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
+  const { goals } = useGoals();
   const [entries, setEntries] = useState<{
     [typeId: string]: number | undefined;
   }>({});
   const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
   const [mode, setMode] = useState<DialogMode>("view");
   const isMobile = useIsMobile();
+
+  const dateStr = formatDate(date);
 
   // Reset state when dialog opens with new data
   useEffect(() => {
@@ -112,8 +106,6 @@ export function ActivityEntryDialog({
   };
 
   const handleSave = () => {
-    const dateStr = formatDate(date);
-
     // Build entries object - only include types that are explicitly tracked
     const activityEntries: { [typeId: string]: ActivityEntry } = {};
     for (const typeId of trackedTypes) {
@@ -132,72 +124,60 @@ export function ActivityEntryDialog({
     onOpenChange(false);
   };
 
+  const handleCancel = () => {
+    if (existingActivity) {
+      // Reset to original values and go back to view mode
+      const initialEntries: { [typeId: string]: number | undefined } = {};
+      const initialTracked = new Set<string>();
+      for (const typeId in existingActivity.entries) {
+        initialEntries[typeId] = existingActivity.entries[typeId].value;
+        initialTracked.add(typeId);
+      }
+      setEntries(initialEntries);
+      setTrackedTypes(initialTracked);
+      setMode("view");
+    } else {
+      onOpenChange(false);
+    }
+  };
+
   const formattedDate = formatDialogDate(date);
+  const isPending = isSaving || isDeleting;
+  const title = mode === "view" ? "Activity Summary" : "Log Activity";
 
-  // Get all types that have entries (including deleted types for viewing)
-  const typesWithExistingEntries = existingActivity?.entries
-    ? Object.keys(existingActivity.entries)
-        .map((typeId) => activityTypes[typeId])
-        .filter(Boolean)
-    : [];
-
-  // Combine active types with any deleted types that have existing entries
-  const allRelevantTypes = [
-    ...activeTypes,
-    ...typesWithExistingEntries.filter(
-      (t) => t.deleted && !activeTypes.find((at) => at.id === t.id)
-    ),
-  ];
-
-  // Check if this is a new entry (no existing activity)
-  const isNewEntry = !existingActivity;
-
-  // For existing entries, separate tracked and untracked types
-  const trackedTypesList = allRelevantTypes.filter((type) =>
-    trackedTypes.has(type.id)
-  );
-  const untrackedTypesList = allRelevantTypes.filter(
-    (type) => !trackedTypes.has(type.id)
-  );
-
-  // Get entries with their types for view mode
-  const entriesWithTypes = existingActivity?.entries
-    ? Object.entries(existingActivity.entries)
-        .map(([typeId, entry]) => ({
-          type: activityTypes[typeId],
-          value: entry.value,
-        }))
-        .filter((item) => item.type)
-        .sort((a, b) => a.type.order - b.type.order)
-    : [];
-
-  // View mode content
+  // View mode content using shared component
   const viewContent = (
-    <>
-      <div className="space-y-3 py-4">
-        {entriesWithTypes.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No activities logged for this day.</p>
-            <Button
-              variant="muted"
-              size="sm"
-              onClick={() => setMode("edit")}
-              className="mt-4"
-            >
-              Add activities
-            </Button>
-          </div>
-        ) : (
-          entriesWithTypes.map(({ type, value }) => (
-            <ActivityViewCard key={type.id} type={type} value={value} />
-          ))
-        )}
-      </div>
-    </>
+    <div className="py-4">
+      <DayContentView
+        dateStr={dateStr}
+        activity={existingActivity}
+        activityTypes={activityTypes}
+        goals={goals}
+        onEditClick={() => setMode("edit")}
+        fullBleedBorder={true}
+      />
+    </div>
   );
 
-  // View mode footer - empty, users can tap overlay/drag to close
-  const viewFooter = null;
+  // Edit mode content using shared component
+  const editContent = (
+    <div className="space-y-4 py-4">
+      <DayContentEdit
+        dateStr={dateStr}
+        activity={existingActivity}
+        activeTypes={activeTypes}
+        activityTypes={activityTypes}
+        entries={entries}
+        trackedTypes={trackedTypes}
+        onEntryChange={handleEntryChange}
+        onToggleTracked={handleToggleTracked}
+        onOpenSettings={() => {
+          onOpenChange(false);
+          openSettingsToAdd();
+        }}
+      />
+    </div>
+  );
 
   // Edit button icon for view mode header
   const editIconButton =
@@ -213,118 +193,6 @@ export function ActivityEntryDialog({
       </Button>
     ) : null;
 
-  // Empty state component
-  const emptyState = (
-    <div className="text-center py-8">
-      <p className="text-muted-foreground">No activity types defined yet.</p>
-      <p className="text-sm text-muted-foreground mb-4">
-        Add activity types to start tracking.
-      </p>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => {
-          onOpenChange(false);
-          openSettingsToAdd();
-        }}
-        className="gap-2"
-      >
-        <Settings className="h-4 w-4" />
-        Add Activity Type
-      </Button>
-    </div>
-  );
-
-  // Edit mode content
-  const editContent = (
-    <div className="space-y-4 py-4">
-      {activeTypes.length === 0 ? (
-        emptyState
-      ) : isNewEntry ? (
-        // For new entries, show all activity types directly (no accordion)
-        <div className="space-y-3">
-          {allRelevantTypes.map((type) => (
-            <ActivityTypeCard
-              key={type.id}
-              type={type}
-              value={entries[type.id]}
-              isTracked={trackedTypes.has(type.id)}
-              onChange={(value) => handleEntryChange(type.id, value)}
-              onToggleTracked={(tracked) =>
-                handleToggleTracked(type.id, tracked)
-              }
-              isNewEntry={true}
-            />
-          ))}
-        </div>
-      ) : (
-        // For existing entries in edit mode, show tracked first, then accordion for untracked
-        <>
-          {/* Tracked types */}
-          {trackedTypesList.length > 0 && (
-            <div className="space-y-3">
-              {trackedTypesList.map((type) => (
-                <ActivityTypeCard
-                  key={type.id}
-                  type={type}
-                  value={entries[type.id]}
-                  isTracked={true}
-                  onChange={(value) => handleEntryChange(type.id, value)}
-                  onToggleTracked={(tracked) =>
-                    handleToggleTracked(type.id, tracked)
-                  }
-                  isNewEntry={false}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Accordion for untracked types */}
-          {untrackedTypesList.length > 0 && (
-            <Accordion
-              type="single"
-              collapsible
-              className={cn(trackedTypesList.length > 0 && "pt-2")}
-            >
-              <AccordionItem value="untracked">
-                <AccordionTrigger>
-                  {untrackedTypesList.length} untracked{" "}
-                  {untrackedTypesList.length === 1 ? "activity" : "activities"}
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3">
-                    {untrackedTypesList.map((type) => (
-                      <ActivityTypeCard
-                        key={type.id}
-                        type={type}
-                        value={entries[type.id]}
-                        isTracked={false}
-                        onChange={(value) => handleEntryChange(type.id, value)}
-                        onToggleTracked={(tracked) =>
-                          handleToggleTracked(type.id, tracked)
-                        }
-                        isNewEntry={false}
-                      />
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
-
-          {/* Show message if no tracked types yet */}
-          {trackedTypesList.length === 0 && (
-            <div className="text-center py-4 text-muted-foreground text-sm">
-              No activities logged yet. Expand above to add.
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-
-  const isPending = isSaving || isDeleting;
-
   // Edit mode footer
   const editFooter = (
     <div className="flex items-center justify-between gap-2 w-full">
@@ -339,22 +207,7 @@ export function ActivityEntryDialog({
       <Button
         variant="muted"
         size="sm"
-        onClick={() => {
-          if (existingActivity) {
-            // Reset to original values and go back to view mode
-            const initialEntries: { [typeId: string]: number | undefined } = {};
-            const initialTracked = new Set<string>();
-            for (const typeId in existingActivity.entries) {
-              initialEntries[typeId] = existingActivity.entries[typeId].value;
-              initialTracked.add(typeId);
-            }
-            setEntries(initialEntries);
-            setTrackedTypes(initialTracked);
-            setMode("view");
-          } else {
-            onOpenChange(false);
-          }
-        }}
+        onClick={handleCancel}
         disabled={isPending}
       >
         Cancel
@@ -376,10 +229,9 @@ export function ActivityEntryDialog({
     </div>
   );
 
-  const title = mode === "view" ? "Activity Summary" : "Log Activity";
   const content = mode === "view" ? viewContent : editContent;
-  // Hide footer when there are no activity types (show CTA instead)
-  const footer = mode === "view" ? viewFooter : (activeTypes.length === 0 ? null : editFooter);
+  // Hide footer when there are no activity types (show CTA instead) or in view mode
+  const footer = mode === "view" ? null : activeTypes.length === 0 ? null : editFooter;
 
   // Use Drawer on mobile, Dialog on desktop
   if (isMobile) {

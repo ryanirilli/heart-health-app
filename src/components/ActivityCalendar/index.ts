@@ -7,3 +7,5 @@ export { ActivityProvider, useActivityTypes, useActivities } from './ActivityPro
 export { ActivityEntryDialog } from './ActivityEntryDialog';
 export { ActivityFormContent } from './ActivityFormContent';
 export { ActivityTypeManager } from './ActivityTypeManager';
+export { GoalStatusSection } from './GoalStatusSection';
+export { DayContentView, DayContentEdit } from './DayContent';

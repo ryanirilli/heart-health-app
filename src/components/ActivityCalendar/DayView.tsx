@@ -3,11 +3,8 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { formatDate, ActivityEntry, Activity } from "@/lib/activities";
 import { useActivities, useActivityTypes } from "./ActivityProvider";
-import {
-  formatDialogDate,
-  ActivityTypeCard,
-  ActivityViewCard,
-} from "./ActivityFormContent";
+import { formatDialogDate, ActivityViewCard } from "./ActivityFormContent";
+import { DayContentView, DayContentEdit } from "./DayContent";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, PanInfo, useAnimation } from "framer-motion";
@@ -20,16 +17,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Pencil, Loader2, Settings, Plus } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Pencil, Loader2, Plus } from "lucide-react";
 import { ActivityType } from "@/lib/activityTypes";
+import { useGoals } from "@/components/Goals";
 
 type FormMode = "view" | "edit";
 
@@ -244,29 +235,6 @@ function PreviewDayCard({
   );
 }
 
-// Empty state component when no activity types are defined
-function EmptyActivityTypesState() {
-  const { openSettingsToAdd } = useActivityTypes();
-
-  return (
-    <div className="text-center py-8">
-      <p className="text-muted-foreground">No activity types defined yet.</p>
-      <p className="text-sm text-muted-foreground mb-4">
-        Add activity types to start tracking.
-      </p>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={openSettingsToAdd}
-        className="gap-2 rounded-full"
-      >
-        <Settings className="h-4 w-4" />
-        Add Activity Type
-      </Button>
-    </div>
-  );
-}
-
 interface DayViewProps {
   selectedDate: Date;
   slideDirection: "left" | "right";
@@ -284,7 +252,8 @@ export function DayView({
 }: DayViewProps) {
   const { activities, updateActivity, deleteActivity, isSaving, isDeleting } =
     useActivities();
-  const { activeTypes, activityTypes } = useActivityTypes();
+  const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
+  const { goals } = useGoals();
 
   const selectedDateStr = useMemo(
     () => formatDate(selectedDate),
@@ -388,150 +357,35 @@ export function DayView({
     setShowPastDayForm(true);
   }, []);
 
-  // Compute derived values
-  const typesWithExistingEntries = useMemo(() => {
-    if (!existingActivity?.entries) return [];
-    return Object.keys(existingActivity.entries)
-      .map((typeId) => activityTypes[typeId])
-      .filter(Boolean);
-  }, [existingActivity, activityTypes]);
-
-  const allRelevantTypes = useMemo(
-    () => [
-      ...activeTypes,
-      ...typesWithExistingEntries.filter(
-        (t) => t.deleted && !activeTypes.find((at) => at.id === t.id)
-      ),
-    ],
-    [activeTypes, typesWithExistingEntries]
-  );
-
   const isNewEntry = !existingActivity;
-  const trackedTypesList = allRelevantTypes.filter((type) =>
-    trackedTypes.has(type.id)
-  );
-  const untrackedTypesList = allRelevantTypes.filter(
-    (type) => !trackedTypes.has(type.id)
-  );
-
-  const entriesWithTypes = useMemo(() => {
-    if (!existingActivity?.entries) return [];
-    return Object.entries(existingActivity.entries)
-      .map(([typeId, entry]) => ({
-        type: activityTypes[typeId],
-        value: entry.value,
-      }))
-      .filter((item) => item.type)
-      .sort((a, b) => a.type.order - b.type.order);
-  }, [existingActivity, activityTypes]);
-
   const isPending = isSaving || isDeleting;
   const title = mode === "view" ? "Activity Summary" : "Log Activity";
 
-  // View mode content
+  // View mode content using shared component
   const viewContent = (
-    <div className="space-y-3">
-      {entriesWithTypes.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          <p>No activities logged for this day.</p>
-          <Button
-            variant="muted"
-            size="sm"
-            onClick={() => setMode("edit")}
-            className="mt-4"
-          >
-            Add activities
-          </Button>
-        </div>
-      ) : (
-        entriesWithTypes.map(({ type, value }) => (
-          <ActivityViewCard key={type.id} type={type} value={value} />
-        ))
-      )}
-    </div>
+    <DayContentView
+      dateStr={selectedDateStr}
+      activity={existingActivity}
+      activityTypes={activityTypes}
+      goals={goals}
+      onEditClick={() => setMode("edit")}
+      fullBleedBorder={true}
+    />
   );
 
-  // Edit mode content
+  // Edit mode content using shared component
   const editContent = (
-    <div className="space-y-4">
-      {activeTypes.length === 0 ? (
-        <EmptyActivityTypesState />
-      ) : isNewEntry ? (
-        <div className="space-y-3">
-          {allRelevantTypes.map((type) => (
-            <ActivityTypeCard
-              key={type.id}
-              type={type}
-              value={entries[type.id]}
-              isTracked={trackedTypes.has(type.id)}
-              onChange={(value) => handleEntryChange(type.id, value)}
-              onToggleTracked={(tracked) =>
-                handleToggleTracked(type.id, tracked)
-              }
-              isNewEntry={true}
-            />
-          ))}
-        </div>
-      ) : (
-        <>
-          {trackedTypesList.length > 0 && (
-            <div className="space-y-3">
-              {trackedTypesList.map((type) => (
-                <ActivityTypeCard
-                  key={type.id}
-                  type={type}
-                  value={entries[type.id]}
-                  isTracked={true}
-                  onChange={(value) => handleEntryChange(type.id, value)}
-                  onToggleTracked={(tracked) =>
-                    handleToggleTracked(type.id, tracked)
-                  }
-                  isNewEntry={false}
-                />
-              ))}
-            </div>
-          )}
-
-          {untrackedTypesList.length > 0 && (
-            <Accordion
-              type="single"
-              collapsible
-              className={cn(trackedTypesList.length > 0 && "pt-2")}
-            >
-              <AccordionItem value="untracked">
-                <AccordionTrigger>
-                  {untrackedTypesList.length} untracked{" "}
-                  {untrackedTypesList.length === 1 ? "activity" : "activities"}
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3">
-                    {untrackedTypesList.map((type) => (
-                      <ActivityTypeCard
-                        key={type.id}
-                        type={type}
-                        value={entries[type.id]}
-                        isTracked={false}
-                        onChange={(value) => handleEntryChange(type.id, value)}
-                        onToggleTracked={(tracked) =>
-                          handleToggleTracked(type.id, tracked)
-                        }
-                        isNewEntry={false}
-                      />
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
-
-          {trackedTypesList.length === 0 && (
-            <div className="text-center py-4 text-muted-foreground text-sm">
-              No activities logged yet. Expand above to add.
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    <DayContentEdit
+      dateStr={selectedDateStr}
+      activity={existingActivity}
+      activeTypes={activeTypes}
+      activityTypes={activityTypes}
+      entries={entries}
+      trackedTypes={trackedTypes}
+      onEntryChange={handleEntryChange}
+      onToggleTracked={handleToggleTracked}
+      onOpenSettings={openSettingsToAdd}
+    />
   );
 
   // Edit button for view mode
