@@ -563,10 +563,6 @@ export function DayView({
   // slideDirection="right" = going backward in time (prev day) = content enters from LEFT
   const slideOffset = 300;
 
-  // Create a composite key that includes the direction
-  // This ensures each animation instance "remembers" its direction
-  const animationKey = `${selectedDateStr}-${slideDirection}`;
-
   // Custom variants that respond to slideDirection passed via custom prop
   const variants = {
     enter: (direction: "left" | "right") => ({
@@ -593,9 +589,13 @@ export function DayView({
     <>
       {/* Desktop: Three-column layout with animation */}
       <div className="hidden md:block overflow-hidden">
-        <AnimatePresence mode="popLayout" initial={false}>
+        <AnimatePresence
+          mode="popLayout"
+          initial={false}
+          custom={slideDirection}
+        >
           <motion.div
-            key={animationKey}
+            key={selectedDateStr}
             custom={slideDirection}
             variants={variants}
             initial="enter"

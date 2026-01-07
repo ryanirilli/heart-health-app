@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useTransition } from 'react';
 import { getShortMonthName, getDateRange } from '@/lib/activities';
 import { DayView } from './DayView';
 import { MonthView } from './MonthView';
@@ -8,7 +8,7 @@ import { YearView } from './YearView';
 import { useActivities } from './ActivityProvider';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { PillToggle } from '@/components/ui/pill-toggle';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -40,6 +40,7 @@ export function ActivityCalendar() {
   const dateRange = useMemo(() => getDateRange(activities), [activities]);
   
   const [viewMode, setViewMode] = useState<ViewMode>('day');
+  const [isPending, startTransition] = useTransition();
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [month, setMonth] = useState(() => new Date().getMonth());
   
@@ -137,43 +138,51 @@ export function ActivityCalendar() {
     return year;
   };
 
+  // View mode options for PillToggle
+  const viewModeOptions: { value: ViewMode; label: string }[] = [
+    { value: 'day', label: 'Day' },
+    { value: 'month', label: 'Month' },
+    { value: 'year', label: 'Year' },
+  ];
+
   // When switching view modes, set appropriate defaults
-  const handleViewModeChange = (newMode: string) => {
-    if (!newMode) return; // ToggleGroup can return empty string when deselecting
-    const mode = newMode as ViewMode;
-    setViewMode(mode);
-    
-    if (mode === 'month') {
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
+  // Use startTransition to defer the heavy YearView render, allowing animation to complete
+  const handleViewModeChange = (mode: ViewMode) => {
+    startTransition(() => {
+      setViewMode(mode);
       
-      // Try to show current month if it's within the data range
-      if (currentYear >= dateRange.minYear && currentYear <= dateRange.maxYear) {
-        setYear(currentYear);
+      if (mode === 'month') {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
         
-        // Clamp month to valid range for the current year
-        if (currentYear === dateRange.minYear && currentMonth < dateRange.minMonth) {
+        // Try to show current month if it's within the data range
+        if (currentYear >= dateRange.minYear && currentYear <= dateRange.maxYear) {
+          setYear(currentYear);
+          
+          // Clamp month to valid range for the current year
+          if (currentYear === dateRange.minYear && currentMonth < dateRange.minMonth) {
+            setMonth(dateRange.minMonth);
+          } else if (currentYear === dateRange.maxYear && currentMonth > dateRange.maxMonth) {
+            setMonth(dateRange.maxMonth);
+          } else {
+            setMonth(currentMonth);
+          }
+        } else if (currentYear < dateRange.minYear) {
+          // Current date is before data range, show first available month
+          setYear(dateRange.minYear);
           setMonth(dateRange.minMonth);
-        } else if (currentYear === dateRange.maxYear && currentMonth > dateRange.maxMonth) {
-          setMonth(dateRange.maxMonth);
         } else {
-          setMonth(currentMonth);
+          // Current date is after data range, show last available month
+          setYear(dateRange.maxYear);
+          setMonth(dateRange.maxMonth);
         }
-      } else if (currentYear < dateRange.minYear) {
-        // Current date is before data range, show first available month
-        setYear(dateRange.minYear);
-        setMonth(dateRange.minMonth);
-      } else {
-        // Current date is after data range, show last available month
-        setYear(dateRange.maxYear);
-        setMonth(dateRange.maxMonth);
+      } else if (mode === 'year') {
+        // Default to current year
+        setYear(new Date().getFullYear());
       }
-    } else if (mode === 'year') {
-      // Default to current year
-      setYear(new Date().getFullYear());
-    }
-    // Day view doesn't need any setup - it always shows today
+      // Day view doesn't need any setup - it always shows today
+    });
   };
 
   return (
@@ -181,24 +190,13 @@ export function ActivityCalendar() {
       {/* Controls */}
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         {/* View mode toggle */}
-        <ToggleGroup
-          type="single"
+        <PillToggle
+          options={viewModeOptions}
           value={viewMode}
           onValueChange={handleViewModeChange}
-          variant="pill"
-          size="pill"
-          className="rounded-full bg-muted p-1 border border-border"
-        >
-          <ToggleGroupItem value="day" aria-label="Day view">
-            Day
-          </ToggleGroupItem>
-          <ToggleGroupItem value="month" aria-label="Month view">
-            Month
-          </ToggleGroupItem>
-          <ToggleGroupItem value="year" aria-label="Year view">
-            Year
-          </ToggleGroupItem>
-        </ToggleGroup>
+          layoutId="view-mode-pill"
+          size="sm"
+        />
 
         {/* Navigation - shown for all views, but hidden on mobile for day view (swipe instead) */}
         <div className={cn("flex", viewMode === 'day' && "hidden md:flex")}>
@@ -231,23 +229,28 @@ export function ActivityCalendar() {
       </div>
 
       {/* Calendar view */}
-      {viewMode === 'day' ? (
-        <DayView 
-          selectedDate={selectedDate}
-          slideDirection={slideDirection}
-          onPreviousDay={goToPreviousDay}
-          onNextDay={goToNextDay}
-          canGoNext={canGoNextDay}
-        />
-      ) : viewMode === 'month' ? (
-        <MonthView year={year} month={month} />
-      ) : (
-        <Card>
-          <CardContent className="p-6">
-            <YearView year={year} />
-          </CardContent>
-        </Card>
-      )}
+      <div className={cn(
+        'transition-opacity duration-200',
+        isPending && 'opacity-60'
+      )}>
+        {viewMode === 'day' ? (
+          <DayView 
+            selectedDate={selectedDate}
+            slideDirection={slideDirection}
+            onPreviousDay={goToPreviousDay}
+            onNextDay={goToNextDay}
+            canGoNext={canGoNextDay}
+          />
+        ) : viewMode === 'month' ? (
+          <MonthView year={year} month={month} />
+        ) : (
+          <Card>
+            <CardContent className="p-6">
+              <YearView year={year} />
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

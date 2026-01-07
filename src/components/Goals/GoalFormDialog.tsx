@@ -275,7 +275,7 @@ export function GoalFormDialog({ activityTypes }: GoalFormDialogProps) {
             </div>
           )}
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             {isEditing && (
               <ConfirmDeleteButton
                 onDelete={handleDelete}

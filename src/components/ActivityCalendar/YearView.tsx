@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { getDatesInYear, formatDate, getShortMonthName, getWeeksInMonth } from '@/lib/activities';
 import { ActivityDay } from './ActivityDay';
 import { useActivities } from './ActivityProvider';
@@ -153,7 +154,7 @@ function Legend() {
   );
 }
 
-export function YearView({ year }: YearViewProps) {
+export const YearView = memo(function YearView({ year }: YearViewProps) {
   return (
     <>
       {/* Mobile: 2-column month grid */}
@@ -167,4 +168,4 @@ export function YearView({ year }: YearViewProps) {
       </div>
     </>
   );
-}
+});
