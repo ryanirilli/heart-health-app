@@ -307,13 +307,42 @@ export function isGoalExpired(goal: Goal, dateStr: string): boolean {
   return false;
 }
 
+import { ActivityType, getGoalType, GoalType } from './activityTypes';
+
 /**
  * Check if a goal is met for a given activity value.
- * For now, simple comparison: value >= targetValue means goal is met.
+ * 
+ * The comparison depends on the activity type's goal type:
+ * - 'positive' (more is better): value >= targetValue means goal is met
+ * - 'negative' (less is better): value <= targetValue means goal is met
+ * - 'neutral': value === targetValue means goal is met (exact match)
+ * 
+ * @param goal - The goal to check
+ * @param activityValue - The current activity value (undefined if no activity logged)
+ * @param activityType - The activity type (needed to determine if more or less is better)
  */
-export function isGoalMet(goal: Goal, activityValue: number | undefined): boolean {
+export function isGoalMet(
+  goal: Goal, 
+  activityValue: number | undefined,
+  activityType?: ActivityType
+): boolean {
   if (activityValue === undefined) return false;
-  return activityValue >= goal.targetValue;
+  
+  // Determine the goal type from the activity type
+  const goalType: GoalType = activityType ? getGoalType(activityType) : 'positive';
+  
+  switch (goalType) {
+    case 'negative':
+      // Less is better - goal is met when value is at or below target
+      return activityValue <= goal.targetValue;
+    case 'neutral':
+      // Exact match required
+      return activityValue === goal.targetValue;
+    case 'positive':
+    default:
+      // More is better - goal is met when value is at or above target
+      return activityValue >= goal.targetValue;
+  }
 }
 
 /** Validate a goal has required fields */

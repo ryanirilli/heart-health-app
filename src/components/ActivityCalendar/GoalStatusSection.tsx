@@ -44,8 +44,9 @@ export function GoalStatusSection({
     const relevantGoals = getRelevantGoalsForDate(goals, dateStr);
     
     return relevantGoals.map((goal): GoalWithStatus => {
+      const activityType = activityTypes[goal.activityTypeId];
       const activityValue = activity?.entries?.[goal.activityTypeId]?.value;
-      const isMet = isGoalMet(goal, activityValue);
+      const isMet = isGoalMet(goal, activityValue, activityType);
       const isEvaluationDay = shouldShowGoalIndicator(goal, dateStr);
       const expired = isGoalExpired(goal, dateStr);
       const daysRemaining = getDaysUntilGoal(goal, dateStr);
@@ -69,7 +70,7 @@ export function GoalStatusSection({
         isEvaluationDay,
       };
     });
-  }, [goals, dateStr, activity]);
+  }, [goals, dateStr, activity, activityTypes]);
 
   if (goalsWithStatus.length === 0) {
     return null;
