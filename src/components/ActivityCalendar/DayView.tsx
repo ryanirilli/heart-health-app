@@ -657,10 +657,13 @@ export function DayView({
   // Animation config
   // slideDirection="left" = going forward in time (next day) = content enters from RIGHT
   // slideDirection="right" = going backward in time (prev day) = content enters from LEFT
-  const slideOffset = 200;
+  const slideOffset = 300;
+
+  // Create a composite key that includes the direction
+  // This ensures each animation instance "remembers" its direction
+  const animationKey = `${selectedDateStr}-${slideDirection}`;
 
   // Custom variants that respond to slideDirection passed via custom prop
-  // Using shorter slide distance and faster animations for snappy feel with mode="wait"
   const variants = {
     enter: (direction: "left" | "right") => ({
       x: direction === "left" ? slideOffset : -slideOffset,
@@ -671,24 +674,24 @@ export function DayView({
       opacity: 1,
     },
     exit: (direction: "left" | "right") => ({
-      x: direction === "left" ? -slideOffset * 0.5 : slideOffset * 0.5,
+      x: direction === "left" ? -slideOffset : slideOffset,
       opacity: 0,
     }),
   };
 
-  // Fast tween animations for snappy transitions
+  // Smooth spring animation
   const transition = {
-    x: { type: "tween" as const, duration: 0.15, ease: "easeOut" },
-    opacity: { duration: 0.1 },
+    x: { type: "spring" as const, stiffness: 400, damping: 35 },
+    opacity: { duration: 0.2 },
   };
 
   return (
     <>
       {/* Desktop: Three-column layout with animation */}
       <div className="hidden md:block overflow-hidden">
-        <AnimatePresence mode="wait" initial={false} custom={slideDirection}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
-            key={selectedDateStr}
+            key={animationKey}
             custom={slideDirection}
             variants={variants}
             initial="enter"
@@ -762,9 +765,9 @@ export function DayView({
         )}
 
         {/* Main card with drag gesture */}
-        <AnimatePresence mode="wait" initial={false} custom={slideDirection}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
-            key={selectedDateStr}
+            key={animationKey}
             custom={slideDirection}
             variants={variants}
             initial="enter"
