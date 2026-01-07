@@ -155,6 +155,7 @@ export interface Goal {
   targetDate?: string;
   startDate?: string;
   endDate?: string;
+  createdAt: string; // ISO date string (YYYY-MM-DD)
 }
 
 /** Map of goals by ID */
@@ -171,6 +172,12 @@ export function generateGoalId(): string {
   return crypto.randomUUID();
 }
 
+/** Get today's date as YYYY-MM-DD string */
+export function getTodayDateStr(): string {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+}
+
 /** Create a default goal with sensible defaults */
 export function createDefaultGoal(partial: Partial<Goal> = {}): Goal {
   return {
@@ -180,6 +187,7 @@ export function createDefaultGoal(partial: Partial<Goal> = {}): Goal {
     targetValue: 1,
     icon: 'target',
     dateType: 'daily',
+    createdAt: getTodayDateStr(),
     ...partial,
   };
 }
@@ -240,26 +248,35 @@ export function shouldShowGoalIndicator(goal: Goal, dateStr: string): boolean {
  * This is broader than shouldShowGoalIndicator - it includes goals that
  * are "in progress" even if not being evaluated on that specific day.
  * 
- * - daily: always relevant
- * - weekly: relevant any day of any week
- * - monthly: relevant any day of any month
- * - by_date: relevant from now until target date (countdown)
- * - date_range: relevant within the range
+ * Goals are only shown from their creation date onward.
+ * 
+ * - daily: from creation date onward
+ * - weekly: from creation date onward
+ * - monthly: from creation date onward
+ * - by_date: from creation date until target date (inclusive)
+ * - date_range: within the specified range (respects startDate, not createdAt)
  */
 export function isGoalRelevantForDate(goal: Goal, dateStr: string): boolean {
+  // For date_range goals, use the explicit start/end dates
+  if (goal.dateType === 'date_range') {
+    if (!goal.startDate || !goal.endDate) return false;
+    return dateStr >= goal.startDate && dateStr <= goal.endDate;
+  }
+  
+  // For all other goal types, don't show before creation date
+  if (goal.createdAt && dateStr < goal.createdAt) {
+    return false;
+  }
+  
   switch (goal.dateType) {
     case 'daily':
     case 'weekly':
     case 'monthly':
-      // Recurring goals are always relevant
+      // Recurring goals are relevant from creation date onward
       return true;
     case 'by_date':
-      // Relevant until target date (inclusive) - for countdown display
+      // Relevant from creation until target date (inclusive)
       return goal.targetDate ? dateStr <= goal.targetDate : false;
-    case 'date_range':
-      // Relevant within the range
-      if (!goal.startDate || !goal.endDate) return false;
-      return dateStr >= goal.startDate && dateStr <= goal.endDate;
     default:
       return false;
   }
@@ -281,14 +298,16 @@ export function getRelevantGoalsForDate(goals: GoalMap, dateStr: string): Goal[]
 
 /**
  * Calculate days remaining until a goal's target date.
+ * Always calculates from TODAY, not from the card's date.
  * Returns null for goals without a target date.
  */
-export function getDaysUntilGoal(goal: Goal, fromDateStr: string): number | null {
+export function getDaysUntilGoal(goal: Goal): number | null {
   if (goal.dateType !== 'by_date' || !goal.targetDate) return null;
   
-  const from = new Date(fromDateStr + 'T12:00:00');
+  const today = new Date();
+  today.setHours(12, 0, 0, 0); // Use noon to avoid timezone issues
   const target = new Date(goal.targetDate + 'T12:00:00');
-  const diffTime = target.getTime() - from.getTime();
+  const diffTime = target.getTime() - today.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
   return diffDays;

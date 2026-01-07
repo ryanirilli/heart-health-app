@@ -72,6 +72,8 @@ async function getGoalsData(userId: string) {
   // Convert DB goals to app format
   const goals: GoalMap = {};
   (dbGoals as DbGoal[] | null)?.forEach((g) => {
+    // Extract just the date part from created_at timestamp
+    const createdAtDate = g.created_at.split('T')[0];
     goals[g.id] = {
       id: g.id,
       activityTypeId: g.activity_type_id,
@@ -82,6 +84,7 @@ async function getGoalsData(userId: string) {
       targetDate: g.target_date ?? undefined,
       startDate: g.start_date ?? undefined,
       endDate: g.end_date ?? undefined,
+      createdAt: createdAtDate,
     } as Goal;
   });
 

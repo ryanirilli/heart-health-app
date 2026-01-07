@@ -32,6 +32,8 @@ export async function GET() {
     // Convert DB goals to app format
     const goals: { [id: string]: Goal } = {};
     (dbGoals as DbGoal[] | null)?.forEach((g) => {
+      // Extract just the date part from created_at timestamp
+      const createdAtDate = g.created_at.split('T')[0];
       goals[g.id] = {
         id: g.id,
         activityTypeId: g.activity_type_id,
@@ -42,6 +44,7 @@ export async function GET() {
         targetDate: g.target_date ?? undefined,
         startDate: g.start_date ?? undefined,
         endDate: g.end_date ?? undefined,
+        createdAt: createdAtDate,
       };
     });
 
@@ -153,6 +156,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Return the created goal in app format
+    const createdAtDate = insertedGoal.created_at.split('T')[0];
     const createdGoal: Goal = {
       id: insertedGoal.id,
       activityTypeId: insertedGoal.activity_type_id,
@@ -163,6 +167,7 @@ export async function POST(request: NextRequest) {
       targetDate: insertedGoal.target_date ?? undefined,
       startDate: insertedGoal.start_date ?? undefined,
       endDate: insertedGoal.end_date ?? undefined,
+      createdAt: createdAtDate,
     };
 
     return NextResponse.json({ success: true, goal: createdGoal });
@@ -282,6 +287,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Return the updated goal in app format
+    const updatedCreatedAtDate = updatedGoal.created_at.split('T')[0];
     const returnGoal: Goal = {
       id: updatedGoal.id,
       activityTypeId: updatedGoal.activity_type_id,
@@ -292,6 +298,7 @@ export async function PUT(request: NextRequest) {
       targetDate: updatedGoal.target_date ?? undefined,
       startDate: updatedGoal.start_date ?? undefined,
       endDate: updatedGoal.end_date ?? undefined,
+      createdAt: updatedCreatedAtDate,
     };
 
     return NextResponse.json({ success: true, goal: returnGoal });

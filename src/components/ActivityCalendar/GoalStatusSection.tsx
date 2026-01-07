@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Star, Check, Clock, X } from 'lucide-react';
+import { Star, Check, Clock, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
   Goal, 
@@ -16,6 +16,8 @@ import {
 import { ActivityTypeMap, formatValueWithUnit } from '@/lib/activityTypes';
 import { Activity } from '@/lib/activities';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useGoals } from '@/components/Goals';
 
 interface GoalStatusSectionProps {
   dateStr: string;
@@ -49,7 +51,8 @@ export function GoalStatusSection({
       const isMet = isGoalMet(goal, activityValue, activityType);
       const isEvaluationDay = shouldShowGoalIndicator(goal, dateStr);
       const expired = isGoalExpired(goal, dateStr);
-      const daysRemaining = getDaysUntilGoal(goal, dateStr);
+      // Always calculate days remaining from today, not from the card's date
+      const daysRemaining = getDaysUntilGoal(goal);
       
       let displayStatus: GoalDisplayStatus;
       if (isMet) {
@@ -125,6 +128,7 @@ function GoalStatusItem({
   isEvaluationDay,
   activityType,
 }: GoalStatusItemProps) {
+  const { openEditDialog } = useGoals();
   const IconComponent = getGoalIconComponent(goal.icon);
 
   const getStatusIcon = () => {
@@ -132,7 +136,7 @@ function GoalStatusItem({
       case 'met':
         return <Check className="h-3.5 w-3.5" />;
       case 'missed':
-        return <X className="h-3.5 w-3.5" />;
+        return <RefreshCw className="h-3.5 w-3.5" />;
       case 'evaluation_day':
         return <Star className="h-3.5 w-3.5" />;
       case 'in_progress':
@@ -152,12 +156,13 @@ function GoalStatusItem({
           textColor: 'text-green-700 dark:text-green-400',
         };
       case 'missed':
+        // Softer, more encouraging styling - not alarming red
         return {
-          container: 'bg-red-500/10 border-red-500/30',
-          statusIcon: 'bg-red-500 text-white',
-          goalIcon: 'bg-red-500/20',
-          goalIconColor: 'text-red-600',
-          textColor: 'text-red-700 dark:text-red-400',
+          container: 'bg-slate-500/10 border-slate-500/30',
+          statusIcon: 'bg-slate-500 text-white',
+          goalIcon: 'bg-slate-500/20',
+          goalIconColor: 'text-slate-600',
+          textColor: 'text-slate-700 dark:text-slate-400',
         };
       case 'evaluation_day':
         return {
@@ -182,7 +187,12 @@ function GoalStatusItem({
   const styles = getStatusStyles();
 
   const getSubtitle = () => {
-    // For "by_date" goals not on evaluation day, show countdown
+    // For missed goals, show encouraging message
+    if (displayStatus === 'missed') {
+      return 'Ready to try again?';
+    }
+    
+    // For "by_date" goals not on evaluation day, show countdown (always from today)
     if (goal.dateType === 'by_date' && daysRemaining !== null && !isEvaluationDay) {
       if (daysRemaining === 0) {
         return 'Due today';
@@ -190,8 +200,6 @@ function GoalStatusItem({
         return '1 day remaining';
       } else if (daysRemaining > 0) {
         return `${daysRemaining} days remaining`;
-      } else {
-        return 'Past due';
       }
     }
 
@@ -246,6 +254,18 @@ function GoalStatusItem({
           {getSubtitle()}
         </p>
       </div>
+
+      {/* Update Goal button for missed goals */}
+      {displayStatus === 'missed' && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => openEditDialog(goal)}
+          className="flex-shrink-0 text-xs"
+        >
+          Update Goal
+        </Button>
+      )}
     </div>
   );
 }
