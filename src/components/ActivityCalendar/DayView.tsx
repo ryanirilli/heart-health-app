@@ -10,7 +10,13 @@ import {
 } from "./ActivityFormContent";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence, PanInfo } from "framer-motion";
+import {
+  motion,
+  AnimatePresence,
+  PanInfo,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -538,6 +544,32 @@ export function DayView({
   const hasOpenItems = mode === "edit" && trackedTypes.size > 0;
   const canSwipe = isMobile && !hasOpenItems;
 
+  // Motion value for tracking drag position (for peeking cards only)
+  // We use a separate motion value so it doesn't interfere with exit animations
+  const peekX = useMotionValue(0);
+
+  // Reset peekX when navigating to a new date
+  useEffect(() => {
+    peekX.set(0);
+  }, [selectedDateStr, peekX]);
+
+  // Transform drag position to peek card opacity (0 at rest, 1 at full swipe)
+  // Peek starts appearing after 20px of drag, fully visible at 120px
+  const prevCardOpacity = useTransform(peekX, [0, 20, 120], [0, 0, 0.6]);
+  const nextCardOpacity = useTransform(peekX, [-120, -20, 0], [0.6, 0, 0]);
+
+  // Transform drag position to peek card position (slide in from edge)
+  const prevCardX = useTransform(peekX, [0, 120], [-60, 0]);
+  const nextCardX = useTransform(peekX, [-120, 0], [0, 60]);
+
+  // Sync the main card's drag position to the peek motion value
+  const handleDrag = useCallback(
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      peekX.set(info.offset.x);
+    },
+    [peekX]
+  );
+
   // Track if an animation/swipe is in progress to prevent race conditions
   const isAnimatingRef = useRef(false);
   const animationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -577,7 +609,7 @@ export function DayView({
         // Unlock after animation completes (match the spring animation duration)
         animationTimeoutRef.current = setTimeout(() => {
           isAnimatingRef.current = false;
-        }, 300);
+        }, 250);
 
         if (offset.x > 0) {
           // Swiped right → go to previous day
@@ -625,31 +657,10 @@ export function DayView({
   // Animation config
   // slideDirection="left" = going forward in time (next day) = content enters from RIGHT
   // slideDirection="right" = going backward in time (prev day) = content enters from LEFT
-  const slideOffset = 350;
+  const slideOffset = 200;
 
-  // Use a monotonically increasing counter combined with direction to create unique keys
-  // This ensures each animation "remembers" its direction even if the prop changes
-  const animationCounterRef = useRef(0);
-  const [animationKey, setAnimationKey] = useState(
-    () => `${selectedDateStr}-0-${slideDirection}`
-  );
-
-  // Update the animation key when the date changes, capturing the current direction
-  const prevDateRef = useRef(selectedDateStr);
-  useEffect(() => {
-    if (prevDateRef.current !== selectedDateStr) {
-      animationCounterRef.current += 1;
-      setAnimationKey(
-        `${selectedDateStr}-${animationCounterRef.current}-${slideDirection}`
-      );
-      prevDateRef.current = selectedDateStr;
-    }
-  }, [selectedDateStr, slideDirection]);
-
-  // Extract the direction from the animation key for use in variants
-  const keyDirection = animationKey.endsWith("-left") ? "left" : "right";
-
-  // Custom variants that respond to slideDirection
+  // Custom variants that respond to slideDirection passed via custom prop
+  // Using shorter slide distance and faster animations for snappy feel with mode="wait"
   const variants = {
     enter: (direction: "left" | "right") => ({
       x: direction === "left" ? slideOffset : -slideOffset,
@@ -660,24 +671,25 @@ export function DayView({
       opacity: 1,
     },
     exit: (direction: "left" | "right") => ({
-      x: direction === "left" ? -slideOffset : slideOffset,
+      x: direction === "left" ? -slideOffset * 0.5 : slideOffset * 0.5,
       opacity: 0,
     }),
   };
 
+  // Fast tween animations for snappy transitions
   const transition = {
-    x: { type: "spring" as const, stiffness: 350, damping: 30 },
-    opacity: { duration: 0.15 },
+    x: { type: "tween" as const, duration: 0.15, ease: "easeOut" },
+    opacity: { duration: 0.1 },
   };
 
   return (
     <>
       {/* Desktop: Three-column layout with animation */}
       <div className="hidden md:block overflow-hidden">
-        <AnimatePresence mode="popLayout" initial={false}>
+        <AnimatePresence mode="wait" initial={false} custom={slideDirection}>
           <motion.div
-            key={animationKey}
-            custom={keyDirection}
+            key={selectedDateStr}
+            custom={slideDirection}
             variants={variants}
             initial="enter"
             animate="center"
@@ -709,12 +721,51 @@ export function DayView({
         </AnimatePresence>
       </div>
 
-      {/* Mobile: Single card with swipe gesture */}
-      <div className="md:hidden overflow-hidden">
-        <AnimatePresence mode="popLayout" initial={false}>
+      {/* Mobile: Single card with swipe gesture and peeking adjacent cards */}
+      <div className="md:hidden overflow-hidden relative">
+        {/* Previous day peek card (left side) */}
+        {canSwipe && (
           <motion.div
-            key={animationKey}
-            custom={keyDirection}
+            className="absolute inset-y-0 left-0 w-[85%] pointer-events-none z-0"
+            style={{
+              opacity: prevCardOpacity,
+              x: prevCardX,
+            }}
+          >
+            <PreviewDayCard
+              date={previousDate}
+              activity={previousActivity}
+              activityTypes={activityTypes}
+            />
+          </motion.div>
+        )}
+
+        {/* Next day peek card (right side) */}
+        {canSwipe && canGoNext && (
+          <motion.div
+            className="absolute inset-y-0 right-0 w-[85%] pointer-events-none z-0"
+            style={{
+              opacity: nextCardOpacity,
+              x: nextCardX,
+            }}
+          >
+            {isNextFuture ? (
+              <SkeletonDayCard date={nextDate} />
+            ) : (
+              <PreviewDayCard
+                date={nextDate}
+                activity={nextActivity}
+                activityTypes={activityTypes}
+              />
+            )}
+          </motion.div>
+        )}
+
+        {/* Main card with drag gesture */}
+        <AnimatePresence mode="wait" initial={false} custom={slideDirection}>
+          <motion.div
+            key={selectedDateStr}
+            custom={slideDirection}
             variants={variants}
             initial="enter"
             animate="center"
@@ -722,9 +773,14 @@ export function DayView({
             transition={transition}
             drag={canSwipe ? "x" : false}
             dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.5}
+            dragElastic={0.3}
+            dragTransition={{ bounceStiffness: 300, bounceDamping: 20 }}
+            onDrag={handleDrag}
             onDragEnd={handleDragEnd}
-            style={{ touchAction: canSwipe ? "pan-y" : "auto" }}
+            style={{
+              touchAction: canSwipe ? "pan-y" : "auto",
+            }}
+            className="relative z-10"
           >
             {mainCard}
           </motion.div>
