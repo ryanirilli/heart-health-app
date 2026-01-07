@@ -2,21 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
-
-/**
- * Parse a date string (YYYY-MM-DD) to a Date object in local timezone.
- * Using parseISO avoids timezone issues that occur with new Date('YYYY-MM-DD').
- */
-function parseDateString(dateStr: string): Date {
-  return parseISO(dateStr);
-}
+import { CalendarIcon, Check } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,25 +25,50 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import {
+  Stepper,
+  StepIndicator,
+  StepContent,
+  StepItem,
+  StepNavigation,
+  useStepper,
+  Step,
+} from '@/components/ui/stepper';
 import { cn } from '@/lib/utils';
 import {
   Goal,
-  GoalIcon,
   GoalDateType,
   GOAL_DATE_TYPES,
   GOAL_DATE_TYPE_LABELS,
   GOAL_DATE_TYPE_DESCRIPTIONS,
   createDefaultGoal,
   validateGoal,
+  getGoalIconComponent,
+  GOAL_ICON_LABELS,
 } from '@/lib/goals';
 import { ActivityType, ActivityTypeMap, formatValueWithUnit } from '@/lib/activityTypes';
 import { GoalIconPicker } from './GoalIconPicker';
 import { useGoals } from './GoalsProvider';
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
+import { Badge } from '@/components/ui/badge';
+
+/**
+ * Parse a date string (YYYY-MM-DD) to a Date object in local timezone.
+ */
+function parseDateString(dateStr: string): Date {
+  return parseISO(dateStr);
+}
 
 interface GoalFormDialogProps {
   activityTypes: ActivityTypeMap;
 }
+
+const STEPS: Step[] = [
+  { id: 'basics', title: 'Goal Basics', description: 'Name your goal and choose an activity' },
+  { id: 'schedule', title: 'Schedule', description: 'Set when this goal should be tracked' },
+  { id: 'icon', title: 'Choose Icon', description: 'Pick an icon to represent your goal' },
+  { id: 'summary', title: 'Review', description: 'Review and save your goal' },
+];
 
 export function GoalFormDialog({ activityTypes }: GoalFormDialogProps) {
   const {
@@ -118,186 +134,452 @@ export function GoalFormDialog({ activityTypes }: GoalFormDialogProps) {
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Edit Goal' : 'Create Goal'}
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Goal Name */}
-          <div className="space-y-2">
-            <Label htmlFor="goal-name">Goal Name</Label>
-            <Input
-              id="goal-name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="e.g., Run 5 miles daily"
-              autoFocus
-            />
-          </div>
-
-          {/* Activity Type */}
-          <div className="space-y-2">
-            <Label htmlFor="activity-type">Activity Type</Label>
-            <Select
-              value={formData.activityTypeId}
-              onValueChange={(value) => setFormData({ ...formData, activityTypeId: value })}
-            >
-              <SelectTrigger id="activity-type">
-                <SelectValue placeholder="Select activity type" />
-              </SelectTrigger>
-              <SelectContent>
-                {activeTypes.map((type) => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Target Value */}
-          <div className="space-y-2">
-            <Label htmlFor="target-value">
-              Target Value
-              {selectedActivityType && (
-                <span className="text-muted-foreground ml-1">
-                  ({selectedActivityType.unit || 'units'})
-                </span>
-              )}
-            </Label>
-            <Input
-              id="target-value"
-              type="number"
-              min={selectedActivityType?.minValue ?? 0}
-              max={selectedActivityType?.maxValue ?? undefined}
-              step={selectedActivityType?.step ?? 1}
-              value={formData.targetValue}
-              onChange={(e) => setFormData({ ...formData, targetValue: parseInt(e.target.value) || 0 })}
-            />
-            {selectedActivityType && formData.targetValue >= 0 && (
-              <p className="text-sm text-muted-foreground">
-                Goal: {formatValueWithUnit(formData.targetValue, selectedActivityType)}
-              </p>
-            )}
-          </div>
-
-          {/* Icon Picker */}
-          <div className="space-y-2">
-            <Label>Icon</Label>
-            <GoalIconPicker
-              value={formData.icon}
-              onChange={(icon) => setFormData({ ...formData, icon })}
-            />
-          </div>
-
-          {/* Date Type */}
-          <div className="space-y-2">
-            <Label htmlFor="date-type">Schedule</Label>
-            <Select
-              value={formData.dateType}
-              onValueChange={(value: GoalDateType) => setFormData({ 
-                ...formData, 
-                dateType: value,
-                // Clear date fields when changing type
-                targetDate: undefined,
-                startDate: undefined,
-                endDate: undefined,
-              })}
-            >
-              <SelectTrigger id="date-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {GOAL_DATE_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    <div className="flex flex-col">
-                      <span>{GOAL_DATE_TYPE_LABELS[type]}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground">
-              {GOAL_DATE_TYPE_DESCRIPTIONS[formData.dateType]}
-            </p>
-          </div>
-
-          {/* Target Date (for by_date type) */}
-          {formData.dateType === 'by_date' && (
-            <div className="space-y-2">
-              <Label>Target Date</Label>
-              <DatePicker
-                date={formData.targetDate ? parseDateString(formData.targetDate) : undefined}
-                onSelect={(date) => setFormData({ 
-                  ...formData, 
-                  targetDate: date ? format(date, 'yyyy-MM-dd') : undefined 
-                })}
-              />
-            </div>
-          )}
-
-          {/* Date Range (for date_range type) */}
-          {formData.dateType === 'date_range' && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Start Date</Label>
-                <DatePicker
-                  date={formData.startDate ? parseDateString(formData.startDate) : undefined}
-                  onSelect={(date) => setFormData({ 
-                    ...formData, 
-                    startDate: date ? format(date, 'yyyy-MM-dd') : undefined 
-                  })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>End Date</Label>
-                <DatePicker
-                  date={formData.endDate ? parseDateString(formData.endDate) : undefined}
-                  onSelect={(date) => setFormData({ 
-                    ...formData, 
-                    endDate: date ? format(date, 'yyyy-MM-dd') : undefined 
-                  })}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Validation Errors */}
-          {errors.length > 0 && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              <ul className="list-disc list-inside space-y-1">
-                {errors.map((error, i) => (
-                  <li key={i}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-            {isEditing && (
-              <ConfirmDeleteButton
-                onDelete={handleDelete}
-                disabled={isDeleting}
-                isDeleting={isDeleting}
-                className="sm:mr-auto"
-              />
-            )}
-            <Button type="button" variant="outline" onClick={closeDialog}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Goal'}
-            </Button>
-          </DialogFooter>
-        </form>
+        <Stepper steps={STEPS} initialStep={0}>
+          <GoalFormContent
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+            activeTypes={activeTypes}
+            selectedActivityType={selectedActivityType}
+            activityTypes={activityTypes}
+            isEditing={isEditing}
+            isSubmitting={isSubmitting}
+            isDeleting={isDeleting}
+            onSubmit={handleSubmit}
+            onDelete={handleDelete}
+            onCancel={closeDialog}
+          />
+        </Stepper>
       </DialogContent>
     </Dialog>
   );
 }
 
-// Simple date picker component
+// =============================================================================
+// FORM CONTENT (uses stepper context)
+// =============================================================================
+
+interface GoalFormContentProps {
+  formData: Goal;
+  setFormData: (data: Goal) => void;
+  errors: string[];
+  activeTypes: ActivityType[];
+  selectedActivityType: ActivityType | undefined;
+  activityTypes: ActivityTypeMap;
+  isEditing: boolean;
+  isSubmitting: boolean;
+  isDeleting: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+  onDelete: () => void;
+  onCancel: () => void;
+}
+
+function GoalFormContent({
+  formData,
+  setFormData,
+  errors,
+  activeTypes,
+  selectedActivityType,
+  activityTypes,
+  isEditing,
+  isSubmitting,
+  isDeleting,
+  onSubmit,
+  onDelete,
+  onCancel,
+}: GoalFormContentProps) {
+  const { currentStep, setCanGoNext } = useStepper();
+
+  // Validate current step and update canGoNext
+  useEffect(() => {
+    let canProceed = true;
+
+    switch (currentStep) {
+      case 0: // Basics
+        canProceed = formData.name.trim().length > 0 && !!formData.activityTypeId;
+        break;
+      case 1: // Schedule
+        if (formData.dateType === 'by_date') {
+          canProceed = !!formData.targetDate;
+        } else if (formData.dateType === 'date_range') {
+          canProceed = !!formData.startDate && !!formData.endDate;
+        }
+        break;
+      case 2: // Icon
+        canProceed = true; // Icon always has a default
+        break;
+      case 3: // Summary
+        canProceed = true;
+        break;
+    }
+
+    setCanGoNext(canProceed);
+  }, [currentStep, formData, setCanGoNext]);
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-6">
+      <DialogHeader className="pb-0">
+        <DialogTitle className="sr-only">
+          {isEditing ? 'Edit Goal' : 'Create Goal'}
+        </DialogTitle>
+        <StepIndicator variant="compact" className="pt-2" />
+      </DialogHeader>
+
+      <StepContent className="min-h-[280px]">
+        {/* Step 1: Basics */}
+        <StepItem>
+          <StepBasics
+            formData={formData}
+            setFormData={setFormData}
+            activeTypes={activeTypes}
+            selectedActivityType={selectedActivityType}
+          />
+        </StepItem>
+
+        {/* Step 2: Schedule */}
+        <StepItem>
+          <StepSchedule
+            formData={formData}
+            setFormData={setFormData}
+          />
+        </StepItem>
+
+        {/* Step 3: Icon */}
+        <StepItem>
+          <StepIcon
+            formData={formData}
+            setFormData={setFormData}
+          />
+        </StepItem>
+
+        {/* Step 4: Summary */}
+        <StepItem>
+          <StepSummary
+            formData={formData}
+            activityTypes={activityTypes}
+            errors={errors}
+          />
+        </StepItem>
+      </StepContent>
+
+      <StepNavigation
+        onCancel={onCancel}
+        completeLabel={isEditing ? 'Save Changes' : 'Create Goal'}
+        isSubmitting={isSubmitting}
+        leftContent={
+          isEditing ? (
+            <ConfirmDeleteButton
+              onDelete={onDelete}
+              disabled={isDeleting}
+              isDeleting={isDeleting}
+            />
+          ) : undefined
+        }
+      />
+    </form>
+  );
+}
+
+// =============================================================================
+// STEP 1: BASICS (Name, Activity Type, Target Value)
+// =============================================================================
+
+interface StepBasicsProps {
+  formData: Goal;
+  setFormData: (data: Goal) => void;
+  activeTypes: ActivityType[];
+  selectedActivityType: ActivityType | undefined;
+}
+
+function StepBasics({ formData, setFormData, activeTypes, selectedActivityType }: StepBasicsProps) {
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold">Goal Basics</h3>
+        <p className="text-sm text-muted-foreground">Name your goal and set your target</p>
+      </div>
+
+      {/* Goal Name */}
+      <div className="space-y-2">
+        <Label htmlFor="goal-name">Goal Name</Label>
+        <Input
+          id="goal-name"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="e.g., Run 5 miles daily"
+          autoFocus
+        />
+      </div>
+
+      {/* Activity Type */}
+      <div className="space-y-2">
+        <Label htmlFor="activity-type">Activity Type</Label>
+        <Select
+          value={formData.activityTypeId}
+          onValueChange={(value) => setFormData({ ...formData, activityTypeId: value })}
+        >
+          <SelectTrigger id="activity-type">
+            <SelectValue placeholder="Select activity type" />
+          </SelectTrigger>
+          <SelectContent>
+            {activeTypes.map((type) => (
+              <SelectItem key={type.id} value={type.id}>
+                {type.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Target Value */}
+      <div className="space-y-2">
+        <Label htmlFor="target-value">
+          Target Value
+          {selectedActivityType && (
+            <span className="text-muted-foreground ml-1">
+              ({selectedActivityType.unit || 'units'})
+            </span>
+          )}
+        </Label>
+        <Input
+          id="target-value"
+          type="number"
+          min={selectedActivityType?.minValue ?? 0}
+          max={selectedActivityType?.maxValue ?? undefined}
+          step={selectedActivityType?.step ?? 1}
+          value={formData.targetValue}
+          onChange={(e) => setFormData({ ...formData, targetValue: parseInt(e.target.value) || 0 })}
+        />
+        {selectedActivityType && formData.targetValue >= 0 && (
+          <p className="text-sm text-muted-foreground">
+            Goal: {formatValueWithUnit(formData.targetValue, selectedActivityType)}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// STEP 2: SCHEDULE
+// =============================================================================
+
+interface StepScheduleProps {
+  formData: Goal;
+  setFormData: (data: Goal) => void;
+}
+
+function StepSchedule({ formData, setFormData }: StepScheduleProps) {
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold">Schedule</h3>
+        <p className="text-sm text-muted-foreground">When should this goal be tracked?</p>
+      </div>
+
+      {/* Date Type Selection */}
+      <div className="space-y-3">
+        {GOAL_DATE_TYPES.map((type) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => setFormData({
+              ...formData,
+              dateType: type,
+              targetDate: undefined,
+              startDate: undefined,
+              endDate: undefined,
+            })}
+            className={cn(
+              'w-full p-3 rounded-lg border text-left transition-all',
+              formData.dateType === type
+                ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                : 'border-border hover:border-primary/50 hover:bg-muted/50'
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{GOAL_DATE_TYPE_LABELS[type]}</p>
+                <p className="text-sm text-muted-foreground">
+                  {GOAL_DATE_TYPE_DESCRIPTIONS[type]}
+                </p>
+              </div>
+              {formData.dateType === type && (
+                <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                  <Check className="h-3 w-3 text-primary-foreground" />
+                </div>
+              )}
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Target Date (for by_date type) */}
+      {formData.dateType === 'by_date' && (
+        <div className="space-y-2 pt-2">
+          <Label>Target Date</Label>
+          <DatePicker
+            date={formData.targetDate ? parseDateString(formData.targetDate) : undefined}
+            onSelect={(date) => setFormData({
+              ...formData,
+              targetDate: date ? format(date, 'yyyy-MM-dd') : undefined
+            })}
+          />
+        </div>
+      )}
+
+      {/* Date Range (for date_range type) */}
+      {formData.dateType === 'date_range' && (
+        <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="space-y-2">
+            <Label>Start Date</Label>
+            <DatePicker
+              date={formData.startDate ? parseDateString(formData.startDate) : undefined}
+              onSelect={(date) => setFormData({
+                ...formData,
+                startDate: date ? format(date, 'yyyy-MM-dd') : undefined
+              })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>End Date</Label>
+            <DatePicker
+              date={formData.endDate ? parseDateString(formData.endDate) : undefined}
+              onSelect={(date) => setFormData({
+                ...formData,
+                endDate: date ? format(date, 'yyyy-MM-dd') : undefined
+              })}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// STEP 3: ICON
+// =============================================================================
+
+interface StepIconProps {
+  formData: Goal;
+  setFormData: (data: Goal) => void;
+}
+
+function StepIcon({ formData, setFormData }: StepIconProps) {
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold">Choose Icon</h3>
+        <p className="text-sm text-muted-foreground">Pick an icon to represent your goal</p>
+      </div>
+
+      <GoalIconPicker
+        value={formData.icon}
+        onChange={(icon) => setFormData({ ...formData, icon })}
+        size="lg"
+      />
+    </div>
+  );
+}
+
+// =============================================================================
+// STEP 4: SUMMARY
+// =============================================================================
+
+interface StepSummaryProps {
+  formData: Goal;
+  activityTypes: ActivityTypeMap;
+  errors: string[];
+}
+
+function StepSummary({ formData, activityTypes, errors }: StepSummaryProps) {
+  const selectedActivityType = activityTypes[formData.activityTypeId];
+  const IconComponent = getGoalIconComponent(formData.icon);
+
+  const getScheduleText = () => {
+    switch (formData.dateType) {
+      case 'daily':
+        return 'Every day';
+      case 'weekly':
+        return 'Every week';
+      case 'monthly':
+        return 'Every month';
+      case 'by_date':
+        return formData.targetDate
+          ? `By ${format(parseDateString(formData.targetDate), 'MMMM d, yyyy')}`
+          : 'By date (not set)';
+      case 'date_range':
+        if (formData.startDate && formData.endDate) {
+          return `${format(parseDateString(formData.startDate), 'MMM d')} - ${format(parseDateString(formData.endDate), 'MMM d, yyyy')}`;
+        }
+        return 'Date range (not set)';
+      default:
+        return '';
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold">Review Your Goal</h3>
+        <p className="text-sm text-muted-foreground">Make sure everything looks right</p>
+      </div>
+
+      {/* Goal Preview Card */}
+      <div className="rounded-xl border bg-card p-5 space-y-4">
+        {/* Icon and Name */}
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <IconComponent className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-semibold text-lg truncate">{formData.name || 'Untitled Goal'}</h4>
+            <p className="text-sm text-muted-foreground">{GOAL_ICON_LABELS[formData.icon]}</p>
+          </div>
+        </div>
+
+        {/* Details - full bleed border */}
+        <div className="-mx-5 px-5 space-y-2 pt-4 border-t">
+          <div className="flex items-center justify-between py-1">
+            <span className="text-sm text-muted-foreground">Activity</span>
+            <span className="text-sm font-medium">
+              {selectedActivityType?.name || 'Not selected'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between py-1">
+            <span className="text-sm text-muted-foreground">Target</span>
+            <span className="text-sm font-medium">
+              {selectedActivityType
+                ? formatValueWithUnit(formData.targetValue, selectedActivityType)
+                : formData.targetValue}
+            </span>
+          </div>
+          <div className="flex items-center justify-between py-1">
+            <span className="text-sm text-muted-foreground">Schedule</span>
+            <Badge variant="secondary">{getScheduleText()}</Badge>
+          </div>
+        </div>
+      </div>
+
+      {/* Validation Errors */}
+      {errors.length > 0 && (
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          <ul className="list-disc list-inside space-y-1">
+            {errors.map((error, i) => (
+              <li key={i}>{error}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// DATE PICKER
+// =============================================================================
+
 interface DatePickerProps {
   date?: Date;
   onSelect: (date: Date | undefined) => void;
@@ -330,4 +612,3 @@ function DatePicker({ date, onSelect }: DatePickerProps) {
     </Popover>
   );
 }
-
