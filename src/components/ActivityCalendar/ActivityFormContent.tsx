@@ -166,10 +166,24 @@ function ActivityTypeCard({
   const goalType = getGoalType(type);
   const isDisabled = disabled || type.deleted;
 
+  // Control accordion state based on isTracked
+  const accordionValue = isTracked ? type.id : "";
+
+  const handleAccordionChange = (value: string) => {
+    if (isDisabled) return;
+    // Opening accordion (value matches type.id) = tracking
+    // Closing accordion (value is empty) = untracking
+    onToggleTracked(value === type.id);
+  };
+
   return (
-    <div
+    <Accordion
+      type="single"
+      collapsible
+      value={accordionValue}
+      onValueChange={handleAccordionChange}
       className={cn(
-        "rounded-lg transition-all overflow-hidden",
+        "rounded-lg overflow-hidden",
         type.deleted
           ? "bg-muted/50"
           : isTracked
@@ -177,54 +191,67 @@ function ActivityTypeCard({
           : "bg-muted/70 hover:bg-muted"
       )}
     >
-      {/* Header - clickable only when not tracked */}
-      <div
-        className={cn(
-          "w-full flex items-center gap-2 pl-4 pr-2 py-3 text-left transition-colors",
-          !isDisabled && !isTracked && "hover:bg-muted/50 cursor-pointer px-4",
-          isDisabled && "opacity-50"
-        )}
-        onClick={() => !isDisabled && !isTracked && onToggleTracked(true)}
-      >
-        <div
+      <AccordionItem value={type.id} className="border-0 bg-transparent !px-0">
+        <AccordionTrigger
           className={cn(
-            "w-2 h-2 rounded-full",
-            goalType === "negative"
-              ? "bg-chart-1"
-              : goalType === "positive"
-              ? "bg-chart-2"
-              : "bg-chart-3"
+            "w-full flex items-center gap-2 pl-4 pr-2 py-3 text-left transition-colors hover:no-underline [&>svg]:hidden",
+            isDisabled && "opacity-50 pointer-events-none"
           )}
-        />
-        <span className="text-sm font-medium text-foreground flex-1">
-          {type.name}
-        </span>
-        {type.deleted && <Badge variant="muted">Archived</Badge>}
-        {!isTracked && !isDisabled && (
-          <span className="text-xs text-muted-foreground">Tap to log</span>
-        )}
-        {isTracked && (
-          <ConfirmDeleteButton
-            onDelete={() => onToggleTracked(false)}
-            disabled={isDisabled}
-            confirmLabel="Remove?"
-            bypassConfirm={isNewEntry}
+        >
+          <div
+            className={cn(
+              "w-2 h-2 rounded-full shrink-0",
+              goalType === "negative"
+                ? "bg-chart-1"
+                : goalType === "positive"
+                ? "bg-chart-2"
+                : "bg-chart-3"
+            )}
           />
-        )}
-      </div>
-
-      {/* Value input (shown when tracked) */}
-      {isTracked && (
-        <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-1 duration-150">
+          <span className="text-sm font-medium text-foreground flex-1">
+            {type.name}
+          </span>
+          {type.deleted && <Badge variant="muted">Archived</Badge>}
+          {/* Right side actions - use relative positioning to prevent layout shift */}
+          <div className="relative flex items-center justify-end h-8 shrink-0">
+            {/* "Tap to log" text - fades out when tracked */}
+            <span
+              className={cn(
+                "text-xs text-muted-foreground whitespace-nowrap pr-2 transition-opacity duration-200",
+                isTracked || isDisabled ? "opacity-0" : "opacity-100"
+              )}
+            >
+              Tap to log
+            </span>
+            {/* Delete button - overlays and fades in when tracked */}
+            <div
+              className={cn(
+                "absolute right-0 transition-opacity duration-200",
+                isTracked ? "opacity-100" : "opacity-0 pointer-events-none"
+              )}
+            >
+              <ConfirmDeleteButton
+                onDelete={(e) => {
+                  e?.stopPropagation();
+                  onToggleTracked(false);
+                }}
+                disabled={isDisabled}
+                confirmLabel="Remove?"
+                bypassConfirm={isNewEntry}
+              />
+            </div>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="px-4 pb-4 pt-0">
           <EntryInput
             type={type}
             value={value}
             onChange={onChange}
             disabled={isDisabled}
           />
-        </div>
-      )}
-    </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }
 

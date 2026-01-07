@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ConfirmDeleteButtonProps {
-  onDelete: () => void;
+  onDelete: (e?: React.MouseEvent) => void;
   disabled?: boolean;
   isDeleting?: boolean;
   /** Time in ms before confirmation resets (default: 3000) */
@@ -37,12 +37,12 @@ export function ConfirmDeleteButton({
     };
   }, []);
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
     if (disabled || isDeleting) return;
 
     // If bypassing confirmation, delete immediately
     if (bypassConfirm) {
-      onDelete();
+      onDelete(e);
       return;
     }
 
@@ -59,7 +59,7 @@ export function ConfirmDeleteButton({
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
-      onDelete();
+      onDelete(e);
     }
   };
 
