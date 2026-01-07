@@ -239,14 +239,12 @@ export function ActivityCalendar() {
           onNextDay={goToNextDay}
           canGoNext={canGoNextDay}
         />
+      ) : viewMode === 'month' ? (
+        <MonthView year={year} month={month} />
       ) : (
         <Card>
           <CardContent className="p-6">
-            {viewMode === 'month' ? (
-              <MonthView year={year} month={month} />
-            ) : (
-              <YearView year={year} />
-            )}
+            <YearView year={year} />
           </CardContent>
         </Card>
       )}

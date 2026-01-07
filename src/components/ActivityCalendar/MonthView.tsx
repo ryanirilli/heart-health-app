@@ -1,6 +1,10 @@
+'use client';
+
 import { getWeeksInMonth, getMonthName, formatDate } from '@/lib/activities';
 import { ActivityDay } from './ActivityDay';
 import { useActivities } from './ActivityProvider';
+import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface MonthViewProps {
   year: number;
@@ -9,7 +13,8 @@ interface MonthViewProps {
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function MonthView({ year, month }: MonthViewProps) {
+// The actual month content
+function MonthContent({ year, month }: { year: number; month: number }) {
   const { activities } = useActivities();
   const weeks = getWeeksInMonth(year, month);
   const monthName = getMonthName(month);
@@ -42,6 +47,20 @@ export function MonthView({ year, month }: MonthViewProps) {
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+export function MonthView({ year, month }: MonthViewProps) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+
+  return (
+    <div className={isDesktop ? "flex justify-center" : ""}>
+      <Card className={isDesktop ? "w-[70%] shadow-lg" : ""}>
+        <CardContent className="p-6">
+          <MonthContent year={year} month={month} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
