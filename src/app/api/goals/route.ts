@@ -130,6 +130,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Use client's createdAt if provided, otherwise use current timestamp
+    // This ensures the goal's creation date matches the user's local date
+    const createdAtTimestamp = goal.createdAt 
+      ? `${goal.createdAt}T12:00:00Z` // Use noon UTC to avoid date boundary issues
+      : new Date().toISOString();
+
     // Insert the new goal
     const { data: insertedGoal, error } = await supabase
       .from('goals')
@@ -143,6 +149,7 @@ export async function POST(request: NextRequest) {
         target_date: goal.dateType === 'by_date' ? goal.targetDate : null,
         start_date: goal.dateType === 'date_range' ? goal.startDate : null,
         end_date: goal.dateType === 'date_range' ? goal.endDate : null,
+        created_at: createdAtTimestamp,
       })
       .select()
       .single();
