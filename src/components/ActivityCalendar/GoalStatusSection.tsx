@@ -33,9 +33,11 @@ type GoalDisplayStatus = 'met' | 'in_progress' | 'evaluation_day' | 'missed';
 interface GoalWithStatus {
   goal: Goal;
   activityValue: number | undefined;
+  effectiveValue: number | undefined;
   displayStatus: GoalDisplayStatus;
   daysRemaining: number | null;
   isEvaluationDay: boolean;
+  isSliderType: boolean;
 }
 
 /**
@@ -64,6 +66,125 @@ function getCumulativeValue(
   return total;
 }
 
+/**
+ * Get the start of the week (Monday) for a given date string.
+ */
+function getWeekStart(dateStr: string): string {
+  const date = new Date(dateStr + 'T12:00:00');
+  const day = date.getDay();
+  // Adjust for Monday start (0 = Sunday, so we need to go back 6 days, 1 = Monday = 0 days back, etc.)
+  const daysToSubtract = day === 0 ? 6 : day - 1;
+  date.setDate(date.getDate() - daysToSubtract);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Get the start of the month for a given date string.
+ */
+function getMonthStart(dateStr: string): string {
+  const date = new Date(dateStr + 'T12:00:00');
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+/**
+ * Calculate average value for a goal over a specific period.
+ * Used for slider-type activities where we want the average instead of sum.
+ * 
+ * @param goal - The goal to calculate for
+ * @param allActivities - All activities
+ * @param startDate - Start of the period (inclusive)
+ * @param endDate - End of the period (inclusive)
+ * @returns Object with sum, count, and average
+ */
+function getAverageValueForPeriod(
+  goal: Goal,
+  allActivities: ActivityMap | undefined,
+  startDate: string,
+  endDate: string
+): { sum: number; count: number; average: number } {
+  if (!allActivities) return { sum: 0, count: 0, average: 0 };
+  
+  let sum = 0;
+  let count = 0;
+  
+  for (const [dateStr, activity] of Object.entries(allActivities)) {
+    if (dateStr >= startDate && dateStr <= endDate) {
+      const value = activity.entries?.[goal.activityTypeId]?.value;
+      if (value !== undefined) {
+        sum += value;
+        count++;
+      }
+    }
+  }
+  
+  return {
+    sum,
+    count,
+    average: count > 0 ? sum / count : 0,
+  };
+}
+
+/**
+ * Get the effective value for goal comparison based on activity type.
+ * For slider types, returns the average over the period.
+ * For other types (increment, buttonGroup), returns the sum.
+ */
+function getEffectiveValueForGoal(
+  goal: Goal,
+  activityType: ActivityTypeMap[string] | undefined,
+  allActivities: ActivityMap | undefined,
+  dateStr: string
+): number {
+  if (!allActivities || !activityType) return 0;
+  
+  const isSlider = activityType.uiType === 'slider';
+  
+  // Determine the period based on goal date type
+  let startDate: string;
+  let endDate: string;
+  
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  
+  switch (goal.dateType) {
+    case 'daily':
+      // For daily goals, just use the single day value
+      return allActivities[dateStr]?.entries?.[goal.activityTypeId]?.value ?? 0;
+      
+    case 'weekly':
+      // Week starts on Monday, ends on Sunday (dateStr)
+      startDate = getWeekStart(dateStr);
+      endDate = dateStr;
+      break;
+      
+    case 'monthly':
+      // Month starts on 1st, ends on last day (dateStr)
+      startDate = getMonthStart(dateStr);
+      endDate = dateStr;
+      break;
+      
+    case 'by_date':
+      // From goal creation to target date (or today if before target)
+      startDate = goal.createdAt || todayStr;
+      endDate = todayStr < (goal.targetDate || todayStr) ? todayStr : (goal.targetDate || todayStr);
+      break;
+      
+    case 'date_range':
+      // From start date to end date (or today if before end)
+      startDate = goal.startDate || todayStr;
+      endDate = todayStr < (goal.endDate || todayStr) ? todayStr : (goal.endDate || todayStr);
+      break;
+      
+    default:
+      return 0;
+  }
+  
+  const { sum, average } = getAverageValueForPeriod(goal, allActivities, startDate, endDate);
+  
+  // For slider types, use average; for others, use sum
+  return isSlider ? average : sum;
+}
+
 export function GoalStatusSection({
   dateStr,
   goals,
@@ -87,33 +208,37 @@ export function GoalStatusSection({
       let isMet = false;
       let isFailed = false;
       
-      if (goal.dateType === 'by_date' && activityType) {
+      if (goal.dateType === 'daily') {
+        // For daily goals, use single day value
+        isMet = isGoalMet(goal, activityValue, activityType);
+      } else if (activityType) {
+        // For non-daily goals, calculate effective value based on activity type
+        // Slider types use average, others use sum
         const goalType = getGoalType(activityType);
-        const cumulativeValue = getCumulativeValue(goal, allActivities);
+        const effectiveValue = getEffectiveValueForGoal(goal, activityType, allActivities, dateStr);
         
         if (goalType === 'negative') {
-          // For negative goals (less is better), check if cumulative exceeds target
-          // If cumulative > target, the goal is failed (can't undo past activities)
-          if (cumulativeValue > goal.targetValue) {
+          // For negative goals (less is better), check if value exceeds target
+          // For slider (average): if average > target, goal is failed
+          // For sum: if cumulative > target, goal is failed
+          if (activityType.uiType !== 'slider' && effectiveValue > goal.targetValue) {
+            // Only fail immediately for sum-based goals (can't undo past activities)
             isFailed = true;
           } else if (isEvaluationDay || expired) {
             // On evaluation day or after, check if goal is met
-            isMet = cumulativeValue <= goal.targetValue;
+            isMet = effectiveValue <= goal.targetValue;
           }
         } else if (goalType === 'positive') {
-          // For positive goals (more is better), check cumulative on evaluation day
+          // For positive goals (more is better), check on evaluation day
           if (isEvaluationDay || expired) {
-            isMet = cumulativeValue >= goal.targetValue;
+            isMet = effectiveValue >= goal.targetValue;
           }
         } else {
           // Neutral - only check on evaluation day
           if (isEvaluationDay || expired) {
-            isMet = cumulativeValue === goal.targetValue;
+            isMet = effectiveValue === goal.targetValue;
           }
         }
-      } else {
-        // For non-by_date goals, use single day value
-        isMet = isGoalMet(goal, activityValue, activityType);
       }
       
       let displayStatus: GoalDisplayStatus;
@@ -129,12 +254,20 @@ export function GoalStatusSection({
         displayStatus = 'in_progress';
       }
       
+      // Calculate effective value for non-daily goals
+      const isSliderType = activityType?.uiType === 'slider';
+      const effectiveValue = goal.dateType === 'daily' 
+        ? activityValue 
+        : getEffectiveValueForGoal(goal, activityType, allActivities, dateStr);
+
       return {
         goal,
         activityValue,
+        effectiveValue,
         displayStatus,
         daysRemaining,
         isEvaluationDay,
+        isSliderType,
       };
     });
   }, [goals, dateStr, activity, activityTypes, allActivities]);
@@ -155,14 +288,16 @@ export function GoalStatusSection({
 
       {/* Goal Items */}
       <div className="space-y-2">
-        {goalsWithStatus.map(({ goal, activityValue, displayStatus, daysRemaining, isEvaluationDay }) => (
+        {goalsWithStatus.map(({ goal, activityValue, effectiveValue, displayStatus, daysRemaining, isEvaluationDay, isSliderType }) => (
           <GoalStatusItem
             key={goal.id}
             goal={goal}
             activityValue={activityValue}
+            effectiveValue={effectiveValue}
             displayStatus={displayStatus}
             daysRemaining={daysRemaining}
             isEvaluationDay={isEvaluationDay}
+            isSliderType={isSliderType}
             activityType={activityTypes[goal.activityTypeId]}
           />
         ))}
@@ -174,18 +309,22 @@ export function GoalStatusSection({
 interface GoalStatusItemProps {
   goal: Goal;
   activityValue: number | undefined;
+  effectiveValue: number | undefined;
   displayStatus: GoalDisplayStatus;
   daysRemaining: number | null;
   isEvaluationDay: boolean;
+  isSliderType: boolean;
   activityType?: ActivityTypeMap[string];
 }
 
 function GoalStatusItem({
   goal,
   activityValue,
+  effectiveValue,
   displayStatus,
   daysRemaining,
   isEvaluationDay,
+  isSliderType,
   activityType,
 }: GoalStatusItemProps) {
   const { openEditDialog } = useGoals();
@@ -276,9 +415,19 @@ function GoalStatusItem({
 
     // For evaluation days or other goal types, show progress
     if (activityType) {
-      const currentValue = activityValue !== undefined 
-        ? formatValueWithUnit(activityValue, activityType)
-        : '0';
+      // For non-daily slider goals, show average
+      if (isSliderType && goal.dateType !== 'daily') {
+        const avgValue = effectiveValue !== undefined 
+          ? formatValueWithUnit(Math.round(effectiveValue * 10) / 10, activityType)
+          : '0';
+        const targetValue = formatValueWithUnit(goal.targetValue, activityType);
+        return `Avg: ${avgValue} / ${targetValue}`;
+      }
+      
+      // For daily goals or non-slider types, show current/cumulative value
+      const currentValue = goal.dateType === 'daily'
+        ? (activityValue !== undefined ? formatValueWithUnit(activityValue, activityType) : '0')
+        : (effectiveValue !== undefined ? formatValueWithUnit(effectiveValue, activityType) : '0');
       const targetValue = formatValueWithUnit(goal.targetValue, activityType);
       return `${currentValue} / ${targetValue}`;
     }

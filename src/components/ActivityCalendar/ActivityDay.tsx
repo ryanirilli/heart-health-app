@@ -18,7 +18,7 @@ import { useGoals } from "@/components/Goals";
 import { ActivityEntryDialog } from "./ActivityEntryDialog";
 import { ActivityEntry } from "@/lib/activities";
 import { getGoalType, ActivityTypeMap } from "@/lib/activityTypes";
-import { getGoalsWithIndicatorForDate } from "@/lib/goals";
+import { getGoalsWithIndicatorForDate, isGoalMet } from "@/lib/goals";
 
 interface ActivityDayProps {
   date: Date | null;
@@ -82,9 +82,14 @@ export function ActivityDay({
   const dayNumber = date.getDate();
   
   // Check if there are goals that should show an indicator on this date
+  // Only show star if at least one goal is actually achieved
   const dateStr = formatDate(date);
   const goalsWithIndicator = getGoalsWithIndicatorForDate(goals, dateStr);
-  const hasGoalIndicator = goalsWithIndicator.length > 0;
+  const hasAchievedGoal = goalsWithIndicator.some((goal) => {
+    const activityType = activityTypes[goal.activityTypeId];
+    const activityValue = activity?.entries?.[goal.activityTypeId]?.value;
+    return isGoalMet(goal, activityValue, activityType);
+  });
 
   /**
    * Calculate the activity score for the day based on goal types and values.
@@ -231,8 +236,8 @@ export function ActivityDay({
           {dayNumber}
         </span>
       )}
-      {/* Goal indicator star - shows on evaluation days */}
-      {hasGoalIndicator && !isFutureDate && (
+      {/* Goal indicator star - shows when goals are achieved on evaluation days */}
+      {hasAchievedGoal && !isFutureDate && (
         <Star 
           className={cn(
             "absolute top-0.5 right-0.5 h-2.5 w-2.5",

@@ -147,18 +147,17 @@ export function ActivityEntryDialog({
   const title = mode === "view" ? "Activity Summary" : "Log Activity";
 
   // View mode content using shared component
-  const viewContent = (
-    <div className="py-4">
-      <DayContentView
-        dateStr={dateStr}
-        activity={existingActivity}
-        activityTypes={activityTypes}
-        goals={goals}
-        onEditClick={() => setMode("edit")}
-        fullBleedBorder={true}
-        allActivities={activities}
-      />
-    </div>
+  const getViewContent = (containerPadding: 4 | 6) => (
+    <DayContentView
+      dateStr={dateStr}
+      activity={existingActivity}
+      activityTypes={activityTypes}
+      goals={goals}
+      onEditClick={() => setMode("edit")}
+      fullBleedBorder={true}
+      containerPadding={containerPadding}
+      allActivities={activities}
+    />
   );
 
   // Edit mode content using shared component
@@ -231,12 +230,12 @@ export function ActivityEntryDialog({
     </div>
   );
 
-  const content = mode === "view" ? viewContent : editContent;
   // Hide footer when there are no activity types (show CTA instead) or in view mode
   const footer = mode === "view" ? null : activeTypes.length === 0 ? null : editFooter;
 
   // Use Drawer on mobile, Dialog on desktop
   if (isMobile) {
+    const mobileContent = mode === "view" ? getViewContent(4) : editContent;
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[85vh]">
@@ -247,13 +246,14 @@ export function ActivityEntryDialog({
             </DrawerHeader>
             {editIconButton}
           </div>
-          <div className="px-4 overflow-y-auto flex-1">{content}</div>
+          <div className="px-4 overflow-y-auto flex-1">{mobileContent}</div>
           {footer && <DrawerFooter className="flex-row">{footer}</DrawerFooter>}
         </DrawerContent>
       </Drawer>
     );
   }
 
+  const desktopContent = mode === "view" ? getViewContent(6) : editContent;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -265,7 +265,7 @@ export function ActivityEntryDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{formattedDate}</DialogDescription>
         </DialogHeader>
-        {content}
+        {desktopContent}
         {footer && <DialogFooter className="flex-row">{footer}</DialogFooter>}
       </DialogContent>
     </Dialog>

@@ -18,6 +18,8 @@ interface DayContentViewProps {
   onEditClick?: () => void;
   /** Whether to show full-bleed border for goals section */
   fullBleedBorder?: boolean;
+  /** Padding class to use for full-bleed border (default: 4 for px-4 containers) */
+  containerPadding?: 4 | 6;
   /** All activities - needed for cumulative goal calculations */
   allActivities?: ActivityMap;
 }
@@ -33,6 +35,7 @@ export function DayContentView({
   goals,
   onEditClick,
   fullBleedBorder = false,
+  containerPadding = 4,
   allActivities,
 }: DayContentViewProps) {
   // Get entries with their types for display
@@ -55,7 +58,7 @@ export function DayContentView({
   const hasRelevantGoals = relevantGoals.length > 0;
 
   return (
-    <div className="space-y-4">
+    <>
       {/* Activities Section */}
       <div className="space-y-3">
         {entriesWithTypes.length === 0 ? (
@@ -79,11 +82,12 @@ export function DayContentView({
         )}
       </div>
 
-      {/* Goals Section */}
+      {/* Goals Section - full bleed border extends to card edges */}
       {hasRelevantGoals && (
         <div className={cn(
-          'pt-4 border-t',
-          fullBleedBorder && '-mx-4 px-4'
+          'mt-4 pt-4 border-t',
+          fullBleedBorder && containerPadding === 4 && '-mx-4 px-4',
+          fullBleedBorder && containerPadding === 6 && '-mx-6 px-6'
         )}>
           <GoalStatusSection
             dateStr={dateStr}
@@ -94,7 +98,7 @@ export function DayContentView({
           />
         </div>
       )}
-    </div>
+    </>
   );
 }
 

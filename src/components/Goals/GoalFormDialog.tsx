@@ -47,6 +47,8 @@ import {
   GOAL_ICON_LABELS,
 } from '@/lib/goals';
 import { ActivityType, ActivityTypeMap, formatValueWithUnit } from '@/lib/activityTypes';
+import pluralizeLib from 'pluralize-esm';
+const { plural } = pluralizeLib;
 import { GoalIconPicker } from './GoalIconPicker';
 import { useGoals } from './GoalsProvider';
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
@@ -66,6 +68,7 @@ interface GoalFormDialogProps {
 const STEPS: Step[] = [
   { id: 'basics', title: 'Goal Basics', description: 'Name your goal and choose an activity' },
   { id: 'schedule', title: 'Schedule', description: 'Set when this goal should be tracked' },
+  { id: 'value', title: 'Target Value', description: 'Set your target threshold' },
   { id: 'icon', title: 'Choose Icon', description: 'Pick an icon to represent your goal' },
   { id: 'summary', title: 'Review', description: 'Review and save your goal' },
 ];
@@ -205,10 +208,13 @@ function GoalFormContent({
           canProceed = !!formData.startDate && !!formData.endDate;
         }
         break;
-      case 2: // Icon
+      case 2: // Value
+        canProceed = formData.targetValue >= 0;
+        break;
+      case 3: // Icon
         canProceed = true; // Icon always has a default
         break;
-      case 3: // Summary
+      case 4: // Summary
         canProceed = true;
         break;
     }
@@ -232,7 +238,6 @@ function GoalFormContent({
             formData={formData}
             setFormData={setFormData}
             activeTypes={activeTypes}
-            selectedActivityType={selectedActivityType}
           />
         </StepItem>
 
@@ -244,7 +249,16 @@ function GoalFormContent({
           />
         </StepItem>
 
-        {/* Step 3: Icon */}
+        {/* Step 3: Value */}
+        <StepItem>
+          <StepValue
+            formData={formData}
+            setFormData={setFormData}
+            selectedActivityType={selectedActivityType}
+          />
+        </StepItem>
+
+        {/* Step 4: Icon */}
         <StepItem>
           <StepIcon
             formData={formData}
@@ -252,7 +266,7 @@ function GoalFormContent({
           />
         </StepItem>
 
-        {/* Step 4: Summary */}
+        {/* Step 5: Summary */}
         <StepItem>
           <StepSummary
             formData={formData}
@@ -281,22 +295,21 @@ function GoalFormContent({
 }
 
 // =============================================================================
-// STEP 1: BASICS (Name, Activity Type, Target Value)
+// STEP 1: BASICS (Name, Activity Type)
 // =============================================================================
 
 interface StepBasicsProps {
   formData: Goal;
   setFormData: (data: Goal) => void;
   activeTypes: ActivityType[];
-  selectedActivityType: ActivityType | undefined;
 }
 
-function StepBasics({ formData, setFormData, activeTypes, selectedActivityType }: StepBasicsProps) {
+function StepBasics({ formData, setFormData, activeTypes }: StepBasicsProps) {
   return (
     <div className="space-y-5">
       <div className="text-center mb-6">
         <h3 className="text-lg font-semibold">Goal Basics</h3>
-        <p className="text-sm text-muted-foreground">Name your goal and set your target</p>
+        <p className="text-sm text-muted-foreground">Name your goal and choose an activity</p>
       </div>
 
       {/* Goal Name */}
@@ -329,32 +342,6 @@ function StepBasics({ formData, setFormData, activeTypes, selectedActivityType }
             ))}
           </SelectContent>
         </Select>
-      </div>
-
-      {/* Target Value */}
-      <div className="space-y-2">
-        <Label htmlFor="target-value">
-          Target Value
-          {selectedActivityType && (
-            <span className="text-muted-foreground ml-1">
-              ({selectedActivityType.unit || 'units'})
-            </span>
-          )}
-        </Label>
-        <Input
-          id="target-value"
-          type="number"
-          min={selectedActivityType?.minValue ?? 0}
-          max={selectedActivityType?.maxValue ?? undefined}
-          step={selectedActivityType?.step ?? 1}
-          value={formData.targetValue}
-          onChange={(e) => setFormData({ ...formData, targetValue: parseInt(e.target.value) || 0 })}
-        />
-        {selectedActivityType && formData.targetValue >= 0 && (
-          <p className="text-sm text-muted-foreground">
-            Goal: {formatValueWithUnit(formData.targetValue, selectedActivityType)}
-          </p>
-        )}
       </div>
     </div>
   );
@@ -458,7 +445,151 @@ function StepSchedule({ formData, setFormData }: StepScheduleProps) {
 }
 
 // =============================================================================
-// STEP 3: ICON
+// STEP 3: VALUE (Target threshold with UI matching activity type)
+// =============================================================================
+
+interface StepValueProps {
+  formData: Goal;
+  setFormData: (data: Goal) => void;
+  selectedActivityType: ActivityType | undefined;
+}
+
+function StepValue({ formData, setFormData, selectedActivityType }: StepValueProps) {
+  const currentValue = formData.targetValue;
+  const minValue = selectedActivityType?.minValue ?? 0;
+  const maxValue = selectedActivityType?.maxValue ?? 100;
+  const step = selectedActivityType?.step ?? 1;
+  const uiType = selectedActivityType?.uiType ?? 'increment';
+
+  const handleChange = (value: number) => {
+    setFormData({ ...formData, targetValue: value });
+  };
+
+  // Get schedule description for slider average note
+  const getScheduleLabel = () => {
+    switch (formData.dateType) {
+      case 'daily':
+        return 'day';
+      case 'weekly':
+        return 'week';
+      case 'monthly':
+        return 'month';
+      case 'by_date':
+        return 'period';
+      case 'date_range':
+        return 'period';
+      default:
+        return 'period';
+    }
+  };
+
+  const renderInput = () => {
+    // For slider UI type - show a slider
+    if (uiType === 'slider') {
+      const progress = ((currentValue - minValue) / (maxValue - minValue)) * 100;
+
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-medium">
+              {selectedActivityType
+                ? formatValueWithUnit(currentValue, selectedActivityType)
+                : currentValue}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={minValue}
+            max={maxValue}
+            step={step}
+            value={currentValue}
+            onChange={(e) => handleChange(Number(e.target.value))}
+            className="activity-slider w-full"
+            style={{ '--slider-progress': `${progress}%` } as React.CSSProperties}
+          />
+          <p className="text-xs text-muted-foreground text-center">
+            Average value per {getScheduleLabel()} to meet goal
+          </p>
+        </div>
+      );
+    }
+
+    // For buttonGroup UI type - show button options
+    if (uiType === 'buttonGroup') {
+      const options = selectedActivityType?.buttonOptions ?? [];
+
+      return (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => handleChange(option.value)}
+                className={cn(
+                  'flex-1 min-w-[80px] py-2.5 px-3 rounded-full border-2 text-sm font-medium transition-all',
+                  currentValue === option.value
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Average value per {getScheduleLabel()} to meet goal
+          </p>
+        </div>
+      );
+    }
+
+    // For increment UI type - show a number input
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-center gap-4">
+          <Input
+            type="number"
+            min={minValue}
+            max={maxValue}
+            step={step}
+            value={currentValue}
+            onChange={(e) => handleChange(parseInt(e.target.value) || 0)}
+            className="w-32 text-center text-lg font-medium"
+          />
+          {selectedActivityType?.unit && (
+            <span className="text-sm text-muted-foreground">
+              {selectedActivityType.pluralize && currentValue !== 1
+                ? plural(selectedActivityType.unit)
+                : selectedActivityType.unit}
+            </span>
+          )}
+        </div>
+        {selectedActivityType && (
+          <p className="text-sm text-muted-foreground text-center">
+            Goal: {formatValueWithUnit(currentValue, selectedActivityType)}
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold">Target Value</h3>
+        <p className="text-sm text-muted-foreground">
+          Set the threshold for {selectedActivityType?.name || 'this activity'}
+        </p>
+      </div>
+
+      {renderInput()}
+    </div>
+  );
+}
+
+// =============================================================================
+// STEP 4: ICON
 // =============================================================================
 
 interface StepIconProps {
@@ -484,7 +615,7 @@ function StepIcon({ formData, setFormData }: StepIconProps) {
 }
 
 // =============================================================================
-// STEP 4: SUMMARY
+// STEP 5: SUMMARY
 // =============================================================================
 
 interface StepSummaryProps {
