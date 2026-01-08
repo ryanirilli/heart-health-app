@@ -7,12 +7,6 @@ import { Activity, ActivityEntry, ActivityMap } from '@/lib/activities';
 import { GoalMap, getRelevantGoalsForDate } from '@/lib/goals';
 import { ActivityViewCard, ActivityTypeCard } from './ActivityFormContent';
 import { GoalStatusSection } from './GoalStatusSection';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
 import { Settings } from 'lucide-react';
 
@@ -151,14 +145,6 @@ export function DayContentEdit({
 
   const isNewEntry = !activity;
 
-  // For existing entries, separate tracked and untracked types
-  const trackedTypesList = allRelevantTypes.filter((type) =>
-    trackedTypes.has(type.id)
-  );
-  const untrackedTypesList = allRelevantTypes.filter(
-    (type) => !trackedTypes.has(type.id)
-  );
-
   // Empty state when no activity types defined
   if (activeTypes.length === 0) {
     return (
@@ -182,85 +168,21 @@ export function DayContentEdit({
     );
   }
 
-  // For new entries, show all activity types directly (no accordion)
-  if (isNewEntry) {
-    return (
-      <div className="space-y-3">
-        {allRelevantTypes.map((type) => (
-          <ActivityTypeCard
-            key={type.id}
-            type={type}
-            value={entries[type.id]}
-            isTracked={trackedTypes.has(type.id)}
-            onChange={(value) => onEntryChange(type.id, value)}
-            onToggleTracked={(tracked) => onToggleTracked(type.id, tracked)}
-            isNewEntry={true}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  // For existing entries in edit mode, show tracked first, then accordion for untracked
+  // Show all activity types directly with tap to log
   return (
-    <>
-      {/* Tracked types */}
-      {trackedTypesList.length > 0 && (
-        <div className="space-y-3">
-          {trackedTypesList.map((type) => (
-            <ActivityTypeCard
-              key={type.id}
-              type={type}
-              value={entries[type.id]}
-              isTracked={true}
-              onChange={(value) => onEntryChange(type.id, value)}
-              onToggleTracked={(tracked) => onToggleTracked(type.id, tracked)}
-              isNewEntry={false}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Accordion for untracked types */}
-      {untrackedTypesList.length > 0 && (
-        <Accordion
-          type="single"
-          collapsible
-          className={cn(trackedTypesList.length > 0 && 'pt-2')}
-        >
-          <AccordionItem value="untracked">
-            <AccordionTrigger>
-              {untrackedTypesList.length} untracked{' '}
-              {untrackedTypesList.length === 1 ? 'activity' : 'activities'}
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-3">
-                {untrackedTypesList.map((type) => (
-                  <ActivityTypeCard
-                    key={type.id}
-                    type={type}
-                    value={entries[type.id]}
-                    isTracked={false}
-                    onChange={(value) => onEntryChange(type.id, value)}
-                    onToggleTracked={(tracked) =>
-                      onToggleTracked(type.id, tracked)
-                    }
-                    isNewEntry={false}
-                  />
-                ))}
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      )}
-
-      {/* Show message if no tracked types yet */}
-      {trackedTypesList.length === 0 && (
-        <div className="text-center py-4 text-muted-foreground text-sm">
-          No activities logged yet. Expand above to add.
-        </div>
-      )}
-    </>
+    <div className="space-y-3">
+      {allRelevantTypes.map((type) => (
+        <ActivityTypeCard
+          key={type.id}
+          type={type}
+          value={entries[type.id]}
+          isTracked={trackedTypes.has(type.id)}
+          onChange={(value) => onEntryChange(type.id, value)}
+          onToggleTracked={(tracked) => onToggleTracked(type.id, tracked)}
+          isNewEntry={isNewEntry}
+        />
+      ))}
+    </div>
   );
 }
 

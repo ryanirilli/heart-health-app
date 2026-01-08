@@ -500,14 +500,6 @@ export function ActivityFormContent({
   // Check if this is a new entry (no existing activity)
   const isNewEntry = !existingActivity;
 
-  // For existing entries, separate tracked and untracked types
-  const trackedTypesList = allRelevantTypes.filter((type) =>
-    trackedTypes.has(type.id)
-  );
-  const untrackedTypesList = allRelevantTypes.filter(
-    (type) => !trackedTypes.has(type.id)
-  );
-
   // Get entries with their types for view mode
   const entriesWithTypes = existingActivity?.entries
     ? Object.entries(existingActivity.entries)
@@ -570,8 +562,8 @@ export function ActivityFormContent({
     <div className="space-y-4">
       {activeTypes.length === 0 ? (
         emptyState
-      ) : isNewEntry ? (
-        // For new entries, show all activity types directly (no accordion)
+      ) : (
+        // Show all activity types directly with tap to log
         <div className="space-y-3">
           {allRelevantTypes.map((type) => (
             <ActivityTypeCard
@@ -583,72 +575,10 @@ export function ActivityFormContent({
               onToggleTracked={(tracked) =>
                 handleToggleTracked(type.id, tracked)
               }
-              isNewEntry={true}
+              isNewEntry={isNewEntry}
             />
           ))}
         </div>
-      ) : (
-        // For existing entries in edit mode, show tracked first, then accordion for untracked
-        <>
-          {/* Tracked types */}
-          {trackedTypesList.length > 0 && (
-            <div className="space-y-3">
-              {trackedTypesList.map((type) => (
-                <ActivityTypeCard
-                  key={type.id}
-                  type={type}
-                  value={entries[type.id]}
-                  isTracked={true}
-                  onChange={(value) => handleEntryChange(type.id, value)}
-                  onToggleTracked={(tracked) =>
-                    handleToggleTracked(type.id, tracked)
-                  }
-                  isNewEntry={false}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Accordion for untracked types */}
-          {untrackedTypesList.length > 0 && (
-            <Accordion
-              type="single"
-              collapsible
-              className={cn(trackedTypesList.length > 0 && "pt-2")}
-            >
-              <AccordionItem value="untracked">
-                <AccordionTrigger>
-                  {untrackedTypesList.length} untracked{" "}
-                  {untrackedTypesList.length === 1 ? "activity" : "activities"}
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-3">
-                    {untrackedTypesList.map((type) => (
-                      <ActivityTypeCard
-                        key={type.id}
-                        type={type}
-                        value={entries[type.id]}
-                        isTracked={false}
-                        onChange={(value) => handleEntryChange(type.id, value)}
-                        onToggleTracked={(tracked) =>
-                          handleToggleTracked(type.id, tracked)
-                        }
-                        isNewEntry={false}
-                      />
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          )}
-
-          {/* Show message if no tracked types yet */}
-          {trackedTypesList.length === 0 && (
-            <div className="text-center py-4 text-muted-foreground text-sm">
-              No activities logged yet. Expand above to add.
-            </div>
-          )}
-        </>
       )}
     </div>
   );
