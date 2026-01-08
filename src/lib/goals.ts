@@ -253,14 +253,21 @@ export function shouldShowGoalIndicator(goal: Goal, dateStr: string): boolean {
  * - daily: from creation date onward
  * - weekly: from creation date onward
  * - monthly: from creation date onward
- * - by_date: from creation date until target date (inclusive)
- * - date_range: within the specified range (respects startDate, not createdAt)
+ * - by_date: from creation date until target date (inclusive), 
+ *            BUT also shows on today if missed (so user can see and update)
+ * - date_range: within the specified range (respects startDate, not createdAt),
+ *               BUT also shows on today if missed
  */
 export function isGoalRelevantForDate(goal: Goal, dateStr: string): boolean {
+  const todayStr = getTodayDateStr();
+  
   // For date_range goals, use the explicit start/end dates
   if (goal.dateType === 'date_range') {
     if (!goal.startDate || !goal.endDate) return false;
-    return dateStr >= goal.startDate && dateStr <= goal.endDate;
+    const inRange = dateStr >= goal.startDate && dateStr <= goal.endDate;
+    // Also show on today if the goal has expired (so user can update it)
+    const isMissedAndToday = dateStr === todayStr && dateStr > goal.endDate;
+    return inRange || isMissedAndToday;
   }
   
   // For all other goal types, don't show before creation date
@@ -275,8 +282,12 @@ export function isGoalRelevantForDate(goal: Goal, dateStr: string): boolean {
       // Recurring goals are relevant from creation date onward
       return true;
     case 'by_date':
+      if (!goal.targetDate) return false;
       // Relevant from creation until target date (inclusive)
-      return goal.targetDate ? dateStr <= goal.targetDate : false;
+      const beforeOrOnTarget = dateStr <= goal.targetDate;
+      // Also show on today if the goal has expired (so user can update it)
+      const isMissedAndToday = dateStr === todayStr && dateStr > goal.targetDate;
+      return beforeOrOnTarget || isMissedAndToday;
     default:
       return false;
   }
@@ -314,14 +325,17 @@ export function getDaysUntilGoal(goal: Goal): number | null {
 }
 
 /**
- * Check if a goal's target date has passed.
+ * Check if a goal's target date has passed (relative to TODAY, not the card's date).
+ * This ensures consistent "missed" status regardless of which day you're viewing.
  */
-export function isGoalExpired(goal: Goal, dateStr: string): boolean {
+export function isGoalExpired(goal: Goal): boolean {
+  const todayStr = getTodayDateStr();
+  
   if (goal.dateType === 'by_date' && goal.targetDate) {
-    return dateStr > goal.targetDate;
+    return todayStr > goal.targetDate;
   }
   if (goal.dateType === 'date_range' && goal.endDate) {
-    return dateStr > goal.endDate;
+    return todayStr > goal.endDate;
   }
   return false;
 }

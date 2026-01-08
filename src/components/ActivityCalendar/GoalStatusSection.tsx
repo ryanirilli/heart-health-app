@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Star, Check, Clock, RefreshCw } from 'lucide-react';
+import { Star, Check, Clock, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { 
   Goal, 
@@ -13,8 +13,8 @@ import {
   isGoalExpired,
   shouldShowGoalIndicator,
 } from '@/lib/goals';
-import { ActivityTypeMap, formatValueWithUnit } from '@/lib/activityTypes';
-import { Activity } from '@/lib/activities';
+import { ActivityTypeMap, formatValueWithUnit, getGoalType } from '@/lib/activityTypes';
+import { Activity, ActivityMap } from '@/lib/activities';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useGoals } from '@/components/Goals';
@@ -24,6 +24,8 @@ interface GoalStatusSectionProps {
   goals: GoalMap;
   activityTypes: ActivityTypeMap;
   activity?: Activity;
+  /** All activities - needed for cumulative goal calculations */
+  allActivities?: ActivityMap;
 }
 
 type GoalDisplayStatus = 'met' | 'in_progress' | 'evaluation_day' | 'missed';
@@ -36,11 +38,38 @@ interface GoalWithStatus {
   isEvaluationDay: boolean;
 }
 
+/**
+ * Calculate cumulative value for a goal from creation date to today.
+ * Used for "by_date" goals to check if the goal is still achievable.
+ */
+function getCumulativeValue(
+  goal: Goal,
+  allActivities: ActivityMap | undefined
+): number {
+  if (!allActivities || !goal.createdAt) return 0;
+  
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  
+  let total = 0;
+  for (const [dateStr, activity] of Object.entries(allActivities)) {
+    // Only count activities from goal creation to today
+    if (dateStr >= goal.createdAt && dateStr <= todayStr) {
+      const value = activity.entries?.[goal.activityTypeId]?.value;
+      if (value !== undefined) {
+        total += value;
+      }
+    }
+  }
+  return total;
+}
+
 export function GoalStatusSection({
   dateStr,
   goals,
   activityTypes,
   activity,
+  allActivities,
 }: GoalStatusSectionProps) {
   const goalsWithStatus = useMemo(() => {
     const relevantGoals = getRelevantGoalsForDate(goals, dateStr);
@@ -48,16 +77,49 @@ export function GoalStatusSection({
     return relevantGoals.map((goal): GoalWithStatus => {
       const activityType = activityTypes[goal.activityTypeId];
       const activityValue = activity?.entries?.[goal.activityTypeId]?.value;
-      const isMet = isGoalMet(goal, activityValue, activityType);
       const isEvaluationDay = shouldShowGoalIndicator(goal, dateStr);
-      const expired = isGoalExpired(goal, dateStr);
+      // Check if expired relative to TODAY (not the card's date)
+      const expired = isGoalExpired(goal);
       // Always calculate days remaining from today, not from the card's date
       const daysRemaining = getDaysUntilGoal(goal);
+      
+      // Determine goal status based on goal type
+      let isMet = false;
+      let isFailed = false;
+      
+      if (goal.dateType === 'by_date' && activityType) {
+        const goalType = getGoalType(activityType);
+        const cumulativeValue = getCumulativeValue(goal, allActivities);
+        
+        if (goalType === 'negative') {
+          // For negative goals (less is better), check if cumulative exceeds target
+          // If cumulative > target, the goal is failed (can't undo past activities)
+          if (cumulativeValue > goal.targetValue) {
+            isFailed = true;
+          } else if (isEvaluationDay || expired) {
+            // On evaluation day or after, check if goal is met
+            isMet = cumulativeValue <= goal.targetValue;
+          }
+        } else if (goalType === 'positive') {
+          // For positive goals (more is better), check cumulative on evaluation day
+          if (isEvaluationDay || expired) {
+            isMet = cumulativeValue >= goal.targetValue;
+          }
+        } else {
+          // Neutral - only check on evaluation day
+          if (isEvaluationDay || expired) {
+            isMet = cumulativeValue === goal.targetValue;
+          }
+        }
+      } else {
+        // For non-by_date goals, use single day value
+        isMet = isGoalMet(goal, activityValue, activityType);
+      }
       
       let displayStatus: GoalDisplayStatus;
       if (isMet) {
         displayStatus = 'met';
-      } else if (expired) {
+      } else if (isFailed || expired) {
         displayStatus = 'missed';
       } else if (isEvaluationDay) {
         displayStatus = 'evaluation_day';
@@ -73,15 +135,11 @@ export function GoalStatusSection({
         isEvaluationDay,
       };
     });
-  }, [goals, dateStr, activity, activityTypes]);
+  }, [goals, dateStr, activity, activityTypes, allActivities]);
 
   if (goalsWithStatus.length === 0) {
     return null;
   }
-
-  // Count goals by status
-  const metCount = goalsWithStatus.filter(g => g.displayStatus === 'met').length;
-  const totalCount = goalsWithStatus.length;
 
   return (
     <div className="space-y-3">
@@ -89,7 +147,7 @@ export function GoalStatusSection({
       <div className="flex items-center gap-2">
         <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
         <span className="text-sm font-medium text-muted-foreground">
-          Goals ({metCount}/{totalCount} on track)
+          Goals
         </span>
       </div>
 
@@ -136,7 +194,7 @@ function GoalStatusItem({
       case 'met':
         return <Check className="h-3.5 w-3.5" />;
       case 'missed':
-        return <RefreshCw className="h-3.5 w-3.5" />;
+        return <Ban className="h-5 w-5" />;
       case 'evaluation_day':
         return <Star className="h-3.5 w-3.5" />;
       case 'in_progress':
@@ -159,7 +217,7 @@ function GoalStatusItem({
         // Softer, more encouraging styling - not alarming red
         return {
           container: 'bg-slate-500/10 border-slate-500/30',
-          statusIcon: 'bg-slate-500 text-white',
+          statusIcon: 'bg-transparent text-slate-500',
           goalIcon: 'bg-slate-500/20',
           goalIconColor: 'text-slate-600',
           textColor: 'text-slate-700 dark:text-slate-400',
@@ -187,9 +245,20 @@ function GoalStatusItem({
   const styles = getStatusStyles();
 
   const getSubtitle = () => {
-    // For missed goals, show encouraging message
+    // For missed goals, show encouraging message based on goal type
     if (displayStatus === 'missed') {
-      return 'Ready to try again?';
+      switch (goal.dateType) {
+        case 'daily':
+          return 'Try again tomorrow';
+        case 'weekly':
+          return 'Try again next week';
+        case 'monthly':
+          return 'Try again next month';
+        case 'by_date':
+        case 'date_range':
+        default:
+          return 'Ready to set a new goal?';
+      }
     }
     
     // For "by_date" goals not on evaluation day, show countdown (always from today)
@@ -214,6 +283,10 @@ function GoalStatusItem({
     
     return `${activityValue ?? 0} / ${goal.targetValue}`;
   };
+  
+  // Only show Update Goal button for by_date and date_range goals
+  const showUpdateButton = displayStatus === 'missed' && 
+    (goal.dateType === 'by_date' || goal.dateType === 'date_range');
 
   return (
     <div
@@ -255,13 +328,13 @@ function GoalStatusItem({
         </p>
       </div>
 
-      {/* Update Goal button for missed goals */}
-      {displayStatus === 'missed' && (
+      {/* Update Goal button - only for by_date and date_range goals */}
+      {showUpdateButton && (
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={() => openEditDialog(goal)}
-          className="flex-shrink-0 text-xs"
+          className="flex-shrink-0 text-xs text-muted-foreground"
         >
           Update Goal
         </Button>

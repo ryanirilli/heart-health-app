@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { ActivityType, ActivityTypeMap } from '@/lib/activityTypes';
-import { Activity, ActivityEntry } from '@/lib/activities';
+import { Activity, ActivityEntry, ActivityMap } from '@/lib/activities';
 import { GoalMap, getRelevantGoalsForDate } from '@/lib/goals';
 import { ActivityViewCard, ActivityTypeCard } from './ActivityFormContent';
 import { GoalStatusSection } from './GoalStatusSection';
@@ -24,6 +24,8 @@ interface DayContentViewProps {
   onEditClick?: () => void;
   /** Whether to show full-bleed border for goals section */
   fullBleedBorder?: boolean;
+  /** All activities - needed for cumulative goal calculations */
+  allActivities?: ActivityMap;
 }
 
 /**
@@ -37,6 +39,7 @@ export function DayContentView({
   goals,
   onEditClick,
   fullBleedBorder = false,
+  allActivities,
 }: DayContentViewProps) {
   // Get entries with their types for display
   const entriesWithTypes = useMemo(() => {
@@ -93,6 +96,7 @@ export function DayContentView({
             goals={goals}
             activityTypes={activityTypes}
             activity={activity}
+            allActivities={allActivities}
           />
         </div>
       )}

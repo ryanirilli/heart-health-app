@@ -6,7 +6,7 @@ import {
   ActivityProvider,
 } from '@/components/ActivityCalendar';
 import { ActivityHeader } from '@/components/ActivityHeader';
-import { GoalsProvider, GoalsView } from '@/components/Goals';
+import { GoalsProvider, GoalsView, GoalFormDialog } from '@/components/Goals';
 import { FloatingNavBar, AppView } from '@/components/FloatingNavBar';
 import { ActivityTypeMap } from '@/lib/activityTypes';
 import { ActivityMap } from '@/lib/activities';
@@ -37,6 +37,8 @@ export function DashboardContent({ types, activities, goals }: DashboardContentP
           </div>
         </main>
         <FloatingNavBar currentView={currentView} onViewChange={setCurrentView} />
+        {/* Goal form dialog - always mounted so it can be opened from anywhere */}
+        <GoalFormDialog activityTypes={types} />
       </GoalsProvider>
     </ActivityProvider>
   );

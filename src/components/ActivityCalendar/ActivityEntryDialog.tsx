@@ -18,7 +18,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Activity, ActivityEntry, formatDate } from "@/lib/activities";
-import { useActivityTypes } from "./ActivityProvider";
+import { useActivityTypes, useActivities } from "./ActivityProvider";
 import { useGoals } from "@/components/Goals";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
@@ -51,6 +51,7 @@ export function ActivityEntryDialog({
   isDeleting = false,
 }: ActivityEntryDialogProps) {
   const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
+  const { activities } = useActivities();
   const { goals } = useGoals();
   const [entries, setEntries] = useState<{
     [typeId: string]: number | undefined;
@@ -155,6 +156,7 @@ export function ActivityEntryDialog({
         goals={goals}
         onEditClick={() => setMode("edit")}
         fullBleedBorder={true}
+        allActivities={activities}
       />
     </div>
   );

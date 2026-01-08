@@ -370,6 +370,7 @@ export function DayView({
       goals={goals}
       onEditClick={() => setMode("edit")}
       fullBleedBorder={true}
+      allActivities={activities}
     />
   );
 

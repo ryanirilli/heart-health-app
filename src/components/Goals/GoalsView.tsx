@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { ActivityTypeMap } from '@/lib/activityTypes';
 import { useGoals } from './GoalsProvider';
 import { GoalCard } from './GoalCard';
-import { GoalFormDialog } from './GoalFormDialog';
 
 interface GoalsViewProps {
   activityTypes: ActivityTypeMap;
@@ -60,9 +59,6 @@ export function GoalsView({ activityTypes }: GoalsViewProps) {
           ))}
         </div>
       )}
-
-      {/* Form Dialog */}
-      <GoalFormDialog activityTypes={activityTypes} />
     </div>
   );
 }
