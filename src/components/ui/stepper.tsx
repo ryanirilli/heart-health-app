@@ -314,13 +314,13 @@ export function StepNavigation({
       <div className="flex-1" />
       
       {isFirstStep && showCancel && onCancel && (
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} className="rounded-full">
           Cancel
         </Button>
       )}
       
       {!isFirstStep && (
-        <Button type="button" variant="outline" onClick={handlePrev}>
+        <Button type="button" variant="outline" onClick={handlePrev} className="rounded-full">
           {backLabel}
         </Button>
       )}
@@ -330,6 +330,7 @@ export function StepNavigation({
         <Button
           type="submit"
           disabled={!canGoNext || isSubmitting}
+          className="rounded-full"
         >
           {isSubmitting ? 'Saving...' : completeLabel}
         </Button>
@@ -338,6 +339,7 @@ export function StepNavigation({
           type="button"
           onClick={handleNext}
           disabled={!canGoNext}
+          className="rounded-full"
         >
           {nextLabel}
         </Button>

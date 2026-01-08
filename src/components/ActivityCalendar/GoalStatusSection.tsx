@@ -121,7 +121,9 @@ export function GoalStatusSection({
         displayStatus = 'met';
       } else if (isFailed || expired) {
         displayStatus = 'missed';
-      } else if (isEvaluationDay) {
+      } else if (isEvaluationDay && goal.dateType !== 'daily') {
+        // Daily goals don't get special "evaluation day" treatment - 
+        // they're either met (green) or not (muted)
         displayStatus = 'evaluation_day';
       } else {
         displayStatus = 'in_progress';
@@ -317,9 +319,9 @@ function GoalStatusItem({
           <p className={cn('text-sm font-medium truncate', styles.textColor)}>
             {goal.name}
           </p>
-          {isEvaluationDay && displayStatus !== 'met' && displayStatus !== 'missed' && (
+          {displayStatus === 'evaluation_day' && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-              Evaluation Day
+              Last Day
             </Badge>
           )}
         </div>

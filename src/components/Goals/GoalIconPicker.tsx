@@ -21,7 +21,7 @@ export function GoalIconPicker({ value, onChange, className, size = 'default' }:
   return (
     <div className={cn(
       'grid gap-2',
-      isLarge ? 'grid-cols-4 gap-3' : 'grid-cols-4 gap-2',
+      isLarge ? 'grid-cols-2 sm:grid-cols-4 gap-3' : 'grid-cols-2 sm:grid-cols-4 gap-2',
       className
     )}>
       {GOAL_ICONS.map((iconKey) => {
