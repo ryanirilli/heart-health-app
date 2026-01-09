@@ -17,16 +17,21 @@ const navOptions: { value: AppView; label: string; icon: typeof CalendarDays }[]
 
 export function FloatingNavBar({ currentView, onViewChange }: FloatingNavBarProps) {
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-      <nav className="bg-card/95 backdrop-blur-md shadow-lg rounded-full">
-        <PillToggle
-          options={navOptions}
-          value={currentView}
-          onValueChange={onViewChange}
-          layoutId="nav-pill"
-        />
-      </nav>
-    </div>
+    <>
+      {/* Gradient backdrop - theme aware */}
+      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent pointer-events-none z-40" />
+      
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <nav className="bg-card/95 backdrop-blur-md shadow-lg rounded-full">
+          <PillToggle
+            options={navOptions}
+            value={currentView}
+            onValueChange={onViewChange}
+            layoutId="nav-pill"
+          />
+        </nav>
+      </div>
+    </>
   );
 }
 

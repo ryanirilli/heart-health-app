@@ -62,9 +62,9 @@ export function GoalCard({ goal, activityType, onClick }: GoalCardProps) {
             {/* Activity Type & Target */}
             <p className="text-xs text-muted-foreground mt-0.5">
               {activityType ? (
-                <>
-                  {activityType.name}: {formatValueWithUnit(goal.targetValue, activityType)}
-                </>
+                activityType.uiType === 'buttonGroup' 
+                  ? formatValueWithUnit(goal.targetValue, activityType)
+                  : `${activityType.name}: ${formatValueWithUnit(goal.targetValue, activityType)}`
               ) : (
                 `Target: ${goal.targetValue}`
               )}

@@ -27,14 +27,16 @@ export function DashboardContent({
 
   const handleViewChange = useCallback((view: AppView) => {
     setCurrentView(view);
-    // Scroll to top when switching views
+    // Scroll to top when switching views - use multiple methods for cross-browser/mobile compatibility
     window.scrollTo({ top: 0, behavior: "smooth" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, []);
 
   return (
     <ActivityProvider initialTypes={types} initialActivities={activities}>
       <GoalsProvider initialGoals={goals}>
-        <main className="min-h-screen p-6 md:p-12 pb-24">
+        <main className="min-h-screen p-6 pb-40 md:px-12 md:pt-12 md:pb-40">
           <div className="max-w-5xl mx-auto space-y-6">
             {currentView === "activities" ? (
               <>

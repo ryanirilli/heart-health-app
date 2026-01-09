@@ -246,7 +246,7 @@ export function ActivityEntryDialog({
             </DrawerHeader>
             {editIconButton}
           </div>
-          <div className="px-4 overflow-y-auto flex-1">{mobileContent}</div>
+          <div className={`px-4 overflow-y-auto flex-1 ${!footer ? 'pb-8' : ''}`}>{mobileContent}</div>
           {footer && <DrawerFooter className="flex-row">{footer}</DrawerFooter>}
         </DrawerContent>
       </Drawer>

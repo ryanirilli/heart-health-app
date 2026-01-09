@@ -37,7 +37,7 @@ interface GoalWithStatus {
   displayStatus: GoalDisplayStatus;
   daysRemaining: number | null;
   isEvaluationDay: boolean;
-  isSliderType: boolean;
+  usesAverageValue: boolean;
 }
 
 /**
@@ -126,8 +126,11 @@ function getAverageValueForPeriod(
 
 /**
  * Get the effective value for goal comparison based on activity type.
- * For slider types, returns the average over the period.
- * For other types (increment, buttonGroup), returns the sum.
+ * For slider and buttonGroup types, returns the average over the period.
+ * For other types (increment), returns the sum.
+ * 
+ * ButtonGroup types (like mood with Good/Neutral/Bad options) use average
+ * because summing discrete choice values doesn't make semantic sense.
  */
 function getEffectiveValueForGoal(
   goal: Goal,
@@ -137,7 +140,8 @@ function getEffectiveValueForGoal(
 ): number {
   if (!allActivities || !activityType) return 0;
   
-  const isSlider = activityType.uiType === 'slider';
+  // Both slider and buttonGroup use average (not sum)
+  const useAverage = activityType.uiType === 'slider' || activityType.uiType === 'buttonGroup';
   
   // Determine the period based on goal date type
   let startDate: string;
@@ -181,8 +185,8 @@ function getEffectiveValueForGoal(
   
   const { sum, average } = getAverageValueForPeriod(goal, allActivities, startDate, endDate);
   
-  // For slider types, use average; for others, use sum
-  return isSlider ? average : sum;
+  // For slider and buttonGroup types, use average; for others, use sum
+  return useAverage ? average : sum;
 }
 
 export function GoalStatusSection({
@@ -241,12 +245,19 @@ export function GoalStatusSection({
         }
       }
       
+      // Determine if this is truly the "last day" for evaluation
+      // For date_range goals, only the end date is the evaluation day
+      // For other goals, use the existing isEvaluationDay logic
+      const isActualEvaluationDay = goal.dateType === 'date_range'
+        ? dateStr === goal.endDate
+        : isEvaluationDay;
+      
       let displayStatus: GoalDisplayStatus;
       if (isMet) {
         displayStatus = 'met';
       } else if (isFailed || expired) {
         displayStatus = 'missed';
-      } else if (isEvaluationDay && goal.dateType !== 'daily') {
+      } else if (isActualEvaluationDay && goal.dateType !== 'daily') {
         // Daily goals don't get special "evaluation day" treatment - 
         // they're either met (green) or not (muted)
         displayStatus = 'evaluation_day';
@@ -255,7 +266,8 @@ export function GoalStatusSection({
       }
       
       // Calculate effective value for non-daily goals
-      const isSliderType = activityType?.uiType === 'slider';
+      // Both slider and buttonGroup types use average (not sum)
+      const usesAverageValue = activityType?.uiType === 'slider' || activityType?.uiType === 'buttonGroup';
       const effectiveValue = goal.dateType === 'daily' 
         ? activityValue 
         : getEffectiveValueForGoal(goal, activityType, allActivities, dateStr);
@@ -267,7 +279,7 @@ export function GoalStatusSection({
         displayStatus,
         daysRemaining,
         isEvaluationDay,
-        isSliderType,
+        usesAverageValue,
       };
     });
   }, [goals, dateStr, activity, activityTypes, allActivities]);
@@ -288,7 +300,7 @@ export function GoalStatusSection({
 
       {/* Goal Items */}
       <div className="space-y-2">
-        {goalsWithStatus.map(({ goal, activityValue, effectiveValue, displayStatus, daysRemaining, isEvaluationDay, isSliderType }) => (
+        {goalsWithStatus.map(({ goal, activityValue, effectiveValue, displayStatus, daysRemaining, isEvaluationDay, usesAverageValue }) => (
           <GoalStatusItem
             key={goal.id}
             goal={goal}
@@ -297,7 +309,7 @@ export function GoalStatusSection({
             displayStatus={displayStatus}
             daysRemaining={daysRemaining}
             isEvaluationDay={isEvaluationDay}
-            isSliderType={isSliderType}
+            usesAverageValue={usesAverageValue}
             activityType={activityTypes[goal.activityTypeId]}
           />
         ))}
@@ -313,7 +325,7 @@ interface GoalStatusItemProps {
   displayStatus: GoalDisplayStatus;
   daysRemaining: number | null;
   isEvaluationDay: boolean;
-  isSliderType: boolean;
+  usesAverageValue: boolean;
   activityType?: ActivityTypeMap[string];
 }
 
@@ -324,7 +336,7 @@ function GoalStatusItem({
   displayStatus,
   daysRemaining,
   isEvaluationDay,
-  isSliderType,
+  usesAverageValue,
   activityType,
 }: GoalStatusItemProps) {
   const { openEditDialog } = useGoals();
@@ -415,8 +427,19 @@ function GoalStatusItem({
 
     // For evaluation days or other goal types, show progress
     if (activityType) {
-      // For non-daily slider goals, show average
-      if (isSliderType && goal.dateType !== 'daily') {
+      // For non-daily goals that use average (slider and buttonGroup)
+      if (usesAverageValue && goal.dateType !== 'daily') {
+        // For buttonGroup types, just show "Average: {label}"
+        if (activityType.uiType === 'buttonGroup') {
+          const roundedValue = effectiveValue !== undefined 
+            ? Math.round(effectiveValue) 
+            : 0;
+          // Find the matching button option label
+          const option = activityType.buttonOptions?.find(o => o.value === roundedValue);
+          const label = option?.label || '--';
+          return `Average: ${label}`;
+        }
+        // For slider types, show decimal average
         const avgValue = effectiveValue !== undefined 
           ? formatValueWithUnit(Math.round(effectiveValue * 10) / 10, activityType)
           : '0';
@@ -424,7 +447,7 @@ function GoalStatusItem({
         return `Avg: ${avgValue} / ${targetValue}`;
       }
       
-      // For daily goals or non-slider types, show current/cumulative value
+      // For daily goals or increment types, show current/cumulative value
       const currentValue = goal.dateType === 'daily'
         ? (activityValue !== undefined ? formatValueWithUnit(activityValue, activityType) : '0')
         : (effectiveValue !== undefined ? formatValueWithUnit(effectiveValue, activityType) : '0');

@@ -1,7 +1,6 @@
 'use client';
 
 import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ActivityTypeMap } from '@/lib/activityTypes';
 import { useGoals } from './GoalsProvider';
@@ -10,6 +9,8 @@ import { GoalCard } from './GoalCard';
 interface GoalsViewProps {
   activityTypes: ActivityTypeMap;
 }
+
+const MAX_GOALS = 5;
 
 export function GoalsView({ activityTypes }: GoalsViewProps) {
   const { goalsList, isLoading, openCreateDialog, openEditDialog } = useGoals();
@@ -22,69 +23,62 @@ export function GoalsView({ activityTypes }: GoalsViewProps) {
     );
   }
 
-  const isEmpty = goalsList.length === 0;
+  const canAddMore = goalsList.length < MAX_GOALS;
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Goals</h2>
-          {/* Hide tagline on mobile */}
-          <p className="hidden sm:block text-sm text-muted-foreground">
-            Track your progress toward your health goals
-          </p>
-        </div>
-        {/* Hide button when empty (empty state has its own CTA) */}
-        {!isEmpty && (
-          <Button onClick={openCreateDialog} size="pill">
-            <Plus className="h-4 w-4 mr-1" />
-            New Goal
-          </Button>
-        )}
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">Goals</h2>
+        {/* Hide tagline on mobile */}
+        <p className="hidden sm:block text-sm text-muted-foreground">
+          Track your progress toward your health goals
+        </p>
       </div>
 
-      {/* Goals Grid */}
-      {isEmpty ? (
-        <EmptyState onCreateClick={openCreateDialog} />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {goalsList.map((goal) => (
-            <GoalCard
-              key={goal.id}
-              goal={goal}
-              activityType={activityTypes[goal.activityTypeId]}
-              onClick={() => openEditDialog(goal)}
-            />
-          ))}
-        </div>
-      )}
+      {/* Goals Grid - always show grid with add card */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {goalsList.map((goal) => (
+          <GoalCard
+            key={goal.id}
+            goal={goal}
+            activityType={activityTypes[goal.activityTypeId]}
+            onClick={() => openEditDialog(goal)}
+          />
+        ))}
+        {/* Add Goal Card - only shown if under limit */}
+        {canAddMore && <AddGoalCard onClick={openCreateDialog} />}
+      </div>
     </div>
   );
 }
 
-function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
+function AddGoalCard({ onClick }: { onClick: () => void }) {
   return (
     <button
-      onClick={onCreateClick}
+      onClick={onClick}
       className={cn(
-        "w-full py-12 rounded-xl",
+        "w-full rounded-xl p-4",
         "border border-dashed border-muted-foreground/25",
         "bg-muted/30",
-        "flex flex-col items-center justify-center gap-3",
+        "flex items-center gap-3",
         "text-muted-foreground",
         "hover:border-muted-foreground/40 hover:bg-muted/50",
         "transition-colors duration-200",
-        "cursor-pointer"
+        "cursor-pointer",
+        "min-h-[88px]" // Match approximate height of GoalCard
       )}
     >
-      <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-        <Plus className="h-6 w-6" />
+      {/* Icon - matches GoalCard icon styling */}
+      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+        <Plus className="h-5 w-5" />
       </div>
-      <div className="text-center">
-        <p className="text-sm font-medium text-foreground">No goals yet</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Tap to create your first goal
+
+      {/* Content */}
+      <div className="text-left">
+        <p className="text-sm font-medium text-foreground">Add Goal</p>
+        <p className="text-xs text-muted-foreground">
+          Create a new goal
         </p>
       </div>
     </button>

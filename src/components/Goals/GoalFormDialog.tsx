@@ -78,6 +78,7 @@ export function GoalFormDialog({ activityTypes }: GoalFormDialogProps) {
     dialogOpen,
     setDialogOpen,
     editingGoal,
+    goalsList,
     createGoal,
     updateGoal,
     deleteGoal,
@@ -93,19 +94,28 @@ export function GoalFormDialog({ activityTypes }: GoalFormDialogProps) {
   // Get active (non-deleted) activity types
   const activeTypes = Object.values(activityTypes).filter(t => !t.deleted);
 
+  // Get activity type IDs that already have goals (excluding the one being edited)
+  const usedActivityTypeIds = new Set(
+    goalsList
+      .filter(g => !editingGoal || g.id !== editingGoal.id)
+      .map(g => g.activityTypeId)
+  );
+
   // Reset form when dialog opens/closes or editing goal changes
   useEffect(() => {
     if (dialogOpen) {
       if (editingGoal) {
         setFormData(editingGoal);
       } else {
+        // Find the first activity type that doesn't already have a goal
+        const availableType = activeTypes.find(t => !usedActivityTypeIds.has(t.id));
         setFormData(createDefaultGoal({
-          activityTypeId: activeTypes[0]?.id || '',
+          activityTypeId: availableType?.id || '',
         }));
       }
       setErrors([]);
     }
-  }, [dialogOpen, editingGoal, activeTypes]);
+  }, [dialogOpen, editingGoal, activeTypes, usedActivityTypeIds]);
 
   const selectedActivityType = activityTypes[formData.activityTypeId];
 
@@ -145,6 +155,7 @@ export function GoalFormDialog({ activityTypes }: GoalFormDialogProps) {
             activeTypes={activeTypes}
             selectedActivityType={selectedActivityType}
             activityTypes={activityTypes}
+            usedActivityTypeIds={usedActivityTypeIds}
             isEditing={isEditing}
             isSubmitting={isSubmitting}
             isDeleting={isDeleting}
@@ -169,6 +180,7 @@ interface GoalFormContentProps {
   activeTypes: ActivityType[];
   selectedActivityType: ActivityType | undefined;
   activityTypes: ActivityTypeMap;
+  usedActivityTypeIds: Set<string>;
   isEditing: boolean;
   isSubmitting: boolean;
   isDeleting: boolean;
@@ -184,6 +196,7 @@ function GoalFormContent({
   activeTypes,
   selectedActivityType,
   activityTypes,
+  usedActivityTypeIds,
   isEditing,
   isSubmitting,
   isDeleting,
@@ -238,6 +251,7 @@ function GoalFormContent({
             formData={formData}
             setFormData={setFormData}
             activeTypes={activeTypes}
+            usedActivityTypeIds={usedActivityTypeIds}
           />
         </StepItem>
 
@@ -302,9 +316,10 @@ interface StepBasicsProps {
   formData: Goal;
   setFormData: (data: Goal) => void;
   activeTypes: ActivityType[];
+  usedActivityTypeIds: Set<string>;
 }
 
-function StepBasics({ formData, setFormData, activeTypes }: StepBasicsProps) {
+function StepBasics({ formData, setFormData, activeTypes, usedActivityTypeIds }: StepBasicsProps) {
   return (
     <div className="space-y-5">
       <div className="text-center mb-6">
@@ -335,11 +350,22 @@ function StepBasics({ formData, setFormData, activeTypes }: StepBasicsProps) {
             <SelectValue placeholder="Select activity type" />
           </SelectTrigger>
           <SelectContent>
-            {activeTypes.map((type) => (
-              <SelectItem key={type.id} value={type.id}>
-                {type.name}
-              </SelectItem>
-            ))}
+            {activeTypes.map((type) => {
+              const hasGoal = usedActivityTypeIds.has(type.id);
+              return (
+                <SelectItem 
+                  key={type.id} 
+                  value={type.id}
+                  disabled={hasGoal}
+                  className={hasGoal ? 'opacity-50' : ''}
+                >
+                  <span className="flex items-center gap-2">
+                    {type.name}
+                    {hasGoal && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
+                  </span>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>
