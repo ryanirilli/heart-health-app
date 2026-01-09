@@ -28,13 +28,7 @@ export function GoalsView({ activityTypes }: GoalsViewProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight">Goals</h2>
-        {/* Hide tagline on mobile */}
-        <p className="hidden sm:block text-sm text-muted-foreground">
-          Track your progress toward your health goals
-        </p>
-      </div>
+      <h2 className="text-2xl font-semibold tracking-tight">Goals</h2>
 
       {/* Goals Grid - always show grid with add card */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

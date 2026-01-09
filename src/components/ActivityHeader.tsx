@@ -5,21 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 
 export function ActivityHeader() {
-  const { activeTypes, settingsOpen, setSettingsOpen, settingsStartInAddMode } = useActivityTypes();
+  const { settingsOpen, setSettingsOpen, settingsStartInAddMode } = useActivityTypes();
 
   return (
     <>
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-            Activity Tracker
-          </h2>
-          <p className="text-muted-foreground">
-            {activeTypes.length === 0 
-              ? 'Set up your activity types to start tracking'
-              : `Tracking ${activeTypes.length} ${activeTypes.length === 1 ? 'activity' : 'activities'}`}
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          Activity Tracker
+        </h2>
         <Button
           variant="outline"
           size="icon"
