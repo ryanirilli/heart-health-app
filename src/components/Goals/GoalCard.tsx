@@ -7,7 +7,7 @@ import {
   getGoalIconComponent,
   GOAL_DATE_TYPE_LABELS,
 } from '@/lib/goals';
-import { ActivityType, formatValueWithUnit } from '@/lib/activityTypes';
+import { ActivityType, formatValueOnly } from '@/lib/activityTypes';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 
@@ -62,9 +62,7 @@ export function GoalCard({ goal, activityType, onClick }: GoalCardProps) {
             {/* Activity Type & Target */}
             <p className="text-xs text-muted-foreground mt-0.5">
               {activityType ? (
-                activityType.uiType === 'buttonGroup' 
-                  ? formatValueWithUnit(goal.targetValue, activityType)
-                  : `${activityType.name}: ${formatValueWithUnit(goal.targetValue, activityType)}`
+                `${activityType.name}: ${formatValueOnly(goal.targetValue, activityType)}`
               ) : (
                 `Target: ${goal.targetValue}`
               )}

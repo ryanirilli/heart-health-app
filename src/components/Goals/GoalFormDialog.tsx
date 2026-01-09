@@ -46,7 +46,7 @@ import {
   getGoalIconComponent,
   GOAL_ICON_LABELS,
 } from '@/lib/goals';
-import { ActivityType, ActivityTypeMap, formatValueWithUnit } from '@/lib/activityTypes';
+import { ActivityType, ActivityTypeMap, formatValueOnly } from '@/lib/activityTypes';
 import pluralizeLib from 'pluralize-esm';
 const { plural } = pluralizeLib;
 import { GoalIconPicker } from './GoalIconPicker';
@@ -517,7 +517,7 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
           <div className="flex items-center justify-between">
             <span className="text-lg font-medium">
               {selectedActivityType
-                ? formatValueWithUnit(currentValue, selectedActivityType)
+                ? formatValueOnly(currentValue, selectedActivityType)
                 : currentValue}
             </span>
           </div>
@@ -628,7 +628,7 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
         </div>
         {selectedActivityType && (
           <p className="text-sm text-muted-foreground text-center">
-            Goal: {formatValueWithUnit(currentValue, selectedActivityType)}
+            Goal: {formatValueOnly(currentValue, selectedActivityType)}
           </p>
         )}
       </div>
@@ -745,7 +745,7 @@ function StepSummary({ formData, activityTypes, errors }: StepSummaryProps) {
               {selectedActivityType?.uiType === 'toggle'
                 ? (formData.targetValue === 1 ? 'Yes' : 'No')
                 : selectedActivityType
-                ? formatValueWithUnit(formData.targetValue, selectedActivityType)
+                ? formatValueOnly(formData.targetValue, selectedActivityType)
                 : formData.targetValue}
             </span>
           </div>

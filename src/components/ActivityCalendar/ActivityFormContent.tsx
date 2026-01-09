@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Activity, ActivityEntry, formatDate } from "@/lib/activities";
 import {
   ActivityType,
-  formatValueWithUnit,
+  formatValueOnly,
   getGoalType,
   getButtonOptionLabel,
 } from "@/lib/activityTypes";
@@ -51,7 +51,7 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
-            {formatValueWithUnit(currentValue, type)}
+            {formatValueOnly(currentValue, type)}
           </span>
         </div>
         <input
@@ -305,7 +305,7 @@ function ActivityViewCard({
       // Just show Yes/No without the name since name is shown separately
       return value === 1 ? "Yes" : "No";
     }
-    return formatValueWithUnit(value, type);
+    return formatValueOnly(value, type);
   };
 
   return (
