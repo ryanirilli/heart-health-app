@@ -69,12 +69,12 @@ export function GoalCard({ goal, activityType, onClick }: GoalCardProps) {
                 `Target: ${goal.targetValue}`
               )}
             </p>
-
-            {/* Schedule Badge */}
-            <Badge variant="secondary" className="mt-2 text-[10px]">
-              {formatDateInfo()}
-            </Badge>
           </div>
+
+          {/* Schedule Badge - right aligned */}
+          <Badge variant="secondary" className="flex-shrink-0 text-[10px]">
+            {formatDateInfo()}
+          </Badge>
         </div>
       </CardContent>
     </Card>

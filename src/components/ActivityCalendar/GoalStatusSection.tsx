@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Star, Check, Clock, Ban } from 'lucide-react';
+import { Star, Frown } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { 
   Goal, 
@@ -12,12 +13,34 @@ import {
   getDaysUntilGoal,
   isGoalExpired,
   shouldShowGoalIndicator,
+  GOAL_DATE_TYPE_LABELS,
 } from '@/lib/goals';
 import { ActivityTypeMap, formatValueWithUnit, getGoalType } from '@/lib/activityTypes';
 import { Activity, ActivityMap } from '@/lib/activities';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useGoals } from '@/components/Goals';
+
+/** Format goal date info for display */
+function formatGoalDateInfo(goal: Goal): string {
+  switch (goal.dateType) {
+    case 'daily':
+    case 'weekly':
+    case 'monthly':
+      return GOAL_DATE_TYPE_LABELS[goal.dateType];
+    case 'by_date':
+      return goal.targetDate 
+        ? `By ${format(parseISO(goal.targetDate), 'MMM d')}`
+        : 'By date';
+    case 'date_range':
+      if (goal.startDate && goal.endDate) {
+        return `${format(parseISO(goal.startDate), 'MMM d')} - ${format(parseISO(goal.endDate), 'MMM d')}`;
+      }
+      return 'Date range';
+    default:
+      return '';
+  }
+}
 
 interface GoalStatusSectionProps {
   dateStr: string;
@@ -342,55 +365,40 @@ function GoalStatusItem({
   const { openEditDialog } = useGoals();
   const IconComponent = getGoalIconComponent(goal.icon);
 
-  const getStatusIcon = () => {
-    switch (displayStatus) {
-      case 'met':
-        return <Check className="h-3.5 w-3.5" />;
-      case 'missed':
-        return <Ban className="h-5 w-5" />;
-      case 'evaluation_day':
-        return <Star className="h-3.5 w-3.5" />;
-      case 'in_progress':
-      default:
-        return <Clock className="h-3.5 w-3.5" />;
-    }
-  };
-
   const getStatusStyles = () => {
     switch (displayStatus) {
       case 'met':
+        // Accomplished - strong green emphasis
         return {
-          container: 'bg-green-500/10 border-green-500/30',
-          statusIcon: 'bg-green-500 text-white',
-          goalIcon: 'bg-green-500/20',
-          goalIconColor: 'text-green-600',
-          textColor: 'text-green-700 dark:text-green-400',
-        };
-      case 'missed':
-        // Softer, more encouraging styling - not alarming red
-        return {
-          container: 'bg-slate-500/10 border-slate-500/30',
-          statusIcon: 'bg-transparent text-slate-500',
-          goalIcon: 'bg-slate-500/20',
-          goalIconColor: 'text-slate-600',
-          textColor: 'text-slate-700 dark:text-slate-400',
+          container: 'bg-green-500/15 border-green-500/50',
+          goalIcon: 'bg-green-500/25',
+          goalIconColor: 'text-green-600 dark:text-green-400',
+          textColor: 'text-green-700 dark:text-green-300',
         };
       case 'evaluation_day':
+        // Last day - amber attention
         return {
-          container: 'bg-amber-500/10 border-amber-500/30',
-          statusIcon: 'bg-amber-500 text-white',
-          goalIcon: 'bg-amber-500/20',
-          goalIconColor: 'text-amber-600',
-          textColor: 'text-amber-700 dark:text-amber-400',
+          container: 'bg-amber-500/15 border-amber-500/50',
+          goalIcon: 'bg-amber-500/25',
+          goalIconColor: 'text-amber-600 dark:text-amber-400',
+          textColor: 'text-amber-700 dark:text-amber-300',
         };
       case 'in_progress':
-      default:
+        // In progress - subtle but clear
         return {
-          container: 'bg-muted/30 border-border',
-          statusIcon: 'bg-muted text-muted-foreground',
-          goalIcon: 'bg-muted',
-          goalIconColor: 'text-muted-foreground',
+          container: 'bg-primary/5 border-primary/20',
+          goalIcon: 'bg-primary/10',
+          goalIconColor: 'text-primary',
           textColor: 'text-foreground',
+        };
+      case 'missed':
+      default:
+        // Missed - de-emphasized, muted
+        return {
+          container: 'bg-muted/20 border-muted-foreground/10',
+          goalIcon: 'bg-muted/50',
+          goalIconColor: 'text-muted-foreground/70',
+          textColor: 'text-muted-foreground',
         };
     }
   };
@@ -469,20 +477,16 @@ function GoalStatusItem({
         styles.container
       )}
     >
-      {/* Status Icon */}
-      <div className={cn(
-        'flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center',
-        styles.statusIcon
-      )}>
-        {getStatusIcon()}
-      </div>
-
-      {/* Goal Icon */}
+      {/* Goal Icon - show sad face for missed goals */}
       <div className={cn(
         'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center',
         styles.goalIcon
       )}>
-        <IconComponent className={cn('h-4 w-4', styles.goalIconColor)} />
+        {displayStatus === 'missed' ? (
+          <Frown className={cn('h-4 w-4', styles.goalIconColor)} />
+        ) : (
+          <IconComponent className={cn('h-4 w-4', styles.goalIconColor)} />
+        )}
       </div>
 
       {/* Goal Info */}
@@ -502,8 +506,8 @@ function GoalStatusItem({
         </p>
       </div>
 
-      {/* Update Goal button - only for by_date and date_range goals */}
-      {showUpdateButton && (
+      {/* Duration Badge or Update Goal button */}
+      {showUpdateButton ? (
         <Button
           variant="ghost"
           size="sm"
@@ -512,6 +516,10 @@ function GoalStatusItem({
         >
           Update Goal
         </Button>
+      ) : (
+        <Badge variant="secondary" className="flex-shrink-0 text-[10px]">
+          {formatGoalDateInfo(goal)}
+        </Badge>
       )}
     </div>
   );
