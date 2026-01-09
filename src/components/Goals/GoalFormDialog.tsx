@@ -9,6 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,6 +60,7 @@ import { useGoals } from './GoalsProvider';
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { Badge } from '@/components/ui/badge';
 import { useActivityTypes } from '@/components/ActivityCalendar/ActivityProvider';
+import { useIsMobile } from '@/lib/hooks/useMediaQuery';
 
 /**
  * Parse a date string (YYYY-MM-DD) to a Date object in local timezone.
@@ -85,6 +92,7 @@ export function GoalFormDialog() {
     isDeleting,
     closeDialog,
   } = useGoals();
+  const isMobile = useIsMobile();
 
   const [formData, setFormData] = useState<Goal>(createDefaultGoal());
   const [errors, setErrors] = useState<string[]>([]);
@@ -142,26 +150,48 @@ export function GoalFormDialog() {
   const isSubmitting = isCreating || isUpdating;
   const isEditing = !!editingGoal;
 
+  const formContent = (
+    <Stepper steps={STEPS} initialStep={0}>
+      <GoalFormContent
+        formData={formData}
+        setFormData={setFormData}
+        errors={errors}
+        activeTypes={activeTypes}
+        selectedActivityType={selectedActivityType}
+        activityTypes={activityTypes}
+        usedActivityTypeIds={usedActivityTypeIds}
+        isEditing={isEditing}
+        isSubmitting={isSubmitting}
+        isDeleting={isDeleting}
+        onSubmit={handleSubmit}
+        onDelete={handleDelete}
+        onCancel={closeDialog}
+      />
+    </Stepper>
+  );
+
+  // Use Drawer on mobile, Dialog on desktop
+  if (isMobile) {
+    return (
+      <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DrawerContent className="max-h-[90vh]">
+          <DrawerHeader className="sr-only">
+            <DrawerTitle>
+              {isEditing ? 'Edit Goal' : 'Create Goal'}
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-8 overflow-y-auto">
+            {formContent}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <Stepper steps={STEPS} initialStep={0}>
-          <GoalFormContent
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-            activeTypes={activeTypes}
-            selectedActivityType={selectedActivityType}
-            activityTypes={activityTypes}
-            usedActivityTypeIds={usedActivityTypeIds}
-            isEditing={isEditing}
-            isSubmitting={isSubmitting}
-            isDeleting={isDeleting}
-            onSubmit={handleSubmit}
-            onDelete={handleDelete}
-            onCancel={closeDialog}
-          />
-        </Stepper>
+        {formContent}
       </DialogContent>
     </Dialog>
   );

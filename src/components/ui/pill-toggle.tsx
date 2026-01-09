@@ -17,6 +17,7 @@ interface PillToggleProps<T extends string> {
   layoutId: string;
   className?: string;
   size?: 'sm' | 'md';
+  /** When true, buttons expand equally to fill container width */
   fullWidth?: boolean;
 }
 
@@ -32,10 +33,34 @@ export function PillToggle<T extends string>({
   // Track optimistic value for immediate visual feedback during transitions
   const [optimisticValue, setOptimisticValue] = React.useState(value);
   
+  // Refs for measuring button positions (only used when not fullWidth)
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const buttonRefs = React.useRef<(HTMLButtonElement | null)[]>([]);
+  const [indicatorStyle, setIndicatorStyle] = React.useState({ left: 0, width: 0 });
+  
   // Sync optimistic value when actual value changes (transition completes)
   React.useEffect(() => {
     setOptimisticValue(value);
   }, [value]);
+
+  // Measure button positions for non-fullWidth mode
+  React.useEffect(() => {
+    if (fullWidth) return;
+    
+    const activeIndex = options.findIndex(opt => opt.value === optimisticValue);
+    const button = buttonRefs.current[activeIndex];
+    const container = containerRef.current;
+    
+    if (button && container) {
+      const containerRect = container.getBoundingClientRect();
+      const buttonRect = button.getBoundingClientRect();
+      
+      setIndicatorStyle({
+        left: buttonRect.left - containerRect.left,
+        width: buttonRect.width,
+      });
+    }
+  }, [optimisticValue, options, fullWidth]);
 
   const handleClick = (newValue: T) => {
     // Update visual state immediately for smooth animation
@@ -49,6 +74,7 @@ export function PillToggle<T extends string>({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         'relative flex items-center gap-0.5 rounded-full bg-muted p-1 border border-border',
         fullWidth && 'w-full',
@@ -59,9 +85,14 @@ export function PillToggle<T extends string>({
       <motion.div
         className="absolute bg-primary rounded-full"
         initial={false}
-        animate={{
+        animate={fullWidth ? {
+          // For fullWidth, use percentage-based positioning (equal-width buttons)
           left: `calc(${(activeIndex / options.length) * 100}% + 4px)`,
           width: `calc(${100 / options.length}% - 6px)`,
+        } : {
+          // For non-fullWidth, use measured pixel positions
+          left: indicatorStyle.left,
+          width: indicatorStyle.width,
         }}
         transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
         style={{
@@ -71,13 +102,14 @@ export function PillToggle<T extends string>({
         layoutId={layoutId}
       />
       
-      {options.map((option) => {
+      {options.map((option, index) => {
         const isActive = optimisticValue === option.value;
         const Icon = option.icon;
 
         return (
           <button
             key={option.value}
+            ref={(el) => { buttonRefs.current[index] = el; }}
             onClick={() => handleClick(option.value)}
             className={cn(
               'relative z-10 flex items-center justify-center gap-1.5 rounded-full font-medium transition-colors',
