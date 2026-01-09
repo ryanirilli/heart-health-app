@@ -67,7 +67,7 @@ export function DashboardContent({
       <GoalsProvider initialGoals={goals}>
         <main className="min-h-screen p-6 pb-40 md:px-12 md:pt-12 md:pb-40">
           <div className="max-w-5xl mx-auto">
-            <AnimatePresence mode="wait" initial={false}>
+            <AnimatePresence mode="popLayout" initial={false}>
               <motion.div
                 key={currentView}
                 variants={variants}
@@ -75,8 +75,9 @@ export function DashboardContent({
                 animate="center"
                 exit="exit"
                 transition={{
-                  scale: { type: "spring", stiffness: 400, damping: 30 },
-                  opacity: { duration: 0.15 },
+                  type: "tween",
+                  duration: 0.2,
+                  ease: "easeInOut",
                 }}
                 className="space-y-6"
               >
