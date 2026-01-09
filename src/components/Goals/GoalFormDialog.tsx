@@ -171,11 +171,10 @@ export function GoalFormDialog() {
   );
 
   // Use Drawer on mobile, Dialog on desktop
-  // Use min-h with dvh (dynamic viewport height) to handle keyboard appearance/disappearance
   if (isMobile) {
     return (
       <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DrawerContent className="min-h-[85dvh] max-h-[90dvh]">
+        <DrawerContent className="max-h-[90vh]">
           <DrawerHeader className="sr-only">
             <DrawerTitle>
               {isEditing ? 'Edit Goal' : 'Create Goal'}
@@ -208,11 +207,37 @@ function MobileDrawerContent({
   children: React.ReactNode;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [fixedHeight, setFixedHeight] = useState<number | null>(null);
+
+  // Capture the initial height when the component mounts (before keyboard interactions)
+  // This prevents the drawer from shrinking when keyboard dismisses
+  useEffect(() => {
+    if (containerRef.current && fixedHeight === null) {
+      // Use a small delay to ensure the drawer has fully rendered
+      const timer = setTimeout(() => {
+        if (containerRef.current) {
+          const height = containerRef.current.getBoundingClientRect().height;
+          // Only set if we got a reasonable height (drawer is open)
+          if (height > 100) {
+            setFixedHeight(height);
+          }
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [fixedHeight]);
 
   return (
     <MobileScrollContext.Provider value={scrollRef}>
-      <div ref={scrollRef} className="px-4 pb-8 overflow-y-auto">
-        {children}
+      <div 
+        ref={containerRef}
+        className="flex flex-col flex-1 min-h-0"
+        style={fixedHeight ? { height: fixedHeight } : undefined}
+      >
+        <div ref={scrollRef} className="px-4 pb-8 overflow-y-auto flex-1">
+          {children}
+        </div>
       </div>
     </MobileScrollContext.Provider>
   );
