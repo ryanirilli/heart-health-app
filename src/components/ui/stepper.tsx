@@ -26,8 +26,6 @@ interface StepperContextValue {
   isLastStep: boolean;
   canGoNext: boolean;
   setCanGoNext: (can: boolean) => void;
-  /** Register a scroll container to reset scroll position on step change */
-  registerScrollContainer: (container: HTMLElement | null) => void;
 }
 
 const StepperContext = React.createContext<StepperContextValue | null>(null);
@@ -61,17 +59,9 @@ export function Stepper({
 }: StepperProps) {
   const [currentStep, setCurrentStep] = React.useState(initialStep);
   const [canGoNext, setCanGoNext] = React.useState(true);
-  const scrollContainerRef = React.useRef<HTMLElement | null>(null);
 
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === steps.length - 1;
-
-  // Scroll to top of container when step changes
-  React.useEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [currentStep]);
 
   const goToStep = React.useCallback((step: number) => {
     if (step >= 0 && step < steps.length) {
@@ -93,10 +83,6 @@ export function Stepper({
     }
   }, [currentStep]);
 
-  const registerScrollContainer = React.useCallback((container: HTMLElement | null) => {
-    scrollContainerRef.current = container;
-  }, []);
-
   const value = React.useMemo(
     () => ({
       steps,
@@ -108,9 +94,8 @@ export function Stepper({
       isLastStep,
       canGoNext,
       setCanGoNext,
-      registerScrollContainer,
     }),
-    [steps, currentStep, goToStep, nextStep, prevStep, isFirstStep, isLastStep, canGoNext, registerScrollContainer]
+    [steps, currentStep, goToStep, nextStep, prevStep, isFirstStep, isLastStep, canGoNext]
   );
 
   return (

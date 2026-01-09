@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CalendarIcon, Check } from 'lucide-react';
 import {
@@ -9,12 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,7 +54,6 @@ import { useGoals } from './GoalsProvider';
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { Badge } from '@/components/ui/badge';
 import { useActivityTypes } from '@/components/ActivityCalendar/ActivityProvider';
-import { useIsMobile } from '@/lib/hooks/useMediaQuery';
 
 /**
  * Parse a date string (YYYY-MM-DD) to a Date object in local timezone.
@@ -92,7 +85,6 @@ export function GoalFormDialog() {
     isDeleting,
     closeDialog,
   } = useGoals();
-  const isMobile = useIsMobile();
 
   const [formData, setFormData] = useState<Goal>(createDefaultGoal());
   const [errors, setErrors] = useState<string[]>([]);
@@ -150,115 +142,29 @@ export function GoalFormDialog() {
   const isSubmitting = isCreating || isUpdating;
   const isEditing = !!editingGoal;
 
-  const formContent = (
-    <Stepper steps={STEPS} initialStep={0}>
-      <GoalFormContent
-        formData={formData}
-        setFormData={setFormData}
-        errors={errors}
-        activeTypes={activeTypes}
-        selectedActivityType={selectedActivityType}
-        activityTypes={activityTypes}
-        usedActivityTypeIds={usedActivityTypeIds}
-        isEditing={isEditing}
-        isSubmitting={isSubmitting}
-        isDeleting={isDeleting}
-        onSubmit={handleSubmit}
-        onDelete={handleDelete}
-        onCancel={closeDialog}
-      />
-    </Stepper>
-  );
-
-  // Use Drawer on mobile, Dialog on desktop
-  if (isMobile) {
-    return (
-      <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DrawerContent className="max-h-[90vh]">
-          <DrawerHeader className="sr-only">
-            <DrawerTitle>
-              {isEditing ? 'Edit Goal' : 'Create Goal'}
-            </DrawerTitle>
-          </DrawerHeader>
-          <MobileDrawerContent>
-            {formContent}
-          </MobileDrawerContent>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
-
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        {formContent}
+      <DialogContent className="max-w-md h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <Stepper steps={STEPS} initialStep={0} className="flex-1 min-h-0 flex flex-col">
+          <GoalFormContent
+            formData={formData}
+            setFormData={setFormData}
+            errors={errors}
+            activeTypes={activeTypes}
+            selectedActivityType={selectedActivityType}
+            activityTypes={activityTypes}
+            usedActivityTypeIds={usedActivityTypeIds}
+            isEditing={isEditing}
+            isSubmitting={isSubmitting}
+            isDeleting={isDeleting}
+            onSubmit={handleSubmit}
+            onDelete={handleDelete}
+            onCancel={closeDialog}
+          />
+        </Stepper>
       </DialogContent>
     </Dialog>
   );
-}
-
-// =============================================================================
-// MOBILE DRAWER CONTENT (wrapper that provides scroll ref to form content)
-// =============================================================================
-
-function MobileDrawerContent({ 
-  children
-}: { 
-  children: React.ReactNode;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [fixedHeight, setFixedHeight] = useState<number | null>(null);
-
-  // Capture the initial height when the component mounts (before keyboard interactions)
-  // This prevents the drawer from shrinking when keyboard dismisses
-  useEffect(() => {
-    if (containerRef.current && fixedHeight === null) {
-      // Use a small delay to ensure the drawer has fully rendered
-      const timer = setTimeout(() => {
-        if (containerRef.current) {
-          const height = containerRef.current.getBoundingClientRect().height;
-          // Only set if we got a reasonable height (drawer is open)
-          if (height > 100) {
-            setFixedHeight(height);
-          }
-        }
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [fixedHeight]);
-
-  return (
-    <MobileScrollContext.Provider value={scrollRef}>
-      <div 
-        ref={containerRef}
-        className="flex flex-col flex-1 min-h-0"
-        style={fixedHeight ? { height: fixedHeight } : undefined}
-      >
-        <div ref={scrollRef} className="px-4 pb-8 overflow-y-auto flex-1">
-          {children}
-        </div>
-      </div>
-    </MobileScrollContext.Provider>
-  );
-}
-
-// Context to pass scroll ref from drawer to form content (which is inside Stepper)
-const MobileScrollContext = React.createContext<React.RefObject<HTMLDivElement | null> | null>(null);
-
-// Component that registers scroll container with stepper (must be inside Stepper)
-function MobileScrollRegistrar() {
-  const scrollRef = React.useContext(MobileScrollContext);
-  const { registerScrollContainer } = useStepper();
-  
-  useEffect(() => {
-    if (scrollRef?.current) {
-      registerScrollContainer(scrollRef.current);
-    }
-    return () => registerScrollContainer(null);
-  }, [registerScrollContainer, scrollRef]);
-
-  return null;
 }
 
 // =============================================================================
@@ -328,77 +234,81 @@ function GoalFormContent({
   }, [currentStep, formData, setCanGoNext]);
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      {/* Register scroll container for mobile drawer */}
-      <MobileScrollRegistrar />
-      
-      <DialogHeader className="pb-0">
+    <form onSubmit={onSubmit} className="flex flex-col flex-1 min-h-0">
+      {/* Fixed Header */}
+      <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
         <DialogTitle className="sr-only">
           {isEditing ? 'Edit Goal' : 'Create Goal'}
         </DialogTitle>
-        <StepIndicator variant="compact" className="pt-2" />
+        <StepIndicator variant="compact" />
       </DialogHeader>
 
-      <StepContent className="min-h-[280px]">
-        {/* Step 1: Basics */}
-        <StepItem>
-          <StepBasics
-            formData={formData}
-            setFormData={setFormData}
-            activeTypes={activeTypes}
-            usedActivityTypeIds={usedActivityTypeIds}
-          />
-        </StepItem>
-
-        {/* Step 2: Schedule */}
-        <StepItem>
-          <StepSchedule
-            formData={formData}
-            setFormData={setFormData}
-          />
-        </StepItem>
-
-        {/* Step 3: Value */}
-        <StepItem>
-          <StepValue
-            formData={formData}
-            setFormData={setFormData}
-            selectedActivityType={selectedActivityType}
-          />
-        </StepItem>
-
-        {/* Step 4: Icon */}
-        <StepItem>
-          <StepIcon
-            formData={formData}
-            setFormData={setFormData}
-          />
-        </StepItem>
-
-        {/* Step 5: Summary */}
-        <StepItem>
-          <StepSummary
-            formData={formData}
-            activityTypes={activityTypes}
-            errors={errors}
-          />
-        </StepItem>
-      </StepContent>
-
-      <StepNavigation
-        onCancel={onCancel}
-        completeLabel={isEditing ? 'Save Changes' : 'Create Goal'}
-        isSubmitting={isSubmitting}
-        leftContent={
-          isEditing ? (
-            <ConfirmDeleteButton
-              onDelete={onDelete}
-              disabled={isDeleting}
-              isDeleting={isDeleting}
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-6 min-h-0 overscroll-contain">
+        <StepContent className="pb-4">
+          {/* Step 1: Basics */}
+          <StepItem>
+            <StepBasics
+              formData={formData}
+              setFormData={setFormData}
+              activeTypes={activeTypes}
+              usedActivityTypeIds={usedActivityTypeIds}
             />
-          ) : undefined
-        }
-      />
+          </StepItem>
+
+          {/* Step 2: Schedule */}
+          <StepItem>
+            <StepSchedule
+              formData={formData}
+              setFormData={setFormData}
+            />
+          </StepItem>
+
+          {/* Step 3: Value */}
+          <StepItem>
+            <StepValue
+              formData={formData}
+              setFormData={setFormData}
+              selectedActivityType={selectedActivityType}
+            />
+          </StepItem>
+
+          {/* Step 4: Icon */}
+          <StepItem>
+            <StepIcon
+              formData={formData}
+              setFormData={setFormData}
+            />
+          </StepItem>
+
+          {/* Step 5: Summary */}
+          <StepItem>
+            <StepSummary
+              formData={formData}
+              activityTypes={activityTypes}
+              errors={errors}
+            />
+          </StepItem>
+        </StepContent>
+      </div>
+
+      {/* Fixed Footer */}
+      <div className="px-6 py-4 border-t flex-shrink-0 bg-background">
+        <StepNavigation
+          onCancel={onCancel}
+          completeLabel={isEditing ? 'Save Changes' : 'Create Goal'}
+          isSubmitting={isSubmitting}
+          leftContent={
+            isEditing ? (
+              <ConfirmDeleteButton
+                onDelete={onDelete}
+                disabled={isDeleting}
+                isDeleting={isDeleting}
+              />
+            ) : undefined
+          }
+        />
+      </div>
     </form>
   );
 }
