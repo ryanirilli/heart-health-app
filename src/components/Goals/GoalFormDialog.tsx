@@ -174,7 +174,7 @@ export function GoalFormDialog() {
   if (isMobile) {
     return (
       <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DrawerContent className="max-h-[90vh]">
+        <DrawerContent className="h-[85vh]">
           <DrawerHeader className="sr-only">
             <DrawerTitle>
               {isEditing ? 'Edit Goal' : 'Create Goal'}
