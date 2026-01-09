@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CalendarIcon, Check } from 'lucide-react';
 import {
@@ -180,9 +180,9 @@ export function GoalFormDialog() {
               {isEditing ? 'Edit Goal' : 'Create Goal'}
             </DrawerTitle>
           </DrawerHeader>
-          <div className="px-4 pb-8 overflow-y-auto">
+          <MobileDrawerContent>
             {formContent}
-          </div>
+          </MobileDrawerContent>
         </DrawerContent>
       </Drawer>
     );
@@ -195,6 +195,44 @@ export function GoalFormDialog() {
       </DialogContent>
     </Dialog>
   );
+}
+
+// =============================================================================
+// MOBILE DRAWER CONTENT (wrapper that provides scroll ref to form content)
+// =============================================================================
+
+function MobileDrawerContent({ 
+  children
+}: { 
+  children: React.ReactNode;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <MobileScrollContext.Provider value={scrollRef}>
+      <div ref={scrollRef} className="px-4 pb-8 overflow-y-auto">
+        {children}
+      </div>
+    </MobileScrollContext.Provider>
+  );
+}
+
+// Context to pass scroll ref from drawer to form content (which is inside Stepper)
+const MobileScrollContext = React.createContext<React.RefObject<HTMLDivElement | null> | null>(null);
+
+// Component that registers scroll container with stepper (must be inside Stepper)
+function MobileScrollRegistrar() {
+  const scrollRef = React.useContext(MobileScrollContext);
+  const { registerScrollContainer } = useStepper();
+  
+  useEffect(() => {
+    if (scrollRef?.current) {
+      registerScrollContainer(scrollRef.current);
+    }
+    return () => registerScrollContainer(null);
+  }, [registerScrollContainer, scrollRef]);
+
+  return null;
 }
 
 // =============================================================================
@@ -265,6 +303,9 @@ function GoalFormContent({
 
   return (
     <form onSubmit={onSubmit} className="space-y-6">
+      {/* Register scroll container for mobile drawer */}
+      <MobileScrollRegistrar />
+      
       <DialogHeader className="pb-0">
         <DialogTitle className="sr-only">
           {isEditing ? 'Edit Goal' : 'Create Goal'}
