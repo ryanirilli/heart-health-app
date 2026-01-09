@@ -149,11 +149,11 @@ function getAverageValueForPeriod(
 
 /**
  * Get the effective value for goal comparison based on activity type.
- * For slider and buttonGroup types, returns the average over the period.
+ * For slider, buttonGroup, and toggle types, returns the average over the period.
  * For other types (increment), returns the sum.
  * 
- * ButtonGroup types (like mood with Good/Neutral/Bad options) use average
- * because summing discrete choice values doesn't make semantic sense.
+ * ButtonGroup and toggle types use average because summing discrete choice values 
+ * doesn't make semantic sense.
  */
 function getEffectiveValueForGoal(
   goal: Goal,
@@ -163,8 +163,8 @@ function getEffectiveValueForGoal(
 ): number {
   if (!allActivities || !activityType) return 0;
   
-  // Both slider and buttonGroup use average (not sum)
-  const useAverage = activityType.uiType === 'slider' || activityType.uiType === 'buttonGroup';
+  // Slider, buttonGroup, and toggle use average (not sum)
+  const useAverage = activityType.uiType === 'slider' || activityType.uiType === 'buttonGroup' || activityType.uiType === 'toggle';
   
   // Determine the period based on goal date type
   let startDate: string;
@@ -289,8 +289,8 @@ export function GoalStatusSection({
       }
       
       // Calculate effective value for non-daily goals
-      // Both slider and buttonGroup types use average (not sum)
-      const usesAverageValue = activityType?.uiType === 'slider' || activityType?.uiType === 'buttonGroup';
+      // Slider, buttonGroup, and toggle types use average (not sum)
+      const usesAverageValue = activityType?.uiType === 'slider' || activityType?.uiType === 'buttonGroup' || activityType?.uiType === 'toggle';
       const effectiveValue = goal.dateType === 'daily' 
         ? activityValue 
         : getEffectiveValueForGoal(goal, activityType, allActivities, dateStr);
@@ -435,6 +435,21 @@ function GoalStatusItem({
 
     // For evaluation days or other goal types, show progress
     if (activityType) {
+      // For toggle types, show Yes/No
+      if (activityType.uiType === 'toggle') {
+        if (goal.dateType === 'daily') {
+          const currentLabel = activityValue === 1 ? 'Yes' : 'No';
+          const targetLabel = goal.targetValue === 1 ? 'Yes' : 'No';
+          return `${currentLabel} / Target: ${targetLabel}`;
+        } else {
+          // For non-daily toggle goals, show percentage of Yes days
+          const avgValue = effectiveValue !== undefined ? effectiveValue : 0;
+          const percentage = Math.round(avgValue * 100);
+          const targetLabel = goal.targetValue === 1 ? 'Yes' : 'No';
+          return `${percentage}% Yes / Target: ${targetLabel}`;
+        }
+      }
+      
       // For non-daily goals that use average (slider and buttonGroup)
       if (usesAverageValue && goal.dateType !== 'daily') {
         // For buttonGroup types, just show "Average: {label}"

@@ -105,6 +105,44 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
     );
   }
 
+  // Toggle (Yes/No) UI
+  if (type.uiType === "toggle") {
+    const isYes = currentValue === 1;
+
+    return (
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(isYes ? 0 : 1)}
+          disabled={disabled}
+          className={cn(
+            "flex-1 py-2.5 px-4 rounded-full border-2 text-sm font-medium transition-all",
+            isYes
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground",
+            disabled && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          Yes
+        </button>
+        <button
+          type="button"
+          onClick={() => onChange(isYes ? 0 : 1)}
+          disabled={disabled}
+          className={cn(
+            "flex-1 py-2.5 px-4 rounded-full border-2 text-sm font-medium transition-all",
+            !isYes
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground",
+            disabled && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          No
+        </button>
+      </div>
+    );
+  }
+
   // Increment/decrement UI
   return (
     <div className="flex items-center gap-3">
@@ -278,6 +316,10 @@ function ActivityViewCard({
     if (type.uiType === "buttonGroup") {
       const label = getButtonOptionLabel(type, value);
       return label || `${value}`;
+    }
+    if (type.uiType === "toggle") {
+      // Just show Yes/No without the name since name is shown separately
+      return value === 1 ? "Yes" : "No";
     }
     return formatValueWithUnit(value, type);
   };

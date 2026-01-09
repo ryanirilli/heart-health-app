@@ -502,7 +502,8 @@ function CustomTypeForm({
   const handleSave = async () => {
     if (!editingType || !editingType.name.trim()) return;
 
-    const needsUnit = editingType.uiType !== "buttonGroup";
+    const needsUnit =
+      editingType.uiType !== "buttonGroup" && editingType.uiType !== "toggle";
     if (needsUnit && !editingType.unit?.trim()) return;
 
     if (
@@ -633,7 +634,7 @@ function CustomTypeForm({
                 <Label className="text-xs text-muted-foreground">
                   Input Type
                 </Label>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="outline"
@@ -678,6 +679,21 @@ function CustomTypeForm({
                     )}
                   >
                     Options
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setEditingType({ ...editingType, uiType: "toggle" })
+                    }
+                    className={cn(
+                      "flex-1 text-xs",
+                      editingType.uiType === "toggle" &&
+                        "border-primary bg-primary/10"
+                    )}
+                  >
+                    Yes/No
                   </Button>
                 </div>
               </div>
@@ -765,6 +781,13 @@ function CustomTypeForm({
                   }
                 />
               )}
+
+              {/* Toggle type info */}
+              {editingType.uiType === "toggle" && (
+                <p className="text-xs text-muted-foreground">
+                  A simple Yes/No toggle for binary tracking
+                </p>
+              )}
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -781,6 +804,7 @@ function CustomTypeForm({
           disabled={
             !editingType.name.trim() ||
             (editingType.uiType !== "buttonGroup" &&
+              editingType.uiType !== "toggle" &&
               !editingType.unit?.trim()) ||
             (editingType.uiType === "buttonGroup" &&
               !validateButtonOptions(editingType.buttonOptions))
@@ -878,8 +902,9 @@ export function ActivityTypeManager({
   const handleSave = async () => {
     if (!editingType || !editingType.name.trim()) return;
 
-    // Unit is required for increment and slider, but not for buttonGroup
-    const needsUnit = editingType.uiType !== "buttonGroup";
+    // Unit is required for increment and slider, but not for buttonGroup or toggle
+    const needsUnit =
+      editingType.uiType !== "buttonGroup" && editingType.uiType !== "toggle";
     if (needsUnit && !editingType.unit?.trim()) return;
 
     // Button options validation for buttonGroup
@@ -1156,7 +1181,7 @@ export function ActivityTypeManager({
                       <Label className="text-xs text-muted-foreground">
                         Input Type
                       </Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
                           variant="outline"
@@ -1208,10 +1233,28 @@ export function ActivityTypeManager({
                         >
                           Options
                         </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setEditingType({
+                              ...editingType,
+                              uiType: "toggle",
+                            })
+                          }
+                          className={cn(
+                            "flex-1 text-xs",
+                            editingType.uiType === "toggle" &&
+                              "border-primary bg-primary/10"
+                          )}
+                        >
+                          Yes/No
+                        </Button>
                       </div>
                     </div>
 
-                    {/* Unit (for increment and slider only) */}
+                    {/* Unit (for increment and slider only, not buttonGroup or toggle) */}
                     {(editingType.uiType === "increment" ||
                       editingType.uiType === "slider") && (
                       <div className="space-y-2">
@@ -1232,6 +1275,13 @@ export function ActivityTypeManager({
                           className="h-8"
                         />
                       </div>
+                    )}
+
+                    {/* Toggle type info */}
+                    {editingType.uiType === "toggle" && (
+                      <p className="text-xs text-muted-foreground">
+                        A simple Yes/No toggle for binary tracking
+                      </p>
                     )}
 
                     {/* Range values (for slider) */}
@@ -1321,6 +1371,7 @@ export function ActivityTypeManager({
                 disabled={
                   !editingType.name.trim() ||
                   (editingType.uiType !== "buttonGroup" &&
+                    editingType.uiType !== "toggle" &&
                     !editingType.unit?.trim()) ||
                   (editingType.uiType === "buttonGroup" &&
                     !validateButtonOptions(editingType.buttonOptions))
@@ -1365,7 +1416,9 @@ export function ActivityTypeManager({
                           {type.name}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {type.uiType !== "buttonGroup" && type.unit
+                          {type.uiType !== "buttonGroup" &&
+                          type.uiType !== "toggle" &&
+                          type.unit
                             ? `${type.unit} · `
                             : ""}
                           {goalType === "negative"
@@ -1378,6 +1431,8 @@ export function ActivityTypeManager({
                             ? "Slider"
                             : type.uiType === "buttonGroup"
                             ? "Options"
+                            : type.uiType === "toggle"
+                            ? "Yes/No"
                             : "+/- buttons"}
                         </div>
                       </div>

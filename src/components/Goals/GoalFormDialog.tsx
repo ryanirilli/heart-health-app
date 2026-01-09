@@ -570,6 +570,43 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
       );
     }
 
+    // For toggle UI type - show Yes/No buttons
+    if (uiType === 'toggle') {
+      return (
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleChange(1)}
+              className={cn(
+                'flex-1 py-2.5 px-4 rounded-full border-2 text-sm font-medium transition-all',
+                currentValue === 1
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'
+              )}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => handleChange(0)}
+              className={cn(
+                'flex-1 py-2.5 px-4 rounded-full border-2 text-sm font-medium transition-all',
+                currentValue === 0
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'
+              )}
+            >
+              No
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Target: {currentValue === 1 ? 'Yes' : 'No'} per {getScheduleLabel()}
+          </p>
+        </div>
+      );
+    }
+
     // For increment UI type - show a number input
     return (
       <div className="space-y-4">
@@ -707,7 +744,9 @@ function StepSummary({ formData, activityTypes, errors }: StepSummaryProps) {
           <div className="flex items-center justify-between py-1">
             <span className="text-sm text-muted-foreground">Target</span>
             <span className="text-sm font-medium">
-              {selectedActivityType
+              {selectedActivityType?.uiType === 'toggle'
+                ? (formData.targetValue === 1 ? 'Yes' : 'No')
+                : selectedActivityType
                 ? formatValueWithUnit(formData.targetValue, selectedActivityType)
                 : formData.targetValue}
             </span>
