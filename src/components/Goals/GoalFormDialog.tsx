@@ -171,10 +171,11 @@ export function GoalFormDialog() {
   );
 
   // Use Drawer on mobile, Dialog on desktop
+  // Use min-h with dvh (dynamic viewport height) to handle keyboard appearance/disappearance
   if (isMobile) {
     return (
       <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DrawerContent className="h-[85vh]">
+        <DrawerContent className="min-h-[85dvh] max-h-[90dvh]">
           <DrawerHeader className="sr-only">
             <DrawerTitle>
               {isEditing ? 'Edit Goal' : 'Create Goal'}
