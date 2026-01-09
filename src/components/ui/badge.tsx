@@ -19,6 +19,15 @@ const badgeVariants = cva(
         today: "rounded-full border-transparent bg-primary/10 text-primary",
         // App-specific: muted badge for "Archived" labels
         muted: "rounded border-transparent bg-muted text-muted-foreground",
+        // Goal status badges - themed to match goal states
+        goalMet: "rounded-md border-green-500/30 bg-green-500/20 text-green-700 dark:text-green-300",
+        goalMetOutline: "rounded-md border-green-500/40 bg-transparent text-green-700 dark:text-green-300",
+        goalWarning: "rounded-md border-amber-500/30 bg-amber-500/20 text-amber-700 dark:text-amber-300",
+        goalWarningOutline: "rounded-md border-amber-500/40 bg-transparent text-amber-700 dark:text-amber-300",
+        goalProgress: "rounded-md border-primary/30 bg-primary/10 text-primary",
+        goalProgressOutline: "rounded-md border-primary/40 bg-transparent text-primary",
+        goalMissed: "rounded-md border-muted-foreground/20 bg-muted/30 text-muted-foreground",
+        goalMissedOutline: "rounded-md border-muted-foreground/30 bg-transparent text-muted-foreground",
       },
     },
     defaultVariants: {

@@ -398,6 +398,19 @@ export function GoalStatusSection({
   );
 }
 
+interface GoalStatusStyles {
+  container: string;
+  goalIcon: string;
+  goalIconColor: string;
+  textColor: string;
+  badgeVariant: "goalMet" | "goalWarning" | "goalProgress" | "goalMissed";
+  badgeOutlineVariant:
+    | "goalMetOutline"
+    | "goalWarningOutline"
+    | "goalProgressOutline"
+    | "goalMissedOutline";
+}
+
 interface GoalStatusItemProps {
   goal: Goal;
   activityValue: number | undefined;
@@ -431,6 +444,8 @@ function GoalStatusItem({
           goalIcon: "bg-green-500/25",
           goalIconColor: "text-green-600 dark:text-green-400",
           textColor: "text-green-700 dark:text-green-300",
+          badgeVariant: "goalMet" as const,
+          badgeOutlineVariant: "goalMetOutline" as const,
         };
       case "evaluation_day":
         // Last day - amber attention
@@ -439,6 +454,8 @@ function GoalStatusItem({
           goalIcon: "bg-amber-500/25",
           goalIconColor: "text-amber-600 dark:text-amber-400",
           textColor: "text-amber-700 dark:text-amber-300",
+          badgeVariant: "goalWarning" as const,
+          badgeOutlineVariant: "goalWarningOutline" as const,
         };
       case "in_progress":
         // In progress - subtle but clear
@@ -447,6 +464,8 @@ function GoalStatusItem({
           goalIcon: "bg-primary/10",
           goalIconColor: "text-primary",
           textColor: "text-foreground",
+          badgeVariant: "goalProgress" as const,
+          badgeOutlineVariant: "goalProgressOutline" as const,
         };
       case "missed":
       default:
@@ -456,6 +475,8 @@ function GoalStatusItem({
           goalIcon: "bg-muted/50",
           goalIconColor: "text-muted-foreground/70",
           textColor: "text-muted-foreground",
+          badgeVariant: "goalMissed" as const,
+          badgeOutlineVariant: "goalMissedOutline" as const,
         };
     }
   };
@@ -605,16 +626,19 @@ function GoalStatusItem({
             {goal.name}
           </p>
           {displayStatus === "evaluation_day" && (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+            <Badge
+              variant={styles.badgeVariant}
+              className="text-[10px] px-1.5 py-0"
+            >
               Last Day
             </Badge>
           )}
         </div>
-        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <span>{subtitle.text}</span>
+        <div className="text-xs flex items-center gap-1.5">
+          <span className={styles.textColor}>{subtitle.text}</span>
           {subtitle.goalBadge && (
             <Badge
-              variant="outline"
+              variant={styles.badgeOutlineVariant}
               className="text-[10px] px-1.5 py-0 font-normal"
             >
               {subtitle.goalBadge}
@@ -634,7 +658,10 @@ function GoalStatusItem({
           Update Goal
         </Button>
       ) : (
-        <Badge variant="secondary" className="flex-shrink-0 text-[10px]">
+        <Badge
+          variant={styles.badgeVariant}
+          className="flex-shrink-0 text-[10px]"
+        >
           {formatGoalDateInfo(goal)}
         </Badge>
       )}
