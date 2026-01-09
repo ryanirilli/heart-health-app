@@ -17,6 +17,12 @@ import {
   useDeleteActivity,
   ACTIVITIES_QUERY_KEY 
 } from '@/lib/hooks/useActivitiesQuery';
+import {
+  useActivityTypesQuery,
+  useCreateActivityType,
+  useUpdateActivityType,
+  useDeleteActivityType,
+} from '@/lib/hooks/useActivityTypesQuery';
 
 interface ActivityContextValue {
   // Activity Types
@@ -74,7 +80,6 @@ export function ActivityProvider({
   initialTypes = {}, 
   initialActivities = {} 
 }: ActivityProviderProps) {
-  const [activityTypes, setActivityTypes] = useState<ActivityTypeMap>(initialTypes);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsStartInAddMode, setSettingsStartInAddMode] = useState(false);
   const queryClient = useQueryClient();
@@ -93,42 +98,37 @@ export function ActivityProvider({
     }
   }, []);
   
+  // Use React Query for activity types
+  const { data: activityTypes = {}, isLoading: isLoadingTypes } = useActivityTypesQuery(initialTypes);
+  const createActivityTypeMutation = useCreateActivityType();
+  const updateActivityTypeMutation = useUpdateActivityType();
+  const deleteActivityTypeMutation = useDeleteActivityType();
+  
   // Use React Query for activities
-  const { data: activities = {}, isLoading } = useActivitiesQuery(initialActivities);
+  const { data: activities = {}, isLoading: isLoadingActivities } = useActivitiesQuery(initialActivities);
   const saveActivityMutation = useSaveActivity();
   const deleteActivityMutation = useDeleteActivity();
+  
+  const isLoading = isLoadingTypes || isLoadingActivities;
 
   // Computed values
   const activeTypes = useMemo(() => getActiveActivityTypes(activityTypes), [activityTypes]);
   const canAddType = useMemo(() => canAddActivityType(activityTypes), [activityTypes]);
 
-  // Activity Type management
+  // Activity Type management - now using React Query mutations
   const addActivityType = useCallback((type: ActivityType) => {
     if (!canAddActivityType(activityTypes)) return;
-    
-    setActivityTypes((prev) => ({
-      ...prev,
-      [type.id]: type,
-    }));
-  }, [activityTypes]);
+    createActivityTypeMutation.mutate(type);
+  }, [activityTypes, createActivityTypeMutation]);
 
   const updateActivityType = useCallback((type: ActivityType) => {
-    setActivityTypes((prev) => ({
-      ...prev,
-      [type.id]: type,
-    }));
-  }, []);
+    updateActivityTypeMutation.mutate(type);
+  }, [updateActivityTypeMutation]);
 
   const deleteActivityType = useCallback((typeId: string) => {
     // Soft delete - mark as deleted but keep the type for existing entries
-    setActivityTypes((prev) => ({
-      ...prev,
-      [typeId]: {
-        ...prev[typeId],
-        deleted: true,
-      },
-    }));
-  }, []);
+    deleteActivityTypeMutation.mutate(typeId);
+  }, [deleteActivityTypeMutation]);
 
   // Activity management using React Query mutations
   const updateActivity = useCallback((date: string, entries: { [typeId: string]: ActivityEntry }) => {

@@ -499,7 +499,7 @@ function CustomTypeForm({
     createDefaultType({ order: activeTypes.length })
   );
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!editingType || !editingType.name.trim()) return;
 
     const needsUnit =
@@ -512,20 +512,9 @@ function CustomTypeForm({
     )
       return;
 
-    try {
-      const response = await fetch("/api/activity-types", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingType),
-      });
-
-      if (!response.ok) throw new Error("Failed to save activity type");
-
-      addActivityType(editingType);
-      onCancel();
-    } catch (error) {
-      console.error("Failed to save activity type:", error);
-    }
+    // The provider's addActivityType now handles the API call via React Query
+    addActivityType(editingType);
+    onCancel();
   };
 
   if (!canAddType) {
@@ -861,7 +850,7 @@ export function ActivityTypeManager({
     setShowAddNew(false);
   };
 
-  const handleAddPreset = async (preset: PresetActivityType) => {
+  const handleAddPreset = (preset: PresetActivityType) => {
     if (!canAddType || addingPreset) return;
 
     setAddingPreset(preset.name);
@@ -872,22 +861,11 @@ export function ActivityTypeManager({
       id: generateActivityTypeId(),
     };
 
-    try {
-      const response = await fetch("/api/activity-types", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newType),
-      });
-
-      if (!response.ok) throw new Error("Failed to save activity type");
-
-      addActivityType(newType);
-      // Stay on the presets screen so user can add more
-    } catch (error) {
-      console.error("Failed to add preset activity type:", error);
-    } finally {
-      setAddingPreset(null);
-    }
+    // The provider's addActivityType now handles the API call via React Query
+    addActivityType(newType);
+    // Stay on the presets screen so user can add more
+    // Reset the adding state after a short delay to show feedback
+    setTimeout(() => setAddingPreset(null), 300);
   };
 
   // Check which presets are already added (by name)
@@ -899,7 +877,7 @@ export function ActivityTypeManager({
     setEditingType({ ...type });
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!editingType || !editingType.name.trim()) return;
 
     // Unit is required for increment and slider, but not for buttonGroup or toggle
@@ -914,43 +892,22 @@ export function ActivityTypeManager({
     )
       return;
 
-    try {
-      const isNew = !activeTypes.find((t) => t.id === editingType.id);
+    const isNew = !activeTypes.find((t) => t.id === editingType.id);
 
-      // Save to API
-      const response = await fetch("/api/activity-types", {
-        method: isNew ? "POST" : "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingType),
-      });
-
-      if (!response.ok) throw new Error("Failed to save activity type");
-
-      if (isNew) {
-        addActivityType(editingType);
-      } else {
-        updateActivityType(editingType);
-      }
-
-      setEditingType(null);
-    } catch (error) {
-      console.error("Failed to save activity type:", error);
+    // The provider's methods now handle the API calls via React Query
+    if (isNew) {
+      addActivityType(editingType);
+    } else {
+      updateActivityType(editingType);
     }
+
+    setEditingType(null);
   };
 
-  const handleDelete = async (typeId: string) => {
-    try {
-      const response = await fetch(`/api/activity-types?id=${typeId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Failed to delete activity type");
-
-      deleteActivityType(typeId);
-      setEditingType(null);
-    } catch (error) {
-      console.error("Failed to delete activity type:", error);
-    }
+  const handleDelete = (typeId: string) => {
+    // The provider's deleteActivityType now handles the API call via React Query
+    deleteActivityType(typeId);
+    setEditingType(null);
   };
 
   const handleCancel = () => {

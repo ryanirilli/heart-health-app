@@ -19,7 +19,7 @@ export interface ButtonOption {
 }
 
 /** Maximum number of button options allowed */
-export const MAX_BUTTON_OPTIONS = 3;
+export const MAX_BUTTON_OPTIONS = 5;
 
 export interface ActivityType {
   /** Unique identifier for the activity type */

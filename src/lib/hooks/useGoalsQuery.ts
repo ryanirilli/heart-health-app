@@ -16,8 +16,9 @@ export function useGoalsQuery(initialData?: GoalMap) {
       return response.json() as Promise<GoalMap>;
     },
     initialData,
-    // If we have initial data from SSR, don't refetch immediately
-    staleTime: initialData ? Infinity : 0,
+    // Use a reasonable stale time instead of Infinity
+    // This ensures data will refresh after mutations
+    staleTime: initialData ? 5 * 60 * 1000 : 0, // 5 minutes if SSR data, immediate otherwise
   });
 }
 

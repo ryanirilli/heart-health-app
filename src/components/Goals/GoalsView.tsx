@@ -2,18 +2,15 @@
 
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ActivityTypeMap } from '@/lib/activityTypes';
 import { useGoals } from './GoalsProvider';
 import { GoalCard } from './GoalCard';
-
-interface GoalsViewProps {
-  activityTypes: ActivityTypeMap;
-}
+import { useActivityTypes } from '@/components/ActivityCalendar/ActivityProvider';
 
 const MAX_GOALS = 5;
 
-export function GoalsView({ activityTypes }: GoalsViewProps) {
+export function GoalsView() {
   const { goalsList, isLoading, openCreateDialog, openEditDialog } = useGoals();
+  const { activityTypes } = useActivityTypes();
 
   if (isLoading) {
     return (

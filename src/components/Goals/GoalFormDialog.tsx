@@ -53,16 +53,13 @@ import { GoalIconPicker } from './GoalIconPicker';
 import { useGoals } from './GoalsProvider';
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { Badge } from '@/components/ui/badge';
+import { useActivityTypes } from '@/components/ActivityCalendar/ActivityProvider';
 
 /**
  * Parse a date string (YYYY-MM-DD) to a Date object in local timezone.
  */
 function parseDateString(dateStr: string): Date {
   return parseISO(dateStr);
-}
-
-interface GoalFormDialogProps {
-  activityTypes: ActivityTypeMap;
 }
 
 const STEPS: Step[] = [
@@ -73,7 +70,8 @@ const STEPS: Step[] = [
   { id: 'summary', title: 'Review', description: 'Review and save your goal' },
 ];
 
-export function GoalFormDialog({ activityTypes }: GoalFormDialogProps) {
+export function GoalFormDialog() {
+  const { activityTypes } = useActivityTypes();
   const {
     dialogOpen,
     setDialogOpen,

@@ -87,7 +87,7 @@ export function DashboardContent({
                     <ActivityCalendar />
                   </>
                 ) : (
-                  <GoalsView activityTypes={types} />
+                  <GoalsView />
                 )}
               </motion.div>
             </AnimatePresence>
@@ -98,7 +98,7 @@ export function DashboardContent({
           onViewChange={handleViewChange}
         />
         {/* Goal form dialog - always mounted so it can be opened from anywhere */}
-        <GoalFormDialog activityTypes={types} />
+        <GoalFormDialog />
       </GoalsProvider>
     </ActivityProvider>
   );
