@@ -15,6 +15,7 @@ import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PillToggle } from "@/components/ui/pill-toggle";
 import { Settings } from "lucide-react";
 import {
   Accordion,
@@ -105,40 +106,23 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
     );
   }
 
-  // Toggle (Yes/No) UI
+  // Toggle (Yes/No) UI with animated pill toggle
   if (type.uiType === "toggle") {
-    const isYes = currentValue === 1;
+    const toggleValue = currentValue === 1 ? "yes" : "no";
 
     return (
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => onChange(isYes ? 0 : 1)}
-          disabled={disabled}
-          className={cn(
-            "flex-1 py-2.5 px-4 rounded-full border-2 text-sm font-medium transition-all",
-            isYes
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground",
-            disabled && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          Yes
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange(isYes ? 0 : 1)}
-          disabled={disabled}
-          className={cn(
-            "flex-1 py-2.5 px-4 rounded-full border-2 text-sm font-medium transition-all",
-            !isYes
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground",
-            disabled && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          No
-        </button>
+      <div className={cn(disabled && "opacity-50 pointer-events-none")}>
+        <PillToggle
+          options={[
+            { value: "yes", label: "Yes" },
+            { value: "no", label: "No" },
+          ]}
+          value={toggleValue}
+          onValueChange={(val) => onChange(val === "yes" ? 1 : 0)}
+          layoutId={`toggle-${type.id}`}
+          size="md"
+          fullWidth
+        />
       </div>
     );
   }

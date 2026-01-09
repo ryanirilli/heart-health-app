@@ -156,28 +156,27 @@ function formatMinutesAsTime(minutes: number): string {
   return `${hourPart} ${minPart}`;
 }
 
-/** Format a value with the activity type's unit */
-export function formatValueWithUnit(value: number, type: ActivityType): string {
-  // For button groups, show the label instead of value + unit
+/**
+ * Format a value with just the unit (no activity name).
+ * Use this when the activity name is already displayed elsewhere.
+ */
+export function formatValueOnly(value: number, type: ActivityType): string {
+  // For button groups, show just the label
   if (type.uiType === "buttonGroup") {
     const label = getButtonOptionLabel(type, value);
-    if (label) {
-      return `${type.name}: ${label}`;
-    }
-    // Fallback for buttonGroup without matching label
-    return `${type.name}: ${value}`;
+    return label || String(value);
   }
 
-  // For toggle types, show Name: Yes/No
+  // For toggle types, show Yes/No
   if (type.uiType === "toggle") {
-    return `${type.name}: ${value === 1 ? "Yes" : "No"}`;
+    return value === 1 ? "Yes" : "No";
   }
 
   const { unit, pluralize: shouldPluralize } = type;
 
   // If no unit, just return the value
   if (!unit) {
-    return `${value}`;
+    return String(value);
   }
 
   // Special handling for minutes - show as hours and minutes when appropriate
@@ -190,4 +189,16 @@ export function formatValueWithUnit(value: number, type: ActivityType): string {
   }
 
   return `${value} ${unit}`;
+}
+
+/** Format a value with the activity type's name and unit (for summaries/tooltips) */
+export function formatValueWithUnit(value: number, type: ActivityType): string {
+  const valueStr = formatValueOnly(value, type);
+
+  // For button groups and toggles, include the name prefix
+  if (type.uiType === "buttonGroup" || type.uiType === "toggle") {
+    return `${type.name}: ${valueStr}`;
+  }
+
+  return `${type.name}: ${valueStr}`;
 }

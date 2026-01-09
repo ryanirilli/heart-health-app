@@ -115,6 +115,41 @@ function SkeletonDayCard({ date }: { date: Date }) {
   );
 }
 
+// Clickable skeleton card for future dates (next day preview)
+function ClickableSkeletonDayCard({
+  date,
+  onClick,
+}: {
+  date: Date;
+  onClick?: () => void;
+}) {
+  return (
+    <Card
+      className={cn(
+        "opacity-25 transition-all duration-200",
+        onClick && "cursor-not-allowed"
+      )}
+      onClick={onClick}
+    >
+      <CardHeader className="p-4 pt-4">
+        <div className="flex flex-col items-center gap-2">
+          <DateTile date={date} />
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Tomorrow
+          </CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="px-4 py-2 pb-4">
+        <div className="space-y-2">
+          <div className="h-10 bg-muted rounded-lg animate-pulse" />
+          <div className="h-10 bg-muted rounded-lg animate-pulse" />
+          <div className="h-10 bg-muted rounded-lg animate-pulse" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Empty past day card - tap to log
 function EmptyPastDayCard({
   date,
@@ -182,15 +217,17 @@ function DateTile({ date }: { date: Date }) {
   );
 }
 
-// Preview card for adjacent days (non-interactive)
+// Preview card for adjacent days (clickable to navigate)
 function PreviewDayCard({
   date,
   activity,
   activityTypes,
+  onClick,
 }: {
   date: Date;
   activity: Activity | undefined;
   activityTypes: { [id: string]: ActivityType };
+  onClick?: () => void;
 }) {
   const isCurrentlyToday = isToday(date);
 
@@ -206,7 +243,13 @@ function PreviewDayCard({
   }, [activity, activityTypes]);
 
   return (
-    <Card className="opacity-30">
+    <Card
+      className={cn(
+        "opacity-50 transition-all duration-200",
+        onClick && "cursor-pointer hover:opacity-80 hover:scale-[1.02]"
+      )}
+      onClick={onClick}
+    >
       <CardHeader className="p-4 pt-4">
         <div className="flex flex-col items-center gap-2">
           <DateTile date={date} />
@@ -588,8 +631,8 @@ export function DayView({
 
   return (
     <>
-      {/* Desktop: Three-column layout with animation */}
-      <div className="hidden md:block overflow-hidden">
+      {/* Large screens: Three-column layout with animation */}
+      <div className="hidden lg:block overflow-hidden">
         <AnimatePresence
           mode="popLayout"
           initial={false}
@@ -610,6 +653,7 @@ export function DayView({
               date={previousDate}
               activity={previousActivity}
               activityTypes={activityTypes}
+              onClick={onPreviousDay}
             />
 
             {/* Current day (main interactive card) */}
@@ -617,12 +661,48 @@ export function DayView({
 
             {/* Next day */}
             {isNextFuture ? (
-              <SkeletonDayCard date={nextDate} />
+              <ClickableSkeletonDayCard date={nextDate} />
             ) : (
               <PreviewDayCard
                 date={nextDate}
                 activity={nextActivity}
                 activityTypes={activityTypes}
+                onClick={canGoNext ? onNextDay : undefined}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Medium screens: Two-column layout (current + next day) */}
+      <div className="hidden md:block lg:hidden overflow-hidden">
+        <AnimatePresence
+          mode="popLayout"
+          initial={false}
+          custom={slideDirection}
+        >
+          <motion.div
+            key={selectedDateStr}
+            custom={slideDirection}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={transition}
+            className="grid grid-cols-2 gap-4 items-start"
+          >
+            {/* Current day (main interactive card) */}
+            {mainCard}
+
+            {/* Next day */}
+            {isNextFuture ? (
+              <ClickableSkeletonDayCard date={nextDate} />
+            ) : (
+              <PreviewDayCard
+                date={nextDate}
+                activity={nextActivity}
+                activityTypes={activityTypes}
+                onClick={canGoNext ? onNextDay : undefined}
               />
             )}
           </motion.div>

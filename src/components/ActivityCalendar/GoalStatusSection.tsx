@@ -15,7 +15,7 @@ import {
   shouldShowGoalIndicator,
   GOAL_DATE_TYPE_LABELS,
 } from '@/lib/goals';
-import { ActivityTypeMap, formatValueWithUnit, getGoalType } from '@/lib/activityTypes';
+import { ActivityTypeMap, formatValueOnly, getGoalType } from '@/lib/activityTypes';
 import { Activity, ActivityMap } from '@/lib/activities';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -405,31 +405,31 @@ function GoalStatusItem({
 
   const styles = getStatusStyles();
 
-  const getSubtitle = () => {
+  const getSubtitle = (): { text: string; goalBadge?: string } => {
     // For missed goals, show encouraging message based on goal type
     if (displayStatus === 'missed') {
       switch (goal.dateType) {
         case 'daily':
-          return 'Try again tomorrow';
+          return { text: 'Try again tomorrow' };
         case 'weekly':
-          return 'Try again next week';
+          return { text: 'Try again next week' };
         case 'monthly':
-          return 'Try again next month';
+          return { text: 'Try again next month' };
         case 'by_date':
         case 'date_range':
         default:
-          return 'Ready to set a new goal?';
+          return { text: 'Ready to set a new goal?' };
       }
     }
     
     // For "by_date" goals not on evaluation day, show countdown (always from today)
     if (goal.dateType === 'by_date' && daysRemaining !== null && !isEvaluationDay) {
       if (daysRemaining === 0) {
-        return 'Due today';
+        return { text: 'Due today', goalBadge: `Goal ${goal.targetValue}` };
       } else if (daysRemaining === 1) {
-        return '1 day remaining';
+        return { text: '1 day remaining', goalBadge: `Goal ${goal.targetValue}` };
       } else if (daysRemaining > 0) {
-        return `${daysRemaining} days remaining`;
+        return { text: `${daysRemaining} days remaining`, goalBadge: `Goal ${goal.targetValue}` };
       }
     }
 
@@ -440,13 +440,13 @@ function GoalStatusItem({
         if (goal.dateType === 'daily') {
           const currentLabel = activityValue === 1 ? 'Yes' : 'No';
           const targetLabel = goal.targetValue === 1 ? 'Yes' : 'No';
-          return `${currentLabel} / Target: ${targetLabel}`;
+          return { text: currentLabel, goalBadge: `Goal ${targetLabel}` };
         } else {
           // For non-daily toggle goals, show percentage of Yes days
           const avgValue = effectiveValue !== undefined ? effectiveValue : 0;
           const percentage = Math.round(avgValue * 100);
           const targetLabel = goal.targetValue === 1 ? 'Yes' : 'No';
-          return `${percentage}% Yes / Target: ${targetLabel}`;
+          return { text: `${percentage}% Yes`, goalBadge: `Goal ${targetLabel}` };
         }
       }
       
@@ -460,26 +460,29 @@ function GoalStatusItem({
           // Find the matching button option label
           const option = activityType.buttonOptions?.find(o => o.value === roundedValue);
           const label = option?.label || '--';
-          return `Average: ${label}`;
+          // Find target label
+          const targetOption = activityType.buttonOptions?.find(o => o.value === goal.targetValue);
+          const targetLabel = targetOption?.label || String(goal.targetValue);
+          return { text: `Avg ${label}`, goalBadge: `Goal ${targetLabel}` };
         }
-        // For slider types, show decimal average
+        // For slider types, show decimal average with unit
         const avgValue = effectiveValue !== undefined 
-          ? formatValueWithUnit(Math.round(effectiveValue * 10) / 10, activityType)
+          ? formatValueOnly(Math.round(effectiveValue * 10) / 10, activityType)
           : '0';
-        const targetValue = formatValueWithUnit(goal.targetValue, activityType);
-        return `Avg: ${avgValue} / ${targetValue}`;
+        return { text: `Avg ${avgValue}`, goalBadge: `Goal ${goal.targetValue}` };
       }
       
-      // For daily goals or increment types, show current/cumulative value
+      // For daily goals or increment types, show current/cumulative value with unit
       const currentValue = goal.dateType === 'daily'
-        ? (activityValue !== undefined ? formatValueWithUnit(activityValue, activityType) : '0')
-        : (effectiveValue !== undefined ? formatValueWithUnit(effectiveValue, activityType) : '0');
-      const targetValue = formatValueWithUnit(goal.targetValue, activityType);
-      return `${currentValue} / ${targetValue}`;
+        ? (activityValue !== undefined ? formatValueOnly(activityValue, activityType) : '0')
+        : (effectiveValue !== undefined ? formatValueOnly(effectiveValue, activityType) : '0');
+      return { text: currentValue, goalBadge: `Goal ${goal.targetValue}` };
     }
     
-    return `${activityValue ?? 0} / ${goal.targetValue}`;
+    return { text: String(activityValue ?? 0), goalBadge: `Goal ${goal.targetValue}` };
   };
+
+  const subtitle = getSubtitle();
   
   // Only show Update Goal button for by_date and date_range goals
   const showUpdateButton = displayStatus === 'missed' && 
@@ -516,9 +519,14 @@ function GoalStatusItem({
             </Badge>
           )}
         </div>
-        <p className="text-xs text-muted-foreground">
-          {getSubtitle()}
-        </p>
+        <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+          <span>{subtitle.text}</span>
+          {subtitle.goalBadge && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-normal">
+              {subtitle.goalBadge}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Duration Badge or Update Goal button */}
