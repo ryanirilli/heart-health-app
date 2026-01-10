@@ -44,7 +44,8 @@ export function GoalCard({ goal, activityType, onClick }: GoalCardProps) {
     <Card
       className={cn(
         'cursor-pointer transition-all hover:shadow-md hover:border-primary/50',
-        'active:scale-[0.98]'
+        'active:scale-[0.98]',
+        'touch-action-manipulation'
       )}
       onClick={onClick}
     >

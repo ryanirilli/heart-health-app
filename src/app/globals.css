@@ -148,6 +148,13 @@ a {
   }
 }
 
+@layer utilities {
+  /* Prevent 300ms tap delay on mobile and disable double-tap zoom */
+  .touch-action-manipulation {
+    touch-action: manipulation;
+  }
+}
+
 /* Custom range slider styles */
 .activity-slider {
   -webkit-appearance: none;

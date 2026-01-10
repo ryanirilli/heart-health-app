@@ -57,7 +57,8 @@ function AddGoalCard({ onClick }: { onClick: () => void }) {
         "hover:border-muted-foreground/40 hover:bg-muted/50",
         "transition-colors duration-200",
         "cursor-pointer",
-        "min-h-[88px]" // Match approximate height of GoalCard
+        "min-h-[88px]", // Match approximate height of GoalCard
+        "touch-action-manipulation"
       )}
     >
       {/* Icon - matches GoalCard icon styling */}

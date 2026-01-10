@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ActivityCalendar,
@@ -25,23 +25,40 @@ export function DashboardContent({
   goals,
 }: DashboardContentProps) {
   const [currentView, setCurrentView] = useState<AppView>("activities");
+  const pendingViewRef = useRef<AppView | null>(null);
 
   const handleViewChange = useCallback((view: AppView) => {
-    // Smooth scroll to top, then change view after scroll completes
     const scrollY = window.scrollY || document.documentElement.scrollTop;
 
     if (scrollY > 0) {
-      // Scroll to top first
+      // Store the pending view change
+      pendingViewRef.current = view;
+
+      // Smooth scroll to top first
       window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Wait for scroll to complete, then change view
-      // Estimate scroll duration based on distance (roughly 300-500ms for most scrolls)
-      const scrollDuration = Math.min(Math.max(scrollY * 0.5, 150), 400);
-      setTimeout(() => {
-        setCurrentView(view);
-      }, scrollDuration);
+      // Poll for scroll completion using requestAnimationFrame (non-blocking)
+      const checkScrollComplete = () => {
+        // If a different view was requested, abandon this one
+        if (pendingViewRef.current !== view) {
+          return;
+        }
+
+        const currentScroll =
+          window.scrollY || document.documentElement.scrollTop;
+        if (currentScroll <= 1) {
+          // Scroll complete, change view
+          pendingViewRef.current = null;
+          setCurrentView(view);
+        } else {
+          // Keep polling
+          requestAnimationFrame(checkScrollComplete);
+        }
+      };
+      requestAnimationFrame(checkScrollComplete);
     } else {
       // Already at top, change view immediately
+      pendingViewRef.current = null;
       setCurrentView(view);
     }
   }, []);
