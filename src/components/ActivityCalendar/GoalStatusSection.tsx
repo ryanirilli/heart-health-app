@@ -426,6 +426,19 @@ export function GoalStatusSection({
       const usesAverageTracking =
         isDiscreteType && goalTrackingType === "average";
 
+      // DEBUG: Log tracking type info for discrete goals
+      if (isDiscreteType && goal.name === "Dry Jan") {
+        console.log("[GoalStatusSection DEBUG]", {
+          goalName: goal.name,
+          rawTrackingType,
+          goalTrackingType,
+          isDiscreteType,
+          usesAbsoluteTracking,
+          usesAverageTracking,
+          typeofRaw: typeof rawTrackingType,
+        });
+      }
+
       if (goal.dateType === "daily") {
         // For daily goals, use single day value (exact match for discrete types)
         if (isDiscreteType) {
@@ -448,12 +461,35 @@ export function GoalStatusSection({
           // For discrete types (buttonGroup/toggle):
           // - Absolute tracking: "Every day must match target" (allDaysMet)
           // - Average tracking: "Most days match target" (>50% of days)
+
+          // DEBUG: Log discrete type evaluation
+          if (goal.name === "Dry Jan") {
+            console.log("[GoalStatusSection DEBUG - discrete eval]", {
+              goalName: goal.name,
+              usesAbsoluteTracking,
+              valueResult,
+              isEvaluationDay,
+              expired,
+            });
+          }
+
           if (usesAbsoluteTracking) {
             // Absolute: goal is met only if ALL logged days matched the target
             // If ANY day doesn't match, the goal is immediately failed
             if (valueResult.dayCount > 0 && !valueResult.allDaysMet) {
               // At least one day didn't match - goal is failed
               isFailed = true;
+
+              // DEBUG
+              if (goal.name === "Dry Jan") {
+                console.log(
+                  "[GoalStatusSection DEBUG - SETTING isFailed=true]",
+                  {
+                    dayCount: valueResult.dayCount,
+                    allDaysMet: valueResult.allDaysMet,
+                  }
+                );
+              }
             } else if (isEvaluationDay || expired) {
               // On evaluation day, check if goal is met
               isMet = valueResult.allDaysMet && valueResult.dayCount > 0;
@@ -472,6 +508,18 @@ export function GoalStatusSection({
               // For by_date and date_range, can turn green early
               isMet =
                 valueResult.effectiveValue > 0.5 && valueResult.dayCount > 0;
+
+              // DEBUG
+              if (goal.name === "Dry Jan") {
+                console.log(
+                  "[GoalStatusSection DEBUG - AVERAGE tracking (should be absolute!)]",
+                  {
+                    effectiveValue: valueResult.effectiveValue,
+                    dayCount: valueResult.dayCount,
+                    isMet,
+                  }
+                );
+              }
             }
           }
         } else if (goalType === "negative") {
