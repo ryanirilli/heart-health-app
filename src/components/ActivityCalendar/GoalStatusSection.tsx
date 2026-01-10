@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Star, Frown } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,12 @@ import { Activity, ActivityMap } from "@/lib/activities";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useGoals } from "@/components/Goals";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 /** Format goal date info for display */
 function formatGoalDateInfo(goal: Goal): string {
@@ -364,45 +370,84 @@ export function GoalStatusSection({
     });
   }, [goals, dateStr, activity, activityTypes, allActivities]);
 
+  const accordionRef = useRef<HTMLDivElement>(null);
+
+  const handleValueChange = (value: string) => {
+    if (value === "goals" && accordionRef.current) {
+      // Wait for the accordion animation to complete before scrolling
+      setTimeout(() => {
+        const element = accordionRef.current;
+        if (!element) return;
+
+        // Get the element's position and add extra padding for mobile floating nav
+        const rect = element.getBoundingClientRect();
+        const scrollContainer = element.closest('[data-scroll-container]') || window;
+        
+        if (scrollContainer === window) {
+          // For window scrolling, calculate with extra bottom padding for floating nav
+          const bottomPadding = 100; // Extra space for floating footer bar
+          const viewportHeight = window.innerHeight;
+          const elementBottom = rect.bottom;
+          
+          if (elementBottom + bottomPadding > viewportHeight) {
+            window.scrollBy({
+              top: elementBottom - viewportHeight + bottomPadding,
+              behavior: "smooth",
+            });
+          }
+        } else {
+          // For container scrolling
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+          });
+        }
+      }, 200);
+    }
+  };
+
   if (goalsWithStatus.length === 0) {
     return null;
   }
 
   return (
-    <div className="space-y-3">
-      {/* Section Header */}
-      <div className="flex items-center gap-2">
-        <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-        <span className="text-sm font-medium text-muted-foreground">Goals</span>
-      </div>
-
-      {/* Goal Items */}
-      <div className="space-y-2">
-        {goalsWithStatus.map(
-          ({
-            goal,
-            activityValue,
-            effectiveValue,
-            displayStatus,
-            daysRemaining,
-            isEvaluationDay,
-            usesAverageValue,
-          }) => (
-            <GoalStatusItem
-              key={goal.id}
-              goal={goal}
-              activityValue={activityValue}
-              effectiveValue={effectiveValue}
-              displayStatus={displayStatus}
-              daysRemaining={daysRemaining}
-              isEvaluationDay={isEvaluationDay}
-              usesAverageValue={usesAverageValue}
-              activityType={activityTypes[goal.activityTypeId]}
-            />
-          )
-        )}
-      </div>
-    </div>
+    <Accordion type="single" collapsible onValueChange={handleValueChange} ref={accordionRef}>
+      <AccordionItem value="goals" className="border-0 bg-transparent px-0">
+        <AccordionTrigger className="py-0 hover:no-underline">
+          <div className="flex items-center gap-2">
+            <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+            <span className="text-sm font-medium">Goals</span>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="pb-0 pt-3">
+          <div className="space-y-2">
+            {goalsWithStatus.map(
+              ({
+                goal,
+                activityValue,
+                effectiveValue,
+                displayStatus,
+                daysRemaining,
+                isEvaluationDay,
+                usesAverageValue,
+              }) => (
+                <GoalStatusItem
+                  key={goal.id}
+                  goal={goal}
+                  activityValue={activityValue}
+                  effectiveValue={effectiveValue}
+                  displayStatus={displayStatus}
+                  daysRemaining={daysRemaining}
+                  isEvaluationDay={isEvaluationDay}
+                  usesAverageValue={usesAverageValue}
+                  activityType={activityTypes[goal.activityTypeId]}
+                />
+              )
+            )}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }
 
