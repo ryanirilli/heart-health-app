@@ -153,10 +153,23 @@ function getValuesForPeriod(
   allActivities: ActivityMap | undefined,
   startDate: string,
   endDate: string,
-  goalType: 'positive' | 'negative' | 'neutral' = 'positive',
+  goalType: "positive" | "negative" | "neutral" = "positive",
   isDiscreteType: boolean = false
-): { sum: number; count: number; average: number; daysMetTarget: number; allDaysMet: boolean } {
-  if (!allActivities) return { sum: 0, count: 0, average: 0, daysMetTarget: 0, allDaysMet: false };
+): {
+  sum: number;
+  count: number;
+  average: number;
+  daysMetTarget: number;
+  allDaysMet: boolean;
+} {
+  if (!allActivities)
+    return {
+      sum: 0,
+      count: 0,
+      average: 0,
+      daysMetTarget: 0,
+      allDaysMet: false,
+    };
 
   let sum = 0;
   let count = 0;
@@ -168,7 +181,7 @@ function getValuesForPeriod(
       if (value !== undefined) {
         sum += value;
         count++;
-        
+
         // For discrete options (buttonGroup/toggle), "day met" means EXACT MATCH
         // This is the correct behavior for both average and absolute tracking
         // - Average: "Most days I selected [target option]"
@@ -182,9 +195,9 @@ function getValuesForPeriod(
           // For negative goals (less is better): value <= target
           // For positive goals (more is better): value >= target
           // For neutral goals: value === target
-          if (goalType === 'negative') {
+          if (goalType === "negative") {
             dayMet = value <= goal.targetValue;
-          } else if (goalType === 'neutral') {
+          } else if (goalType === "neutral") {
             dayMet = value === goal.targetValue;
           } else {
             dayMet = value >= goal.targetValue;
@@ -223,11 +236,11 @@ interface GoalValueResult {
 
 /**
  * Get the effective value for goal comparison based on activity type and goal tracking type.
- * 
+ *
  * For buttonGroup and toggle types, the goal's trackingType determines the calculation:
  * - 'average': Returns the average value over the period (default)
  * - 'absolute': Goal is met only when ALL logged days meet the target
- * 
+ *
  * For slider types, always uses average.
  * For increment types, always uses sum.
  */
@@ -237,13 +250,13 @@ function getEffectiveValueForGoal(
   allActivities: ActivityMap | undefined,
   dateStr: string
 ): GoalValueResult {
-  const defaultResult: GoalValueResult = { 
-    effectiveValue: 0, 
-    allDaysMet: false, 
-    daysMetTarget: 0, 
-    dayCount: 0 
+  const defaultResult: GoalValueResult = {
+    effectiveValue: 0,
+    allDaysMet: false,
+    daysMetTarget: 0,
+    dayCount: 0,
   };
-  
+
   if (!allActivities || !activityType) return defaultResult;
 
   // Get the goal type for proper target comparison
@@ -261,21 +274,22 @@ function getEffectiveValueForGoal(
   switch (goal.dateType) {
     case "daily":
       // For daily goals, just use the single day value
-      const dailyValue = allActivities[dateStr]?.entries?.[goal.activityTypeId]?.value ?? 0;
+      const dailyValue =
+        allActivities[dateStr]?.entries?.[goal.activityTypeId]?.value ?? 0;
       // Check if daily goal is met based on goal type
       let dailyMet = false;
-      if (goalType === 'negative') {
+      if (goalType === "negative") {
         dailyMet = dailyValue <= goal.targetValue;
-      } else if (goalType === 'neutral') {
+      } else if (goalType === "neutral") {
         dailyMet = dailyValue === goal.targetValue;
       } else {
         dailyMet = dailyValue >= goal.targetValue;
       }
-      return { 
-        effectiveValue: dailyValue, 
-        allDaysMet: dailyMet, 
-        daysMetTarget: dailyMet ? 1 : 0, 
-        dayCount: dailyValue !== undefined ? 1 : 0 
+      return {
+        effectiveValue: dailyValue,
+        allDaysMet: dailyMet,
+        daysMetTarget: dailyMet ? 1 : 0,
+        dayCount: dailyValue !== undefined ? 1 : 0,
       };
 
     case "weekly":
@@ -313,8 +327,9 @@ function getEffectiveValueForGoal(
   }
 
   // Check if this is a discrete option type (buttonGroup/toggle)
-  const isDiscreteType = activityType.uiType === "buttonGroup" || activityType.uiType === "toggle";
-  
+  const isDiscreteType =
+    activityType.uiType === "buttonGroup" || activityType.uiType === "toggle";
+
   const { sum, average, daysMetTarget, allDaysMet, count } = getValuesForPeriod(
     goal,
     allActivities,
@@ -328,45 +343,45 @@ function getEffectiveValueForGoal(
   if (isDiscreteType) {
     // Use the goal's trackingType to determine calculation method
     // Note: trackingType might be undefined for goals created before this field existed
-    const goalTrackingType = goal.trackingType || 'average';
+    const goalTrackingType = goal.trackingType || "average";
     if (goalTrackingType === "absolute") {
       // Absolute tracking: "Every day must match target"
       // For display, show days met; for goal met check, use allDaysMet
-      return { 
-        effectiveValue: daysMetTarget, 
-        allDaysMet, 
-        daysMetTarget, 
-        dayCount: count 
+      return {
+        effectiveValue: daysMetTarget,
+        allDaysMet,
+        daysMetTarget,
+        dayCount: count,
       };
     }
     // Average tracking: "Most days match target"
     // For display, show days met ratio; goal is met when majority (>50%) of days match
     // effectiveValue is the RATIO of days matching (0 to 1)
     const matchRatio = count > 0 ? daysMetTarget / count : 0;
-    return { 
-      effectiveValue: matchRatio, 
-      allDaysMet, 
-      daysMetTarget, 
-      dayCount: count 
+    return {
+      effectiveValue: matchRatio,
+      allDaysMet,
+      daysMetTarget,
+      dayCount: count,
     };
   }
 
   // Slider types always use average
   if (activityType.uiType === "slider") {
-    return { 
-      effectiveValue: average, 
-      allDaysMet, 
-      daysMetTarget, 
-      dayCount: count 
+    return {
+      effectiveValue: average,
+      allDaysMet,
+      daysMetTarget,
+      dayCount: count,
     };
   }
 
   // Increment types use sum
-  return { 
-    effectiveValue: sum, 
-    allDaysMet, 
-    daysMetTarget, 
-    dayCount: count 
+  return {
+    effectiveValue: sum,
+    allDaysMet,
+    daysMetTarget,
+    dayCount: count,
   };
 }
 
@@ -394,13 +409,17 @@ export function GoalStatusSection({
       let isFailed = false;
 
       // Check if this is a discrete option type (buttonGroup or toggle)
-      const isDiscreteType = activityType?.uiType === "buttonGroup" || activityType?.uiType === "toggle";
-      
+      const isDiscreteType =
+        activityType?.uiType === "buttonGroup" ||
+        activityType?.uiType === "toggle";
+
       // Check if this goal uses absolute tracking (buttonGroup or toggle with absolute)
       // Note: trackingType might be undefined for goals created before this field existed
-      const goalTrackingType = goal.trackingType || 'average';
-      const usesAbsoluteTracking = isDiscreteType && goalTrackingType === "absolute";
-      const usesAverageTracking = isDiscreteType && goalTrackingType === "average";
+      const goalTrackingType = goal.trackingType || "average";
+      const usesAbsoluteTracking =
+        isDiscreteType && goalTrackingType === "absolute";
+      const usesAverageTracking =
+        isDiscreteType && goalTrackingType === "average";
 
       if (goal.dateType === "daily") {
         // For daily goals, use single day value (exact match for discrete types)
@@ -436,11 +455,13 @@ export function GoalStatusSection({
             if (goal.dateType === "weekly" || goal.dateType === "monthly") {
               // Only show as met on evaluation day
               if (isEvaluationDay) {
-                isMet = valueResult.effectiveValue > 0.5 && valueResult.dayCount > 0;
+                isMet =
+                  valueResult.effectiveValue > 0.5 && valueResult.dayCount > 0;
               }
             } else {
               // For by_date and date_range, can turn green early
-              isMet = valueResult.effectiveValue > 0.5 && valueResult.dayCount > 0;
+              isMet =
+                valueResult.effectiveValue > 0.5 && valueResult.dayCount > 0;
             }
           }
         } else if (goalType === "negative") {
@@ -502,18 +523,25 @@ export function GoalStatusSection({
       // - ButtonGroup and toggle use average unless trackingType is 'absolute'
       const usesAverageValueDisplay =
         activityType?.uiType === "slider" ||
-        ((activityType?.uiType === "buttonGroup" || activityType?.uiType === "toggle") && 
+        ((activityType?.uiType === "buttonGroup" ||
+          activityType?.uiType === "toggle") &&
           goalTrackingType !== "absolute");
-      
+
       // For buttonGroup and toggle with absolute tracking, we track days met
       const usesAbsoluteTrackingDisplay =
-        (activityType?.uiType === "buttonGroup" || activityType?.uiType === "toggle") && 
+        (activityType?.uiType === "buttonGroup" ||
+          activityType?.uiType === "toggle") &&
         goalTrackingType === "absolute";
-      
+
       // Get the value result for display
       const valueResultForDisplay =
         goal.dateType === "daily"
-          ? { effectiveValue: activityValue ?? 0, daysMetTarget: 0, dayCount: 0, allDaysMet: false }
+          ? {
+              effectiveValue: activityValue ?? 0,
+              daysMetTarget: 0,
+              dayCount: 0,
+              allDaysMet: false,
+            }
           : getEffectiveValueForGoal(
               goal,
               activityType,
@@ -547,14 +575,15 @@ export function GoalStatusSection({
 
         // Get the element's position and add extra padding for mobile floating nav
         const rect = element.getBoundingClientRect();
-        const scrollContainer = element.closest('[data-scroll-container]') || window;
-        
+        const scrollContainer =
+          element.closest("[data-scroll-container]") || window;
+
         if (scrollContainer === window) {
           // For window scrolling, calculate with extra bottom padding for floating nav
           const bottomPadding = 100; // Extra space for floating footer bar
           const viewportHeight = window.innerHeight;
           const elementBottom = rect.bottom;
-          
+
           if (elementBottom + bottomPadding > viewportHeight) {
             window.scrollBy({
               top: elementBottom - viewportHeight + bottomPadding,
@@ -577,7 +606,12 @@ export function GoalStatusSection({
   }
 
   return (
-    <Accordion type="single" collapsible onValueChange={handleValueChange} ref={accordionRef}>
+    <Accordion
+      type="single"
+      collapsible
+      onValueChange={handleValueChange}
+      ref={accordionRef}
+    >
       <AccordionItem value="goals" className="border-0 bg-transparent px-0">
         <AccordionTrigger className="py-0 hover:no-underline">
           <div className="flex items-center gap-2">
@@ -743,35 +777,36 @@ function GoalStatusItem({
       // Get the current progress value for display
       let progressValue: string;
       let goalTargetDisplay: string;
-      
+
       if (activityType) {
-        if (activityType.uiType === "buttonGroup" || activityType.uiType === "toggle") {
-          if (usesAbsoluteTracking) {
-            // For absolute tracking, show days met / total days
-            progressValue = `${daysMetTarget}/${dayCount} days`;
-            // Find target label
-            if (activityType.uiType === "toggle") {
-              goalTargetDisplay = goal.targetValue === 1 ? "Yes" : "No";
-            } else {
-              const targetOption = activityType.buttonOptions?.find(
-                (o) => o.value === goal.targetValue
-              );
-              goalTargetDisplay = targetOption?.label || String(goal.targetValue);
-            }
+        if (
+          activityType.uiType === "buttonGroup" ||
+          activityType.uiType === "toggle"
+        ) {
+          // Check tracking type directly from goal as well (defensive)
+          const isAbsolute =
+            usesAbsoluteTracking || goal.trackingType === "absolute";
+
+          // Find target label first (same for both tracking types)
+          if (activityType.uiType === "toggle") {
+            goalTargetDisplay = goal.targetValue === 1 ? "Yes" : "No";
           } else {
-            // For average tracking - show "X/Y days" format
-            // effectiveValue is the ratio of matching days (0 to 1)
-            const percentage = effectiveValue !== undefined ? Math.round(effectiveValue * 100) : 0;
+            const targetOption = activityType.buttonOptions?.find(
+              (o) => o.value === goal.targetValue
+            );
+            goalTargetDisplay = targetOption?.label || String(goal.targetValue);
+          }
+
+          if (isAbsolute) {
+            // For absolute tracking, show "X/Y days at [target]"
+            progressValue = `${daysMetTarget}/${dayCount} days at ${goalTargetDisplay}`;
+          } else {
+            // For average tracking - show "X/Y days" format with percentage
+            const percentage =
+              effectiveValue !== undefined
+                ? Math.round(effectiveValue * 100)
+                : 0;
             progressValue = `${daysMetTarget}/${dayCount} days (${percentage}%)`;
-            // Find target label
-            if (activityType.uiType === "toggle") {
-              goalTargetDisplay = goal.targetValue === 1 ? "Yes" : "No";
-            } else {
-              const targetOption = activityType.buttonOptions?.find(
-                (o) => o.value === goal.targetValue
-              );
-              goalTargetDisplay = targetOption?.label || String(goal.targetValue);
-            }
           }
         } else {
           progressValue =
@@ -785,20 +820,26 @@ function GoalStatusItem({
         goalTargetDisplay = String(goal.targetValue);
       }
 
+      // For by_date goals, show "since [created date]" to clarify the tracking period
+      const sinceText =
+        goal.dateType === "by_date" && goal.createdAt
+          ? ` · since ${format(parseISO(goal.createdAt), "MMM d")}`
+          : "";
+
       if (daysRemaining === 0) {
         return {
-          text: "Due today",
-          goalBadge: `Goal: ${goalTargetDisplay}`,
+          text: `${progressValue}${sinceText}`,
+          goalBadge: `Goal: ${goalTargetDisplay} · due today`,
         };
       } else if (daysRemaining === 1) {
         return {
-          text: `${progressValue} · 1 day left`,
-          goalBadge: `Goal: ${goalTargetDisplay}`,
+          text: `${progressValue}${sinceText}`,
+          goalBadge: `Goal: ${goalTargetDisplay} · 1 day left`,
         };
       } else if (daysRemaining > 0) {
         return {
-          text: `${progressValue} · ${daysRemaining} days left`,
-          goalBadge: `Goal: ${goalTargetDisplay}`,
+          text: `${progressValue}${sinceText}`,
+          goalBadge: `Goal: ${goalTargetDisplay} · ${daysRemaining} days left`,
         };
       }
     }
@@ -820,7 +861,8 @@ function GoalStatusItem({
         } else {
           // For average tracking, show days matching / total days
           // effectiveValue is the ratio of matching days (0 to 1)
-          const percentage = effectiveValue !== undefined ? Math.round(effectiveValue * 100) : 0;
+          const percentage =
+            effectiveValue !== undefined ? Math.round(effectiveValue * 100) : 0;
           return {
             text: `${daysMetTarget}/${dayCount} days (${percentage}%)`,
             goalBadge: `Goal: Most days ${targetLabel}`,
@@ -829,15 +871,19 @@ function GoalStatusItem({
       }
 
       // For buttonGroup with absolute tracking (toggle is handled above)
-      if (usesAbsoluteTracking && goal.dateType !== "daily" && activityType.uiType === "buttonGroup") {
+      if (
+        usesAbsoluteTracking &&
+        goal.dateType !== "daily" &&
+        activityType.uiType === "buttonGroup"
+      ) {
         // Find target label
         const targetOption = activityType.buttonOptions?.find(
           (o) => o.value === goal.targetValue
         );
         const targetLabel = targetOption?.label || String(goal.targetValue);
-        return { 
-          text: `${daysMetTarget}/${dayCount} days at ${targetLabel}`, 
-          goalBadge: `Goal: Every day` 
+        return {
+          text: `${daysMetTarget}/${dayCount} days at ${targetLabel}`,
+          goalBadge: `Goal: Every day`,
         };
       }
 
@@ -846,15 +892,16 @@ function GoalStatusItem({
         // For buttonGroup types, show "X/Y days" format
         if (activityType.uiType === "buttonGroup") {
           // effectiveValue is the ratio of matching days (0 to 1)
-          const percentage = effectiveValue !== undefined ? Math.round(effectiveValue * 100) : 0;
+          const percentage =
+            effectiveValue !== undefined ? Math.round(effectiveValue * 100) : 0;
           // Find target label
           const targetOption = activityType.buttonOptions?.find(
             (o) => o.value === goal.targetValue
           );
           const targetLabel = targetOption?.label || String(goal.targetValue);
-          return { 
-            text: `${daysMetTarget}/${dayCount} days (${percentage}%)`, 
-            goalBadge: `Goal: Most days ${targetLabel}` 
+          return {
+            text: `${daysMetTarget}/${dayCount} days (${percentage}%)`,
+            goalBadge: `Goal: Most days ${targetLabel}`,
           };
         }
         // For slider types, show decimal average with unit
@@ -865,7 +912,10 @@ function GoalStatusItem({
                 activityType
               )
             : "0";
-        const sliderGoalTarget = formatValueOnly(goal.targetValue, activityType);
+        const sliderGoalTarget = formatValueOnly(
+          goal.targetValue,
+          activityType
+        );
         return {
           text: `Avg: ${avgValue}`,
           goalBadge: `Goal: ${sliderGoalTarget}`,
