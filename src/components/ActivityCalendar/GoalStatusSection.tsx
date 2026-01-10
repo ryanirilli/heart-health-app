@@ -343,7 +343,9 @@ function getEffectiveValueForGoal(
   if (isDiscreteType) {
     // Use the goal's trackingType to determine calculation method
     // Note: trackingType might be undefined for goals created before this field existed
-    const goalTrackingType = goal.trackingType || "average";
+    // Normalize to handle potential whitespace/case issues
+    const goalTrackingType =
+      goal.trackingType?.toString().trim().toLowerCase() || "average";
     if (goalTrackingType === "absolute") {
       // Absolute tracking: "Every day must match target"
       // For display, show days met; for goal met check, use allDaysMet
@@ -415,7 +417,10 @@ export function GoalStatusSection({
 
       // Check if this goal uses absolute tracking (buttonGroup or toggle with absolute)
       // Note: trackingType might be undefined for goals created before this field existed
-      const goalTrackingType = goal.trackingType || "average";
+      // Use strict comparison and handle potential whitespace/case issues
+      const rawTrackingType = goal.trackingType;
+      const goalTrackingType =
+        rawTrackingType?.toString().trim().toLowerCase() || "average";
       const usesAbsoluteTracking =
         isDiscreteType && goalTrackingType === "absolute";
       const usesAverageTracking =

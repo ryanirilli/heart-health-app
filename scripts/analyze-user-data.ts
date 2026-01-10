@@ -4,16 +4,40 @@
  *
  * Run with: bun scripts/analyze-user-data.ts
  *
- * Requires environment variables:
- * - NEXT_PUBLIC_SUPABASE_URL
- * - SUPABASE_SERVICE_ROLE_KEY (for admin access to query specific users)
+ * Reads from .env.local for credentials
  */
 
 import { createClient } from "@supabase/supabase-js";
+import { readFileSync } from "fs";
+import { join } from "path";
 
-const SUPABASE_URL = process.env.PROD_SUPABASE_URL;
-const SERVICE_ROLE_KEY = process.env.PROD_SUPABASE_SERVICE_ROLE_KEY;
-const TARGET_EMAIL = process.env.TARGET_EMAIL;
+// Load .env.local file
+function loadEnvFile() {
+  try {
+    const envPath = join(process.cwd(), ".env.local");
+    const envContent = readFileSync(envPath, "utf-8");
+    const env: Record<string, string> = {};
+    for (const line of envContent.split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith("#")) {
+        const [key, ...valueParts] = trimmed.split("=");
+        if (key && valueParts.length > 0) {
+          env[key.trim()] = valueParts.join("=").trim();
+        }
+      }
+    }
+    return env;
+  } catch {
+    return {};
+  }
+}
+
+const envVars = loadEnvFile();
+const SUPABASE_URL = envVars.PROD_SUPABASE_URL || process.env.PROD_SUPABASE_URL;
+const SERVICE_ROLE_KEY =
+  envVars.PROD_SERVICE_ROLE_KEY || process.env.PROD_SERVICE_ROLE_KEY;
+const TARGET_EMAIL =
+  envVars.TARGET_EMAIL || process.env.TARGET_EMAIL || "ryanirilli@gmail.com";
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   console.error("Missing required environment variables:");
