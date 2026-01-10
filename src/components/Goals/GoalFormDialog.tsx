@@ -107,7 +107,11 @@ export function GoalFormDialog() {
   useEffect(() => {
     if (dialogOpen) {
       if (editingGoal) {
-        setFormData(editingGoal);
+        // Ensure trackingType has a valid value (for goals created before this field existed)
+        setFormData({
+          ...editingGoal,
+          trackingType: editingGoal.trackingType || 'average',
+        });
       } else {
         // Find the first activity type that doesn't already have a goal
         const availableType = activeTypes.find(t => !usedActivityTypeIds.has(t.id));

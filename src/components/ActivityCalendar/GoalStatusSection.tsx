@@ -141,13 +141,15 @@ function getMonthStart(dateStr: string): string {
  * @param allActivities - All activities
  * @param startDate - Start of the period (inclusive)
  * @param endDate - End of the period (inclusive)
+ * @param goalType - The goal type (positive, negative, neutral) to determine how to check target
  * @returns Object with sum, count, average, daysMetTarget, and allDaysMet
  */
 function getValuesForPeriod(
   goal: Goal,
   allActivities: ActivityMap | undefined,
   startDate: string,
-  endDate: string
+  endDate: string,
+  goalType: 'positive' | 'negative' | 'neutral' = 'positive'
 ): { sum: number; count: number; average: number; daysMetTarget: number; allDaysMet: boolean } {
   if (!allActivities) return { sum: 0, count: 0, average: 0, daysMetTarget: 0, allDaysMet: false };
 
@@ -161,8 +163,19 @@ function getValuesForPeriod(
       if (value !== undefined) {
         sum += value;
         count++;
-        // Count days where value meets or exceeds target
-        if (value >= goal.targetValue) {
+        // Count days where value meets target based on goal type
+        // For negative goals (less is better): value <= target
+        // For positive goals (more is better): value >= target
+        // For neutral goals: value === target
+        let dayMet = false;
+        if (goalType === 'negative') {
+          dayMet = value <= goal.targetValue;
+        } else if (goalType === 'neutral') {
+          dayMet = value === goal.targetValue;
+        } else {
+          dayMet = value >= goal.targetValue;
+        }
+        if (dayMet) {
           daysMetTarget++;
         }
       }
@@ -218,6 +231,9 @@ function getEffectiveValueForGoal(
   
   if (!allActivities || !activityType) return defaultResult;
 
+  // Get the goal type for proper target comparison
+  const goalType = getGoalType(activityType);
+
   // Determine the period based on goal date type
   let startDate: string;
   let endDate: string;
@@ -231,7 +247,15 @@ function getEffectiveValueForGoal(
     case "daily":
       // For daily goals, just use the single day value
       const dailyValue = allActivities[dateStr]?.entries?.[goal.activityTypeId]?.value ?? 0;
-      const dailyMet = dailyValue >= goal.targetValue;
+      // Check if daily goal is met based on goal type
+      let dailyMet = false;
+      if (goalType === 'negative') {
+        dailyMet = dailyValue <= goal.targetValue;
+      } else if (goalType === 'neutral') {
+        dailyMet = dailyValue === goal.targetValue;
+      } else {
+        dailyMet = dailyValue >= goal.targetValue;
+      }
       return { 
         effectiveValue: dailyValue, 
         allDaysMet: dailyMet, 
@@ -277,7 +301,8 @@ function getEffectiveValueForGoal(
     goal,
     allActivities,
     startDate,
-    endDate
+    endDate,
+    goalType
   );
 
   // For buttonGroup and toggle types, check the goal's tracking type
