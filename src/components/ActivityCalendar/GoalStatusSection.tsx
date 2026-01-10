@@ -445,10 +445,15 @@ export function GoalStatusSection({
           // - Average tracking: "Most days match target" (>50% of days)
           if (usesAbsoluteTracking) {
             // Absolute: goal is met only if ALL logged days matched the target
-            if (isEvaluationDay || expired) {
+            // If ANY day doesn't match, the goal is immediately failed
+            if (valueResult.dayCount > 0 && !valueResult.allDaysMet) {
+              // At least one day didn't match - goal is failed
+              isFailed = true;
+            } else if (isEvaluationDay || expired) {
+              // On evaluation day, check if goal is met
               isMet = valueResult.allDaysMet && valueResult.dayCount > 0;
             }
-            // Before evaluation day, stay in progress
+            // Before evaluation day with all days matching, stay in progress
           } else {
             // Average: goal is met when majority (>50%) of days match target
             // effectiveValue is the ratio of matching days (0 to 1)
