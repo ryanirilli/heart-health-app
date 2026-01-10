@@ -517,26 +517,45 @@ function GoalStatusItem({
       !isEvaluationDay
     ) {
       // Get the current progress value for display
-      const progressValue = activityType
-        ? effectiveValue !== undefined
-          ? formatValueOnly(effectiveValue, activityType)
-          : "0"
-        : String(effectiveValue ?? 0);
+      let progressValue: string;
+      if (activityType) {
+        if (activityType.uiType === "buttonGroup") {
+          // For buttonGroup, round the average to find the closest option label
+          const roundedValue =
+            effectiveValue !== undefined ? Math.round(effectiveValue) : 0;
+          const option = activityType.buttonOptions?.find(
+            (o) => o.value === roundedValue
+          );
+          progressValue = option?.label || "--";
+        } else {
+          progressValue =
+            effectiveValue !== undefined
+              ? formatValueOnly(effectiveValue, activityType)
+              : "0";
+        }
+      } else {
+        progressValue = String(effectiveValue ?? 0);
+      }
+
+      // Format goal target value
+      const goalTargetDisplay = activityType
+        ? formatValueOnly(goal.targetValue, activityType)
+        : String(goal.targetValue);
 
       if (daysRemaining === 0) {
         return {
           text: "Due today",
-          goalBadge: `Goal: ${goal.targetValue}`,
+          goalBadge: `Goal: ${goalTargetDisplay}`,
         };
       } else if (daysRemaining === 1) {
         return {
           text: `${progressValue} · 1 day left`,
-          goalBadge: `Goal: ${goal.targetValue}`,
+          goalBadge: `Goal: ${goalTargetDisplay}`,
         };
       } else if (daysRemaining > 0) {
         return {
           text: `${progressValue} · ${daysRemaining} days left`,
-          goalBadge: `Goal: ${goal.targetValue}`,
+          goalBadge: `Goal: ${goalTargetDisplay}`,
         };
       }
     }
@@ -587,9 +606,10 @@ function GoalStatusItem({
                 activityType
               )
             : "0";
+        const sliderGoalTarget = formatValueOnly(goal.targetValue, activityType);
         return {
           text: `Avg: ${avgValue}`,
-          goalBadge: `Goal: ${goal.targetValue}`,
+          goalBadge: `Goal: ${sliderGoalTarget}`,
         };
       }
 
@@ -602,9 +622,10 @@ function GoalStatusItem({
           : effectiveValue !== undefined
           ? formatValueOnly(effectiveValue, activityType)
           : "0";
+      const goalTarget = formatValueOnly(goal.targetValue, activityType);
       return {
         text: currentValue,
-        goalBadge: `Goal: ${goal.targetValue}`,
+        goalBadge: `Goal: ${goalTarget}`,
       };
     }
 
