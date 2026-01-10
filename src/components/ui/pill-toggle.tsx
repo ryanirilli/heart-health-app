@@ -14,7 +14,8 @@ interface PillToggleProps<T extends string> {
   options: PillToggleOption<T>[];
   value: T;
   onValueChange: (value: T) => void;
-  layoutId: string;
+  /** @deprecated layoutId is no longer used - animations are handled internally */
+  layoutId?: string;
   className?: string;
   size?: 'sm' | 'md';
   /** When true, buttons expand equally to fill container width */
@@ -25,11 +26,14 @@ export function PillToggle<T extends string>({
   options,
   value,
   onValueChange,
-  layoutId,
+  layoutId: _layoutId,
   className,
   size = 'md',
   fullWidth = false,
 }: PillToggleProps<T>) {
+  // layoutId is intentionally unused - it was causing animation issues
+  // when drawers/modals with transforms were opened/closed
+  void _layoutId;
   // Track optimistic value for immediate visual feedback during transitions
   const [optimisticValue, setOptimisticValue] = React.useState(value);
   
@@ -99,7 +103,6 @@ export function PillToggle<T extends string>({
           top: 4,
           bottom: 4,
         }}
-        layoutId={layoutId}
       />
       
       {options.map((option, index) => {
