@@ -1,7 +1,13 @@
 -- Fix tracking_type evaluation for negative goals
--- This migration fixes two issues:
+-- This migration fixes several issues:
 -- 1. The days_met count now correctly handles negative goals (value <= target)
 -- 2. The goal update trigger now includes tracking_type changes
+-- 3. Update existing NULL tracking_type values to 'average'
+
+-- First, update any existing goals with NULL tracking_type to have 'average'
+UPDATE public.goals 
+SET tracking_type = 'average' 
+WHERE tracking_type IS NULL;
 
 -- Update evaluate_achievements function to correctly count days met for negative goals
 CREATE OR REPLACE FUNCTION evaluate_achievements(

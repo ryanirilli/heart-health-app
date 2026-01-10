@@ -308,7 +308,9 @@ function getEffectiveValueForGoal(
   // For buttonGroup and toggle types, check the goal's tracking type
   if (activityType.uiType === "buttonGroup" || activityType.uiType === "toggle") {
     // Use the goal's trackingType to determine calculation method
-    if (goal.trackingType === "absolute") {
+    // Note: trackingType might be undefined for goals created before this field existed
+    const goalTrackingType = goal.trackingType || 'average';
+    if (goalTrackingType === "absolute") {
       // Absolute tracking: for display, show days met; for goal met check, use allDaysMet
       return { 
         effectiveValue: daysMetTarget, 
@@ -369,9 +371,11 @@ export function GoalStatusSection({
       let isFailed = false;
 
       // Check if this goal uses absolute tracking (buttonGroup or toggle with absolute)
+      // Note: trackingType might be undefined for goals created before this field existed
+      const goalTrackingType = goal.trackingType || 'average';
       const usesAbsoluteTracking = 
         (activityType?.uiType === "buttonGroup" || activityType?.uiType === "toggle") && 
-        goal.trackingType === "absolute";
+        goalTrackingType === "absolute";
 
       if (goal.dateType === "daily") {
         // For daily goals, use single day value
@@ -388,22 +392,24 @@ export function GoalStatusSection({
 
         if (goalType === "negative") {
           // For negative goals (less is better), check if value exceeds target
-          // For slider (average): if average > target, goal is failed
-          // For sum: if cumulative > target, goal is failed
-          if (
-            activityType.uiType !== "slider" &&
-            valueResult.effectiveValue > goal.targetValue
-          ) {
-            // Only fail immediately for sum-based goals (can't undo past activities)
-            isFailed = true;
-          } else if (isEvaluationDay || expired) {
-            // On evaluation day or after, check if goal is met
-            if (usesAbsoluteTracking) {
-              // For absolute tracking, ALL days must meet the target
+          // Note: For absolute tracking, effectiveValue is a COUNT of days, not the actual value
+          // So we should NOT use it for the "fail immediately" check
+          if (usesAbsoluteTracking) {
+            // For absolute tracking, check if any day has failed (not all days met)
+            // But don't fail immediately - wait until evaluation day or expiry
+            if (isEvaluationDay || expired) {
+              // Goal is met only if ALL logged days met the target
               isMet = valueResult.allDaysMet && valueResult.dayCount > 0;
-            } else {
-              isMet = valueResult.effectiveValue <= goal.targetValue;
             }
+            // If not evaluation day and not expired, goal is still in progress
+          } else if (activityType.uiType !== "slider" && activityType.uiType !== "buttonGroup" && activityType.uiType !== "toggle") {
+            // For increment types (sum-based), fail immediately if value exceeds target
+            if (valueResult.effectiveValue > goal.targetValue) {
+              isFailed = true;
+            }
+          } else if (isEvaluationDay || expired) {
+            // On evaluation day or after, check if goal is met (for average-based goals)
+            isMet = valueResult.effectiveValue <= goal.targetValue;
           }
         } else if (goalType === "positive") {
           // For positive goals (more is better):
@@ -469,12 +475,12 @@ export function GoalStatusSection({
       const usesAverageValueDisplay =
         activityType?.uiType === "slider" ||
         ((activityType?.uiType === "buttonGroup" || activityType?.uiType === "toggle") && 
-          goal.trackingType !== "absolute");
+          goalTrackingType !== "absolute");
       
       // For buttonGroup and toggle with absolute tracking, we track days met
       const usesAbsoluteTrackingDisplay =
         (activityType?.uiType === "buttonGroup" || activityType?.uiType === "toggle") && 
-        goal.trackingType === "absolute";
+        goalTrackingType === "absolute";
       
       // Get the value result for display
       const valueResultForDisplay =
@@ -697,9 +703,10 @@ function GoalStatusItem({
       }
     }
 
-    // For goals with countdown (by_date, weekly, monthly), show days remaining
+    // For goals with countdown (by_date, date_range, weekly, monthly), show days remaining
     if (
       (goal.dateType === "by_date" ||
+        goal.dateType === "date_range" ||
         goal.dateType === "weekly" ||
         goal.dateType === "monthly") &&
       daysRemaining !== null &&

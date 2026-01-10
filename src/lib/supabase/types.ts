@@ -8,7 +8,7 @@ export interface DbActivityType {
   pluralize: boolean;
   is_negative: boolean | null;
   goal_type: 'positive' | 'negative' | 'neutral' | null;
-  ui_type: 'increment' | 'slider' | 'buttonGroup';
+  ui_type: 'increment' | 'slider' | 'buttonGroup' | 'toggle';
   min_value: number | null;
   max_value: number | null;
   step: number | null;
@@ -37,7 +37,7 @@ export interface DbGoal {
   target_value: number;
   icon: string;
   date_type: 'daily' | 'weekly' | 'monthly' | 'by_date' | 'date_range';
-  tracking_type: 'average' | 'absolute';
+  tracking_type: 'average' | 'absolute' | null;
   target_date: string | null;
   start_date: string | null;
   end_date: string | null;
