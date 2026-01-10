@@ -259,8 +259,8 @@ export function GoalStatusSection({
       const isEvaluationDay = shouldShowGoalIndicator(goal, dateStr);
       // Check if expired relative to TODAY (not the card's date)
       const expired = isGoalExpired(goal);
-      // Always calculate days remaining from today, not from the card's date
-      const daysRemaining = getDaysUntilGoal(goal);
+      // Calculate days remaining from the card's date for display
+      const daysRemaining = getDaysUntilGoal(goal, dateStr);
 
       // Determine goal status based on goal type
       let isMet = false;
@@ -295,9 +295,18 @@ export function GoalStatusSection({
             isMet = effectiveValue <= goal.targetValue;
           }
         } else if (goalType === "positive") {
-          // For positive goals (more is better), goal is met as soon as target is reached
-          // No need to wait for evaluation day - exceeding the goal early is still meeting it
-          isMet = effectiveValue >= goal.targetValue;
+          // For positive goals (more is better):
+          // - Weekly/monthly goals only turn green on the evaluation day (Sunday/last day of month)
+          // - Other goals (by_date, date_range) can turn green early
+          if (goal.dateType === "weekly" || goal.dateType === "monthly") {
+            // Only show as met on the evaluation day itself
+            if (isEvaluationDay) {
+              isMet = effectiveValue >= goal.targetValue;
+            }
+          } else {
+            // For by_date and date_range, goal is met as soon as target is reached
+            isMet = effectiveValue >= goal.targetValue;
+          }
         } else {
           // Neutral - only check on evaluation day
           if (isEvaluationDay || expired) {
@@ -499,12 +508,21 @@ function GoalStatusItem({
       }
     }
 
-    // For "by_date" goals not on evaluation day, show countdown (always from today)
+    // For goals with countdown (by_date, weekly, monthly), show days remaining
     if (
-      goal.dateType === "by_date" &&
+      (goal.dateType === "by_date" ||
+        goal.dateType === "weekly" ||
+        goal.dateType === "monthly") &&
       daysRemaining !== null &&
       !isEvaluationDay
     ) {
+      // Get the current progress value for display
+      const progressValue = activityType
+        ? effectiveValue !== undefined
+          ? formatValueOnly(effectiveValue, activityType)
+          : "0"
+        : String(effectiveValue ?? 0);
+
       if (daysRemaining === 0) {
         return {
           text: "Due today",
@@ -512,12 +530,12 @@ function GoalStatusItem({
         };
       } else if (daysRemaining === 1) {
         return {
-          text: "1 day remaining",
+          text: `${progressValue} · 1 day left`,
           goalBadge: `Goal: ${goal.targetValue}`,
         };
       } else if (daysRemaining > 0) {
         return {
-          text: `${daysRemaining} days remaining`,
+          text: `${progressValue} · ${daysRemaining} days left`,
           goalBadge: `Goal: ${goal.targetValue}`,
         };
       }

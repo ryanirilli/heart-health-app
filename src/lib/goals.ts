@@ -308,20 +308,61 @@ export function getRelevantGoalsForDate(goals: GoalMap, dateStr: string): Goal[]
 }
 
 /**
- * Calculate days remaining until a goal's target date.
- * Always calculates from TODAY, not from the card's date.
- * Returns null for goals without a target date.
+ * Calculate days remaining until a goal's evaluation date.
+ * Always calculates from the given date (or today if not provided).
+ * 
+ * - by_date: days until target date
+ * - weekly: days until Sunday (end of week, Mon-Sun)
+ * - monthly: days until last day of month
+ * - daily: always 0 (evaluated same day)
+ * - date_range: days until end date
+ * 
+ * Returns null for goals that don't have a clear end date.
  */
-export function getDaysUntilGoal(goal: Goal): number | null {
-  if (goal.dateType !== 'by_date' || !goal.targetDate) return null;
+export function getDaysUntilGoal(goal: Goal, fromDateStr?: string): number | null {
+  const fromDate = fromDateStr 
+    ? new Date(fromDateStr + 'T12:00:00')
+    : new Date();
+  fromDate.setHours(12, 0, 0, 0); // Use noon to avoid timezone issues
   
-  const today = new Date();
-  today.setHours(12, 0, 0, 0); // Use noon to avoid timezone issues
-  const target = new Date(goal.targetDate + 'T12:00:00');
-  const diffTime = target.getTime() - today.getTime();
+  let targetDate: Date;
+  
+  switch (goal.dateType) {
+    case 'by_date':
+      if (!goal.targetDate) return null;
+      targetDate = new Date(goal.targetDate + 'T12:00:00');
+      break;
+      
+    case 'weekly':
+      // Calculate days until Sunday (end of week)
+      // Sunday = 0, Monday = 1, ..., Saturday = 6
+      const dayOfWeek = fromDate.getDay();
+      const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+      targetDate = new Date(fromDate);
+      targetDate.setDate(targetDate.getDate() + daysUntilSunday);
+      break;
+      
+    case 'monthly':
+      // Calculate days until last day of month
+      targetDate = new Date(fromDate.getFullYear(), fromDate.getMonth() + 1, 0, 12, 0, 0);
+      break;
+      
+    case 'date_range':
+      if (!goal.endDate) return null;
+      targetDate = new Date(goal.endDate + 'T12:00:00');
+      break;
+      
+    case 'daily':
+      return 0; // Daily goals are always evaluated same day
+      
+    default:
+      return null;
+  }
+  
+  const diffTime = targetDate.getTime() - fromDate.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  return diffDays;
+  return Math.max(0, diffDays);
 }
 
 /**
