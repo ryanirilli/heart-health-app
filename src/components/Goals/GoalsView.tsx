@@ -23,7 +23,7 @@ export function GoalsView() {
   const canAddMore = goalsList.length < MAX_GOALS;
 
   return (
-    <div className="space-y-6">
+    <div className="rounded-2xl bg-contrast p-6 space-y-6">
       {/* Header */}
       <h2 className="text-2xl font-semibold tracking-tight">Goals</h2>
 

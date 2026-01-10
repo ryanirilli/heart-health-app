@@ -59,7 +59,8 @@ module.exports = {
   				positive: 'hsl(var(--activity-positive))',
   				negative: 'hsl(var(--activity-negative))',
   				neutral: 'hsl(var(--activity-neutral))'
-  			}
+  			},
+  			contrast: 'hsl(var(--contrast))'
   		},
   		keyframes: {
   			'accordion-down': {

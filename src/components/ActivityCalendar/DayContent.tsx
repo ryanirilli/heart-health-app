@@ -62,7 +62,7 @@ export function DayContentView({
       {/* Activities Section */}
       <div className="space-y-3">
         {entriesWithTypes.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-4 text-muted-foreground">
             <p>No activities logged for this day.</p>
             {onEditClick && (
               <Button
@@ -82,12 +82,12 @@ export function DayContentView({
         )}
       </div>
 
-      {/* Goals Section - full bleed border extends to card edges */}
+      {/* Goals Section - full bleed with darker background */}
       {hasRelevantGoals && (
         <div className={cn(
-          'mt-4 pt-4 border-t',
-          fullBleedBorder && containerPadding === 4 && '-mx-4 px-4',
-          fullBleedBorder && containerPadding === 6 && '-mx-6 px-6'
+          'mt-4 pt-4 pb-4 bg-contrast',
+          fullBleedBorder && containerPadding === 4 && '-mx-4 px-4 -mb-4 rounded-b-xl',
+          fullBleedBorder && containerPadding === 6 && '-mx-6 px-6 -mb-6 rounded-b-xl'
         )}>
           <GoalStatusSection
             dateStr={dateStr}

@@ -86,6 +86,9 @@ a {
     --activity-positive: 160 25% 80%;
     --activity-negative: 5 35% 82%;
     --activity-neutral: 35 10% 85%;
+
+    /* Contrast: darker surface for emphasis */
+    --contrast: 35 12% 82%;
   }
 
   /* NEW DARK THEME: modern, relaxing, less green */
@@ -136,6 +139,9 @@ a {
     --activity-positive: 150 30% 22%;
     --activity-negative: 0 35% 25%;
     --activity-neutral: 220 14% 18%;
+
+    /* Contrast: darker surface for emphasis */
+    --contrast: 220 18% 6%;
   }
 }
 

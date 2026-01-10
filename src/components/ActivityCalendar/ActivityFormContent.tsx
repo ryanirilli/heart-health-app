@@ -311,7 +311,7 @@ function ActivityViewCard({
   return (
     <div
       className={cn(
-        "rounded-lg p-4 transition-all",
+        "rounded-lg p-3 transition-all",
         type.deleted ? "bg-muted/50" : "bg-muted/70"
       )}
     >
