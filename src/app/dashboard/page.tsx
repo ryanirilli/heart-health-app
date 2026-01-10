@@ -81,6 +81,7 @@ async function getGoalsData(userId: string) {
       targetValue: g.target_value,
       icon: isValidGoalIcon(g.icon) ? g.icon : 'target',
       dateType: g.date_type,
+      trackingType: g.tracking_type ?? 'average',
       targetDate: g.target_date ?? undefined,
       startDate: g.start_date ?? undefined,
       endDate: g.end_date ?? undefined,
