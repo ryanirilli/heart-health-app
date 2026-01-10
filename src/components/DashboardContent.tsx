@@ -37,10 +37,21 @@ export function DashboardContent({
       // Smooth scroll to top first
       window.scrollTo({ top: 0, behavior: "smooth" });
 
+      // Set a timeout fallback - if scroll doesn't complete in 500ms, change view anyway
+      // This handles cases where smooth scroll is interrupted or doesn't work (e.g., after drawer closes on mobile)
+      const timeoutId = setTimeout(() => {
+        if (pendingViewRef.current === view) {
+          pendingViewRef.current = null;
+          window.scrollTo({ top: 0, behavior: "instant" });
+          setCurrentView(view);
+        }
+      }, 500);
+
       // Poll for scroll completion using requestAnimationFrame (non-blocking)
       const checkScrollComplete = () => {
         // If a different view was requested, abandon this one
         if (pendingViewRef.current !== view) {
+          clearTimeout(timeoutId);
           return;
         }
 
@@ -48,6 +59,7 @@ export function DashboardContent({
           window.scrollY || document.documentElement.scrollTop;
         if (currentScroll <= 1) {
           // Scroll complete, change view
+          clearTimeout(timeoutId);
           pendingViewRef.current = null;
           setCurrentView(view);
         } else {
