@@ -64,18 +64,22 @@ export function DashboardContent({
   }, []);
 
   // Z-axis animation - scale down/fade out, scale up/fade in
+  // Important: pointer-events must be disabled during exit to prevent blocking clicks on new view
   const variants = {
     enter: {
       scale: 0.95,
       opacity: 0,
+      pointerEvents: "auto" as const,
     },
     center: {
       scale: 1,
       opacity: 1,
+      pointerEvents: "auto" as const,
     },
     exit: {
       scale: 1.05,
       opacity: 0,
+      pointerEvents: "none" as const,
     },
   };
 

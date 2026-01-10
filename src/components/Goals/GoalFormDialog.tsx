@@ -496,7 +496,11 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
     setFormData({ ...formData, targetValue: value });
   };
 
-  // Get schedule description for slider average note
+  // Check if goal uses average (non-daily goals with slider/buttonGroup/toggle)
+  const usesAverage = formData.dateType !== 'daily' && 
+    (uiType === 'slider' || uiType === 'buttonGroup' || uiType === 'toggle');
+
+  // Get schedule description for average note
   const getScheduleLabel = () => {
     switch (formData.dateType) {
       case 'daily':
@@ -538,9 +542,15 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
             className="activity-slider w-full"
             style={{ '--slider-progress': `${progress}%` } as React.CSSProperties}
           />
-          <p className="text-xs text-muted-foreground text-center">
-            Average value per {getScheduleLabel()} to meet goal
-          </p>
+          {usesAverage ? (
+            <p className="text-xs text-muted-foreground text-center">
+              Your <span className="font-medium">average</span> value across the {getScheduleLabel()} must meet this target
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center">
+              Target value per {getScheduleLabel()}
+            </p>
+          )}
         </div>
       );
     }
@@ -568,9 +578,15 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground text-center">
-            Average value per {getScheduleLabel()} to meet goal
-          </p>
+          {usesAverage ? (
+            <p className="text-xs text-muted-foreground text-center">
+              Your <span className="font-medium">average</span> value across the {getScheduleLabel()} must meet this target
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center">
+              Target value per {getScheduleLabel()}
+            </p>
+          )}
         </div>
       );
     }
@@ -605,9 +621,15 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
               No
             </button>
           </div>
-          <p className="text-xs text-muted-foreground text-center">
-            Target: {currentValue === 1 ? 'Yes' : 'No'} per {getScheduleLabel()}
-          </p>
+          {usesAverage ? (
+            <p className="text-xs text-muted-foreground text-center">
+              Your <span className="font-medium">average</span> across the {getScheduleLabel()} must be {currentValue === 1 ? '"Yes"' : '"No"'}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center">
+              Target: {currentValue === 1 ? 'Yes' : 'No'} per {getScheduleLabel()}
+            </p>
+          )}
         </div>
       );
     }

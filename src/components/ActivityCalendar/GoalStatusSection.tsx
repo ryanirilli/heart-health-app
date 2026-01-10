@@ -295,10 +295,9 @@ export function GoalStatusSection({
             isMet = effectiveValue <= goal.targetValue;
           }
         } else if (goalType === "positive") {
-          // For positive goals (more is better), check on evaluation day
-          if (isEvaluationDay || expired) {
-            isMet = effectiveValue >= goal.targetValue;
-          }
+          // For positive goals (more is better), goal is met as soon as target is reached
+          // No need to wait for evaluation day - exceeding the goal early is still meeting it
+          isMet = effectiveValue >= goal.targetValue;
         } else {
           // Neutral - only check on evaluation day
           if (isEvaluationDay || expired) {
@@ -507,16 +506,19 @@ function GoalStatusItem({
       !isEvaluationDay
     ) {
       if (daysRemaining === 0) {
-        return { text: "Due today", goalBadge: `Goal ${goal.targetValue}` };
+        return {
+          text: "Due today",
+          goalBadge: `Goal: ${goal.targetValue}`,
+        };
       } else if (daysRemaining === 1) {
         return {
           text: "1 day remaining",
-          goalBadge: `Goal ${goal.targetValue}`,
+          goalBadge: `Goal: ${goal.targetValue}`,
         };
       } else if (daysRemaining > 0) {
         return {
           text: `${daysRemaining} days remaining`,
-          goalBadge: `Goal ${goal.targetValue}`,
+          goalBadge: `Goal: ${goal.targetValue}`,
         };
       }
     }
@@ -528,7 +530,7 @@ function GoalStatusItem({
         if (goal.dateType === "daily") {
           const currentLabel = activityValue === 1 ? "Yes" : "No";
           const targetLabel = goal.targetValue === 1 ? "Yes" : "No";
-          return { text: currentLabel, goalBadge: `Goal ${targetLabel}` };
+          return { text: currentLabel, goalBadge: `Goal: ${targetLabel}` };
         } else {
           // For non-daily toggle goals, show percentage of Yes days
           const avgValue = effectiveValue !== undefined ? effectiveValue : 0;
@@ -536,7 +538,7 @@ function GoalStatusItem({
           const targetLabel = goal.targetValue === 1 ? "Yes" : "No";
           return {
             text: `${percentage}% Yes`,
-            goalBadge: `Goal ${targetLabel}`,
+            goalBadge: `Goal: ${targetLabel}`,
           };
         }
       }
@@ -557,7 +559,7 @@ function GoalStatusItem({
             (o) => o.value === goal.targetValue
           );
           const targetLabel = targetOption?.label || String(goal.targetValue);
-          return { text: `Avg ${label}`, goalBadge: `Goal ${targetLabel}` };
+          return { text: `Avg: ${label}`, goalBadge: `Goal: ${targetLabel}` };
         }
         // For slider types, show decimal average with unit
         const avgValue =
@@ -568,8 +570,8 @@ function GoalStatusItem({
               )
             : "0";
         return {
-          text: `Avg ${avgValue}`,
-          goalBadge: `Goal ${goal.targetValue}`,
+          text: `Avg: ${avgValue}`,
+          goalBadge: `Goal: ${goal.targetValue}`,
         };
       }
 
@@ -582,12 +584,15 @@ function GoalStatusItem({
           : effectiveValue !== undefined
           ? formatValueOnly(effectiveValue, activityType)
           : "0";
-      return { text: currentValue, goalBadge: `Goal ${goal.targetValue}` };
+      return {
+        text: currentValue,
+        goalBadge: `Goal: ${goal.targetValue}`,
+      };
     }
 
     return {
       text: String(activityValue ?? 0),
-      goalBadge: `Goal ${goal.targetValue}`,
+      goalBadge: `Goal: ${goal.targetValue}`,
     };
   };
 
@@ -601,7 +606,7 @@ function GoalStatusItem({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 p-3 rounded-lg border",
+        "flex items-start gap-3 p-3 rounded-lg border",
         styles.container
       )}
     >
@@ -634,15 +639,17 @@ function GoalStatusItem({
             </Badge>
           )}
         </div>
-        <div className="text-xs flex items-center gap-1.5">
+        <div className="text-xs space-y-1">
           <span className={styles.textColor}>{subtitle.text}</span>
           {subtitle.goalBadge && (
-            <Badge
-              variant={styles.badgeOutlineVariant}
-              className="text-[10px] px-1.5 py-0 font-normal"
-            >
-              {subtitle.goalBadge}
-            </Badge>
+            <div>
+              <Badge
+                variant={styles.badgeOutlineVariant}
+                className="text-[10px] px-1.5 py-0 font-normal"
+              >
+                {subtitle.goalBadge}
+              </Badge>
+            </div>
           )}
         </div>
       </div>
