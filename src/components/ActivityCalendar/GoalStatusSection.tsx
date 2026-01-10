@@ -712,9 +712,9 @@ function GoalStatusItem({
   const getStatusStyles = () => {
     switch (displayStatus) {
       case "met":
-        // Accomplished - strong green emphasis
+        // Accomplished - strong green emphasis, no border
         return {
-          container: "bg-green-500/15 border-green-500/50",
+          container: "bg-green-500/15 border-transparent",
           goalIcon: "bg-green-500/25",
           goalIconColor: "text-green-600 dark:text-green-400",
           textColor: "text-green-700 dark:text-green-300",
@@ -722,9 +722,9 @@ function GoalStatusItem({
           badgeOutlineVariant: "goalMetOutline" as const,
         };
       case "evaluation_day":
-        // Last day - amber attention
+        // Last day - amber attention, no border
         return {
-          container: "bg-amber-500/15 border-amber-500/50",
+          container: "bg-amber-500/15 border-transparent",
           goalIcon: "bg-amber-500/25",
           goalIconColor: "text-amber-600 dark:text-amber-400",
           textColor: "text-amber-700 dark:text-amber-300",
@@ -732,9 +732,9 @@ function GoalStatusItem({
           badgeOutlineVariant: "goalWarningOutline" as const,
         };
       case "in_progress":
-        // In progress - subtle but clear
+        // In progress - minimal, no border on container
         return {
-          container: "bg-primary/5 border-primary/20",
+          container: "bg-transparent border-transparent",
           goalIcon: "bg-primary/10",
           goalIconColor: "text-primary",
           textColor: "text-foreground",
@@ -743,9 +743,9 @@ function GoalStatusItem({
         };
       case "missed":
       default:
-        // Missed - de-emphasized, muted
+        // Missed - de-emphasized, muted, no border
         return {
-          container: "bg-muted/20 border-muted-foreground/10",
+          container: "bg-muted/20 border-transparent",
           goalIcon: "bg-muted/50",
           goalIconColor: "text-muted-foreground/70",
           textColor: "text-muted-foreground",
@@ -818,11 +818,13 @@ function GoalStatusItem({
             progressValue = `${daysMetTarget}/${dayCount} days (${percentage}%)`;
           }
         } else {
+          // For slider/increment types, show value with units in progressValue
+          // and just the number in goalTargetDisplay
           progressValue =
             effectiveValue !== undefined
               ? formatValueOnly(effectiveValue, activityType)
               : "0";
-          goalTargetDisplay = formatValueOnly(goal.targetValue, activityType);
+          goalTargetDisplay = String(goal.targetValue);
         }
       } else {
         progressValue = String(effectiveValue ?? 0);
@@ -921,29 +923,21 @@ function GoalStatusItem({
                 activityType
               )
             : "0";
-        const sliderGoalTarget = formatValueOnly(
-          goal.targetValue,
-          activityType
-        );
+        // Goal badge shows just the number, unit is already in avgValue
         return {
           text: `Avg: ${avgValue}`,
-          goalBadge: `Goal: ${sliderGoalTarget}`,
+          goalBadge: `Goal: ${goal.targetValue}`,
         };
       }
 
       // For daily goals or increment types, show current/cumulative value with unit
-      const currentValue =
-        goal.dateType === "daily"
-          ? activityValue !== undefined
-            ? formatValueOnly(activityValue, activityType)
-            : "0"
-          : effectiveValue !== undefined
-          ? formatValueOnly(effectiveValue, activityType)
-          : "0";
-      const goalTarget = formatValueOnly(goal.targetValue, activityType);
+      const rawValue =
+        goal.dateType === "daily" ? activityValue ?? 0 : effectiveValue ?? 0;
+      const currentValue = formatValueOnly(rawValue, activityType);
+      // Goal badge shows just the number, unit is already in currentValue
       return {
         text: currentValue,
-        goalBadge: `Goal: ${goalTarget}`,
+        goalBadge: `Goal: ${goal.targetValue}`,
       };
     }
 
@@ -1022,12 +1016,14 @@ function GoalStatusItem({
           Update Goal
         </Button>
       ) : (
-        <Badge
-          variant={styles.badgeVariant}
-          className="flex-shrink-0 text-[10px]"
-        >
-          {formatGoalDateInfo(goal)}
-        </Badge>
+        !styles.hideBadges && (
+          <Badge
+            variant={styles.badgeVariant}
+            className="flex-shrink-0 text-[10px]"
+          >
+            {formatGoalDateInfo(goal)}
+          </Badge>
+        )
       )}
     </div>
   );
