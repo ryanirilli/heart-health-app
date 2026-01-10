@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { Goal, isValidGoalIcon, GOAL_DATE_TYPES } from '@/lib/goals';
+import { Goal, isValidGoalIcon, GOAL_DATE_TYPES, GOAL_TRACKING_TYPES } from '@/lib/goals';
 import { DbGoal } from '@/lib/supabase/types';
 
 // GET all goals for the authenticated user
@@ -41,6 +41,7 @@ export async function GET() {
         targetValue: g.target_value,
         icon: isValidGoalIcon(g.icon) ? g.icon : 'target',
         dateType: g.date_type,
+        trackingType: g.tracking_type ?? 'average',
         targetDate: g.target_date ?? undefined,
         startDate: g.start_date ?? undefined,
         endDate: g.end_date ?? undefined,
@@ -107,6 +108,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (goal.trackingType && !GOAL_TRACKING_TYPES.includes(goal.trackingType)) {
+      return NextResponse.json(
+        { error: 'Invalid tracking type' },
+        { status: 400 }
+      );
+    }
+
     // Validate date fields based on date type
     if (goal.dateType === 'by_date' && !goal.targetDate) {
       return NextResponse.json(
@@ -146,6 +154,7 @@ export async function POST(request: NextRequest) {
         target_value: goal.targetValue,
         icon: goal.icon,
         date_type: goal.dateType,
+        tracking_type: goal.trackingType ?? 'average',
         target_date: goal.dateType === 'by_date' ? goal.targetDate : null,
         start_date: goal.dateType === 'date_range' ? goal.startDate : null,
         end_date: goal.dateType === 'date_range' ? goal.endDate : null,
@@ -171,6 +180,7 @@ export async function POST(request: NextRequest) {
       targetValue: insertedGoal.target_value,
       icon: isValidGoalIcon(insertedGoal.icon) ? insertedGoal.icon : 'target',
       dateType: insertedGoal.date_type,
+      trackingType: insertedGoal.tracking_type ?? 'average',
       targetDate: insertedGoal.target_date ?? undefined,
       startDate: insertedGoal.start_date ?? undefined,
       endDate: insertedGoal.end_date ?? undefined,
@@ -243,6 +253,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    if (goal.trackingType && !GOAL_TRACKING_TYPES.includes(goal.trackingType)) {
+      return NextResponse.json(
+        { error: 'Invalid tracking type' },
+        { status: 400 }
+      );
+    }
+
     // Validate date fields based on date type
     if (goal.dateType === 'by_date' && !goal.targetDate) {
       return NextResponse.json(
@@ -275,6 +292,7 @@ export async function PUT(request: NextRequest) {
         target_value: goal.targetValue,
         icon: goal.icon,
         date_type: goal.dateType,
+        tracking_type: goal.trackingType ?? 'average',
         target_date: goal.dateType === 'by_date' ? goal.targetDate : null,
         start_date: goal.dateType === 'date_range' ? goal.startDate : null,
         end_date: goal.dateType === 'date_range' ? goal.endDate : null,
@@ -302,6 +320,7 @@ export async function PUT(request: NextRequest) {
       targetValue: updatedGoal.target_value,
       icon: isValidGoalIcon(updatedGoal.icon) ? updatedGoal.icon : 'target',
       dateType: updatedGoal.date_type,
+      trackingType: updatedGoal.tracking_type ?? 'average',
       targetDate: updatedGoal.target_date ?? undefined,
       startDate: updatedGoal.start_date ?? undefined,
       endDate: updatedGoal.end_date ?? undefined,

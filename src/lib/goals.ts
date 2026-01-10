@@ -100,6 +100,32 @@ export function isValidGoalIcon(icon: string): icon is GoalIcon {
 }
 
 // =============================================================================
+// GOAL TRACKING TYPES
+// =============================================================================
+
+/**
+ * Tracking type determines how discrete value goals (buttonGroup/options) are evaluated:
+ * - 'average': Target is compared against the average value over the period
+ * - 'absolute': Target is compared against the sum/total over the period
+ */
+export type GoalTrackingType = 'average' | 'absolute';
+
+/** All available tracking types */
+export const GOAL_TRACKING_TYPES: GoalTrackingType[] = ['average', 'absolute'];
+
+/** Human-readable labels for tracking types */
+export const GOAL_TRACKING_TYPE_LABELS: Record<GoalTrackingType, string> = {
+  average: 'Average',
+  absolute: 'Absolute',
+};
+
+/** Descriptions for tracking types */
+export const GOAL_TRACKING_TYPE_DESCRIPTIONS: Record<GoalTrackingType, string> = {
+  average: 'Goal is met when your average value meets or exceeds the target',
+  absolute: 'Goal is met only when every logged day meets the target',
+};
+
+// =============================================================================
 // GOAL DATE TYPES
 // =============================================================================
 
@@ -152,6 +178,8 @@ export interface Goal {
   targetValue: number;
   icon: GoalIcon;
   dateType: GoalDateType;
+  /** How discrete value goals are evaluated (average vs absolute) */
+  trackingType: GoalTrackingType;
   targetDate?: string;
   startDate?: string;
   endDate?: string;
@@ -187,6 +215,7 @@ export function createDefaultGoal(partial: Partial<Goal> = {}): Goal {
     targetValue: 1,
     icon: 'target',
     dateType: 'daily',
+    trackingType: 'average',
     createdAt: getTodayDateStr(),
     ...partial,
   };

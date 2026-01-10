@@ -38,9 +38,13 @@ import { cn } from '@/lib/utils';
 import {
   Goal,
   GoalDateType,
+  GoalTrackingType,
   GOAL_DATE_TYPES,
   GOAL_DATE_TYPE_LABELS,
   GOAL_DATE_TYPE_DESCRIPTIONS,
+  GOAL_TRACKING_TYPES,
+  GOAL_TRACKING_TYPE_LABELS,
+  GOAL_TRACKING_TYPE_DESCRIPTIONS,
   createDefaultGoal,
   validateGoal,
   getGoalIconComponent,
@@ -558,6 +562,8 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
     // For buttonGroup UI type - show button options
     if (uiType === 'buttonGroup') {
       const options = selectedActivityType?.buttonOptions ?? [];
+      // Show tracking type selector for non-daily goals
+      const showTrackingType = formData.dateType !== 'daily';
 
       return (
         <div className="space-y-4">
@@ -578,11 +584,42 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
               </button>
             ))}
           </div>
-          {usesAverage ? (
-            <p className="text-xs text-muted-foreground text-center">
-              Your <span className="font-medium">average</span> value across the {getScheduleLabel()} must meet this target
-            </p>
-          ) : (
+
+          {/* Tracking Type Selector for non-daily goals */}
+          {showTrackingType && (
+            <div className="space-y-3 pt-2">
+              <Label className="text-sm font-medium">How should progress be measured?</Label>
+              {GOAL_TRACKING_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, trackingType: type })}
+                  className={cn(
+                    'w-full p-3 rounded-lg border text-left transition-all',
+                    formData.trackingType === type
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{GOAL_TRACKING_TYPE_LABELS[type]}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {GOAL_TRACKING_TYPE_DESCRIPTIONS[type]}
+                      </p>
+                    </div>
+                    {formData.trackingType === type && (
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!showTrackingType && (
             <p className="text-xs text-muted-foreground text-center">
               Target value per {getScheduleLabel()}
             </p>
@@ -593,6 +630,9 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
 
     // For toggle UI type - show Yes/No buttons
     if (uiType === 'toggle') {
+      // Show tracking type selector for non-daily goals
+      const showTrackingType = formData.dateType !== 'daily';
+
       return (
         <div className="space-y-4">
           <div className="flex gap-2">
@@ -621,11 +661,42 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
               No
             </button>
           </div>
-          {usesAverage ? (
-            <p className="text-xs text-muted-foreground text-center">
-              Your <span className="font-medium">average</span> across the {getScheduleLabel()} must be {currentValue === 1 ? '"Yes"' : '"No"'}
-            </p>
-          ) : (
+
+          {/* Tracking Type Selector for non-daily goals */}
+          {showTrackingType && (
+            <div className="space-y-3 pt-2">
+              <Label className="text-sm font-medium">How should progress be measured?</Label>
+              {GOAL_TRACKING_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, trackingType: type })}
+                  className={cn(
+                    'w-full p-3 rounded-lg border text-left transition-all',
+                    formData.trackingType === type
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{GOAL_TRACKING_TYPE_LABELS[type]}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {GOAL_TRACKING_TYPE_DESCRIPTIONS[type]}
+                      </p>
+                    </div>
+                    {formData.trackingType === type && (
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                        <Check className="h-3 w-3 text-primary-foreground" />
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {!showTrackingType && (
             <p className="text-xs text-muted-foreground text-center">
               Target: {currentValue === 1 ? 'Yes' : 'No'} per {getScheduleLabel()}
             </p>
@@ -782,6 +853,13 @@ function StepSummary({ formData, activityTypes, errors }: StepSummaryProps) {
             <span className="text-sm text-muted-foreground">Schedule</span>
             <Badge variant="secondary">{getScheduleText()}</Badge>
           </div>
+          {/* Show tracking type for buttonGroup and toggle with non-daily goals */}
+          {(selectedActivityType?.uiType === 'buttonGroup' || selectedActivityType?.uiType === 'toggle') && formData.dateType !== 'daily' && (
+            <div className="flex items-center justify-between py-1">
+              <span className="text-sm text-muted-foreground">Tracking</span>
+              <Badge variant="secondary">{GOAL_TRACKING_TYPE_LABELS[formData.trackingType]}</Badge>
+            </div>
+          )}
         </div>
       </div>
 

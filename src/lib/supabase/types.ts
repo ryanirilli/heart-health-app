@@ -37,6 +37,7 @@ export interface DbGoal {
   target_value: number;
   icon: string;
   date_type: 'daily' | 'weekly' | 'monthly' | 'by_date' | 'date_range';
+  tracking_type: 'average' | 'absolute';
   target_date: string | null;
   start_date: string | null;
   end_date: string | null;
