@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef } from "react";
-import { Star, Frown } from "lucide-react";
+import { Star, Frown, Check } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
@@ -990,23 +990,28 @@ function GoalStatusItem({
             </Badge>
           )}
         </div>
-        <div className="text-xs space-y-1">
-          <span className={styles.textColor}>{subtitle.text}</span>
-          {subtitle.goalBadge && (
-            <div>
-              <Badge
-                variant={styles.badgeOutlineVariant}
-                className="text-[10px] px-1.5 py-0 font-normal"
-              >
-                {subtitle.goalBadge}
-              </Badge>
+        <div className="text-xs space-y-0.5">
+          <div className={styles.textColor}>{subtitle.text}</div>
+          {subtitle.goalBadge && displayStatus !== "met" && (
+            <div className={cn("text-[11px]", styles.textColor, "opacity-70")}>
+              {subtitle.goalBadge}
             </div>
           )}
         </div>
       </div>
 
-      {/* Duration Badge or Update Goal button */}
-      {showUpdateButton ? (
+      {/* Completed indicator, Duration Badge, or Update Goal button */}
+      {displayStatus === "met" ? (
+        <div
+          className={cn(
+            "flex items-center gap-1 flex-shrink-0 text-xs font-medium",
+            styles.textColor
+          )}
+        >
+          <Check className="h-3.5 w-3.5" />
+          <span>Completed</span>
+        </div>
+      ) : showUpdateButton ? (
         <Button
           variant="ghost"
           size="sm"
