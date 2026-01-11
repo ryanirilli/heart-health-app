@@ -52,7 +52,7 @@ export default async function LandingPage() {
             </p>
 
             <Link
-              href="/login"
+              href="/login?mode=signup"
               className="group inline-flex items-center gap-2 text-foreground hover:text-muted-foreground transition-colors"
             >
               <span className="text-sm font-medium">Get started</span>
