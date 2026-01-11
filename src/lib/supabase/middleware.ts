@@ -46,7 +46,9 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute = 
     request.nextUrl.pathname === '/' ||
     request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/auth');
+    request.nextUrl.pathname.startsWith('/auth') ||
+    request.nextUrl.pathname.startsWith('/terms') ||
+    request.nextUrl.pathname.startsWith('/privacy');
 
   // Protected routes - redirect to login if not authenticated
   if (!user && !isPublicRoute) {

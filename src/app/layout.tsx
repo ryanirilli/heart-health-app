@@ -21,10 +21,11 @@ export const metadata: Metadata = {
     template: "%s | Rhythm",
   },
   description:
-    "A simple way to observe your habits, health, and rhythms over time. Track the patterns that shape your days.",
+    "A simple, beautiful way to track habits, set goals, and see your progress at a glance.",
   keywords: [
     "health tracking",
     "habit tracker",
+    "goal setting",
     "wellness",
     "daily rhythms",
     "activity tracking",
@@ -48,23 +49,23 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://www.rhythmtracker.com",
     siteName: "Rhythm",
-    title: "Rhythm — Track the patterns that shape your days",
+    title: "Less noise. More beats.",
     description:
-      "A simple way to observe your habits, health, and rhythms over time.",
+      "A simple, beautiful way to track habits, set goals, and see your progress at a glance.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Rhythm - Track your daily patterns",
+        alt: "Less noise. More beats.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Rhythm — Track the patterns that shape your days",
+    title: "Less noise. More beats.",
     description:
-      "A simple way to observe your habits, health, and rhythms over time.",
+      "A simple, beautiful way to track habits, set goals, and see your progress at a glance.",
     images: ["/og-image.png"],
   },
   robots: {

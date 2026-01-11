@@ -41,16 +41,14 @@ export default async function LandingPage() {
         <main className="flex-1 flex items-center justify-center px-6 md:px-12">
           <div className="max-w-2xl">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-foreground leading-[1.15] tracking-tight mb-6">
-              Track the patterns
+              Less noise.
               <br />
-              <span className="text-muted-foreground">
-                that shape your days.
-              </span>
+              <span className="text-muted-foreground">More beats.</span>
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-md mb-10 leading-relaxed font-light">
-              A simple way to observe your habits, health, and rhythms over
-              time.
+              A simple, beautiful way to track habits, set goals, and see your
+              progress at a glance.
             </p>
 
             <Link
@@ -65,9 +63,23 @@ export default async function LandingPage() {
 
         {/* Footer */}
         <footer className="px-6 md:px-12 py-6">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Rhythm
-          </p>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <p>© {new Date().getFullYear()} Rhythm</p>
+            <div className="flex gap-4">
+              <Link
+                href="/privacy"
+                className="hover:text-foreground transition-colors"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/terms"
+                className="hover:text-foreground transition-colors"
+              >
+                Terms
+              </Link>
+            </div>
+          </div>
         </footer>
       </div>
     </div>
