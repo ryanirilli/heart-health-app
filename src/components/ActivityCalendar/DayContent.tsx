@@ -82,12 +82,12 @@ export function DayContentView({
         )}
       </div>
 
-      {/* Goals Section - full bleed with darker background */}
+      {/* Goals Section - full bleed with subtle background */}
       {hasRelevantGoals && (
         <div className={cn(
           'mt-4 pt-4 pb-4 bg-contrast',
-          fullBleedBorder && containerPadding === 4 && '-mx-4 px-4 -mb-4 rounded-b-xl',
-          fullBleedBorder && containerPadding === 6 && '-mx-6 px-6 -mb-6 rounded-b-xl'
+          fullBleedBorder && containerPadding === 4 && '-mx-4 px-4 -mb-4',
+          fullBleedBorder && containerPadding === 6 && '-mx-6 px-6 -mb-6'
         )}>
           <GoalStatusSection
             dateStr={dateStr}

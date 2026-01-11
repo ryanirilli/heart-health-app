@@ -712,43 +712,43 @@ function GoalStatusItem({
   const getStatusStyles = () => {
     switch (displayStatus) {
       case "met":
-        // Accomplished - strong green emphasis, no border
+        // Accomplished - soft green, celebratory but calm
         return {
-          container: "bg-green-500/15 border-transparent",
-          goalIcon: "bg-green-500/25",
-          goalIconColor: "text-green-600 dark:text-green-400",
-          textColor: "text-green-700 dark:text-green-300",
+          container: "bg-emerald-500/10 border-transparent",
+          goalIcon: "bg-emerald-500/20",
+          goalIconColor: "text-emerald-600 dark:text-emerald-400",
+          textColor: "text-emerald-700 dark:text-emerald-300",
           badgeVariant: "goalMet" as const,
           badgeOutlineVariant: "goalMetOutline" as const,
         };
       case "evaluation_day":
-        // Last day - amber attention, no border
+        // Last day - warm amber, gentle attention
         return {
-          container: "bg-amber-500/15 border-transparent",
-          goalIcon: "bg-amber-500/25",
+          container: "bg-amber-500/10 border-transparent",
+          goalIcon: "bg-amber-500/20",
           goalIconColor: "text-amber-600 dark:text-amber-400",
           textColor: "text-amber-700 dark:text-amber-300",
           badgeVariant: "goalWarning" as const,
           badgeOutlineVariant: "goalWarningOutline" as const,
         };
       case "in_progress":
-        // In progress - minimal, no border on container
+        // In progress - subtle, blends with content
         return {
           container: "bg-transparent border-transparent",
-          goalIcon: "bg-primary/10",
-          goalIconColor: "text-primary",
+          goalIcon: "bg-muted",
+          goalIconColor: "text-muted-foreground",
           textColor: "text-foreground",
           badgeVariant: "goalProgress" as const,
           badgeOutlineVariant: "goalProgressOutline" as const,
         };
       case "missed":
       default:
-        // Missed - de-emphasized, muted, no border
+        // Missed - very subtle, not discouraging
         return {
-          container: "bg-muted/20 border-transparent",
-          goalIcon: "bg-muted/50",
-          goalIconColor: "text-muted-foreground/70",
-          textColor: "text-muted-foreground",
+          container: "bg-muted/30 border-transparent",
+          goalIcon: "bg-muted/60",
+          goalIconColor: "text-muted-foreground/60",
+          textColor: "text-muted-foreground/80",
           badgeVariant: "goalMissed" as const,
           badgeOutlineVariant: "goalMissedOutline" as const,
         };

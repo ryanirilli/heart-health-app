@@ -311,12 +311,12 @@ function ActivityViewCard({
   return (
     <div
       className={cn(
-        "rounded-lg p-3 transition-all",
-        type.deleted ? "bg-muted/50" : "bg-muted/70"
+        "rounded-xl p-3.5 transition-all",
+        type.deleted ? "bg-muted/40" : "bg-muted/50"
       )}
     >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <div
             className={cn(
               "w-2 h-2 rounded-full",
@@ -327,12 +327,12 @@ function ActivityViewCard({
                 : "bg-chart-3"
             )}
           />
-          <span className="text-sm font-medium text-foreground">
+          <span className="text-sm font-medium text-foreground/90">
             {type.name}
           </span>
           {type.deleted && <Badge variant="muted">Archived</Badge>}
         </div>
-        <span className="text-lg font-semibold text-foreground">
+        <span className="text-base font-semibold text-foreground">
           {displayValue()}
         </span>
       </div>
