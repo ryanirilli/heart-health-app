@@ -31,9 +31,19 @@ export async function GET(request: Request) {
     });
 
     if (!error) {
-      // For password recovery, redirect to reset password page
+      // For password recovery, redirect to reset password page and set a cookie
+      // to prevent the user from navigating away without setting a password
       if (type === 'recovery') {
-        return NextResponse.redirect(`${origin}/reset-password`);
+        const response = NextResponse.redirect(`${origin}/reset-password`);
+        // Set a cookie that expires in 10 minutes - user must complete reset in that time
+        response.cookies.set('password_reset_required', 'true', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 10, // 10 minutes
+          path: '/',
+        });
+        return response;
       }
       // Add query param to show welcome toast for new signups
       const redirectUrl = type === 'signup' 

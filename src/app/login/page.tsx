@@ -2,20 +2,51 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { Activity, Mail, ArrowLeft, RotateCw, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 
+// Password requirements
+const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .regex(/[a-z]/, "Password must contain a lowercase letter")
+  .regex(/[A-Z]/, "Password must contain an uppercase letter")
+  .regex(/[0-9]/, "Password must contain a number");
+
+// Schema for sign in (less strict - just check it's not empty)
+const signInSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(1, "Password is required"),
+});
+
+// Schema for sign up (strict password requirements)
+const signUpSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: passwordSchema,
+});
+
+// Schema for forgot password
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+});
+
+type SignInFormData = z.infer<typeof signInSchema>;
+type SignUpFormData = z.infer<typeof signUpSchema>;
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
 function LoginContent() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [confirmationSent, setConfirmationSent] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [showResendForm, setShowResendForm] = useState(false);
@@ -26,12 +57,30 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const supabase = createClient();
 
+  // Auth form with dynamic schema based on isSignUp
+  const authForm = useForm<SignInFormData | SignUpFormData>({
+    resolver: zodResolver(isSignUp ? signUpSchema : signInSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onBlur",
+  });
+
+  // Forgot password form
+  const forgotForm = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
+
+  // Resend email form
+  const resendForm = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
+
   // Handle error from URL params (e.g., expired link)
   useEffect(() => {
     const urlError = searchParams.get("error");
     if (urlError) {
-      setError(urlError);
-      // If it's an expired link error, show the resend option
+      setServerError(urlError);
       if (urlError.toLowerCase().includes("expired")) {
         setShowResendForm(true);
       }
@@ -46,9 +95,15 @@ function LoginContent() {
     }
   }, [resendCooldown]);
 
+  // Reset form when switching between sign in and sign up
+  useEffect(() => {
+    authForm.reset({ email: "", password: "" });
+    setServerError(null);
+  }, [isSignUp, authForm]);
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
-    setError(null);
+    setServerError(null);
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -58,34 +113,28 @@ function LoginContent() {
     });
 
     if (error) {
-      setError(error.message);
+      setServerError(error.message);
       setGoogleLoading(false);
     }
   };
 
-  const handleResendEmail = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!email) {
-      setError("Please enter your email address");
-      return;
-    }
-    
+  const handleResendEmail = async (data: ForgotPasswordFormData) => {
     setResendLoading(true);
-    setError(null);
+    setServerError(null);
 
     try {
       const { error } = await supabase.auth.resend({
         type: "signup",
-        email,
+        email: data.email,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
         },
       });
       if (error) throw error;
-      setResendCooldown(60); // 60 second cooldown
+      setResendCooldown(60);
       setResendSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to resend email");
+      setServerError(err instanceof Error ? err.message : "Failed to resend email");
     } finally {
       setResendLoading(false);
     }
@@ -93,9 +142,9 @@ function LoginContent() {
 
   const handleBackToSignUp = () => {
     setConfirmationSent(false);
-    setEmail("");
-    setPassword("");
-    setError(null);
+    setConfirmationEmail("");
+    authForm.reset();
+    setServerError(null);
   };
 
   const handleBackToLogin = () => {
@@ -103,65 +152,53 @@ function LoginContent() {
     setShowForgotPassword(false);
     setResendSuccess(false);
     setResetEmailSent(false);
-    setEmail("");
-    setError(null);
-    // Clear URL params
+    forgotForm.reset();
+    resendForm.reset();
+    setServerError(null);
     router.replace("/login");
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      setError("Please enter your email address");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
+  const handleForgotPassword = async (data: ForgotPasswordFormData) => {
+    setServerError(null);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
         redirectTo: `${window.location.origin}/auth/callback?type=recovery&next=/reset-password`,
       });
       if (error) throw error;
       setResetEmailSent(true);
       setResendCooldown(60);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send reset email");
-    } finally {
-      setLoading(false);
+      setServerError(err instanceof Error ? err.message : "Failed to send reset email");
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  const handleAuthSubmit = async (data: SignInFormData | SignUpFormData) => {
+    setServerError(null);
 
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: data.email,
+          password: data.password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
           },
         });
         if (error) throw error;
+        setConfirmationEmail(data.email);
         setConfirmationSent(true);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: data.email,
+          password: data.password,
         });
         if (error) throw error;
         router.push("/dashboard");
         router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
-    } finally {
-      setLoading(false);
+      setServerError(err instanceof Error ? err.message : "An error occurred");
     }
   };
 
@@ -170,38 +207,35 @@ function LoginContent() {
     return (
       <main className="min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-8">
-          {/* Mail Icon */}
           <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-chart-2/10">
-              <Mail className="h-8 w-8 text-chart-2" />
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-chart-1/20">
+              <Mail className="h-7 w-7 text-chart-1" />
             </div>
             <h1 className="text-2xl font-semibold text-foreground">Check your inbox</h1>
             <p className="text-muted-foreground text-center">
               We sent a confirmation link to
             </p>
-            <p className="font-medium text-foreground">{email}</p>
+            <p className="font-medium text-foreground">{confirmationEmail}</p>
           </div>
 
-          {/* Instructions */}
           <div className="bg-muted/50 rounded-xl p-4 space-y-2">
             <p className="text-sm text-muted-foreground text-center">
               Click the link in the email to activate your account. If you don&apos;t see it, check your spam folder.
             </p>
           </div>
 
-          {error && (
+          {serverError && (
             <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
-              {error}
+              {serverError}
             </div>
           )}
 
-          {/* Actions */}
           <div className="space-y-3">
             <Button
               type="button"
               variant="outline"
               size="pill-lg"
-              onClick={handleResendEmail}
+              onClick={() => handleResendEmail({ email: confirmationEmail })}
               disabled={resendLoading || resendCooldown > 0}
               className="w-full"
             >
@@ -234,13 +268,12 @@ function LoginContent() {
     return (
       <main className="min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-8">
-          {/* Icon */}
           <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-chart-2/10">
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-chart-1/20">
               {resetEmailSent ? (
-                <Mail className="h-8 w-8 text-chart-2" />
+                <Mail className="h-7 w-7 text-chart-1" />
               ) : (
-                <KeyRound className="h-8 w-8 text-chart-2" />
+                <KeyRound className="h-7 w-7 text-chart-1" />
               )}
             </div>
             <h1 className="text-2xl font-semibold text-foreground">
@@ -251,39 +284,40 @@ function LoginContent() {
                 ? "We sent a password reset link to"
                 : "Enter your email and we'll send you a reset link"}
             </p>
-            {resetEmailSent && email && (
-              <p className="font-medium text-foreground">{email}</p>
+            {resetEmailSent && forgotForm.getValues("email") && (
+              <p className="font-medium text-foreground">{forgotForm.getValues("email")}</p>
             )}
           </div>
 
           {!resetEmailSent && (
-            <form onSubmit={handleForgotPassword} className="space-y-4">
+            <form onSubmit={forgotForm.handleSubmit(handleForgotPassword)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="reset-email">Email</Label>
                 <Input
                   id="reset-email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="you@example.com"
+                  {...forgotForm.register("email")}
+                  aria-invalid={!!forgotForm.formState.errors.email}
                 />
+                {forgotForm.formState.errors.email && (
+                  <p className="text-sm text-destructive">{forgotForm.formState.errors.email.message}</p>
+                )}
               </div>
 
-              {error && (
+              {serverError && (
                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
-                  {error}
+                  {serverError}
                 </div>
               )}
 
               <Button
                 type="submit"
                 size="pill-lg"
-                disabled={loading}
+                disabled={forgotForm.formState.isSubmitting}
                 className="w-full"
               >
                 <Mail className="h-4 w-4" />
-                {loading ? "Sending..." : "Send reset link"}
+                {forgotForm.formState.isSubmitting ? "Sending..." : "Send reset link"}
               </Button>
             </form>
           )}
@@ -300,14 +334,14 @@ function LoginContent() {
                 type="button"
                 variant="outline"
                 size="pill-lg"
-                onClick={handleForgotPassword}
-                disabled={loading || resendCooldown > 0}
+                onClick={() => forgotForm.handleSubmit(handleForgotPassword)()}
+                disabled={forgotForm.formState.isSubmitting || resendCooldown > 0}
                 className="w-full"
               >
-                <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                <RotateCw className={`h-4 w-4 ${forgotForm.formState.isSubmitting ? "animate-spin" : ""}`} />
                 {resendCooldown > 0
                   ? `Resend in ${resendCooldown}s`
-                  : loading
+                  : forgotForm.formState.isSubmitting
                     ? "Sending..."
                     : "Resend email"}
               </Button>
@@ -334,10 +368,9 @@ function LoginContent() {
     return (
       <main className="min-h-screen flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-8">
-          {/* Icon */}
           <div className="flex flex-col items-center gap-4">
-            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10">
-              <RotateCw className="h-8 w-8 text-amber-500" />
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-chart-1/20">
+              <RotateCw className="h-7 w-7 text-chart-1" />
             </div>
             <h1 className="text-2xl font-semibold text-foreground">
               {resendSuccess ? "Check your inbox" : "Link expired"}
@@ -347,28 +380,29 @@ function LoginContent() {
                 ? "We sent a new confirmation link to"
                 : "Enter your email to receive a new confirmation link"}
             </p>
-            {resendSuccess && email && (
-              <p className="font-medium text-foreground">{email}</p>
+            {resendSuccess && resendForm.getValues("email") && (
+              <p className="font-medium text-foreground">{resendForm.getValues("email")}</p>
             )}
           </div>
 
           {!resendSuccess && (
-            <form onSubmit={handleResendEmail} className="space-y-4">
+            <form onSubmit={resendForm.handleSubmit(handleResendEmail)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="resend-email">Email</Label>
                 <Input
                   id="resend-email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="you@example.com"
+                  {...resendForm.register("email")}
+                  aria-invalid={!!resendForm.formState.errors.email}
                 />
+                {resendForm.formState.errors.email && (
+                  <p className="text-sm text-destructive">{resendForm.formState.errors.email.message}</p>
+                )}
               </div>
 
-              {error && (
+              {serverError && (
                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
-                  {error}
+                  {serverError}
                 </div>
               )}
 
@@ -433,7 +467,7 @@ function LoginContent() {
           variant="outline"
           size="pill-lg"
           onClick={handleGoogleSignIn}
-          disabled={googleLoading || loading}
+          disabled={googleLoading || authForm.formState.isSubmitting}
           className="w-full"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -470,17 +504,19 @@ function LoginContent() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={authForm.handleSubmit(handleAuthSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="you@example.com"
+              autoComplete="email"
+              {...authForm.register("email")}
+              aria-invalid={!!authForm.formState.errors.email}
             />
+            {authForm.formState.errors.email && (
+              <p className="text-sm text-destructive">{authForm.formState.errors.email.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -493,7 +529,7 @@ function LoginContent() {
                   size="sm"
                   onClick={() => {
                     setShowForgotPassword(true);
-                    setError(null);
+                    setServerError(null);
                   }}
                   className="text-xs text-muted-foreground hover:text-foreground px-0 h-auto"
                 >
@@ -501,30 +537,35 @@ function LoginContent() {
                 </Button>
               )}
             </div>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={6}
-              placeholder="••••••••"
+              autoComplete={isSignUp ? "new-password" : "current-password"}
+              {...authForm.register("password")}
+              aria-invalid={!!authForm.formState.errors.password}
             />
+            {authForm.formState.errors.password && (
+              <p className="text-sm text-destructive">{authForm.formState.errors.password.message}</p>
+            )}
+            {isSignUp && !authForm.formState.errors.password && (
+              <p className="text-xs text-muted-foreground">
+                Min 8 characters with uppercase, lowercase, and number
+              </p>
+            )}
           </div>
 
-          {error && (
+          {serverError && (
             <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
-              {error}
+              {serverError}
             </div>
           )}
 
           <Button
             type="submit"
             size="pill-lg"
-            disabled={loading}
+            disabled={authForm.formState.isSubmitting}
             className="w-full"
           >
-            {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
+            {authForm.formState.isSubmitting ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
           </Button>
         </form>
 
@@ -534,10 +575,7 @@ function LoginContent() {
             type="button"
             variant="muted"
             size="sm"
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
-            }}
+            onClick={() => setIsSignUp(!isSignUp)}
           >
             {isSignUp
               ? "Already have an account? Sign in"
