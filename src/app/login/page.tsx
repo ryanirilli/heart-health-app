@@ -1,23 +1,48 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Activity } from "lucide-react";
+import { Activity, Mail, ArrowLeft, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [showResendForm, setShowResendForm] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  // Handle error from URL params (e.g., expired link)
+  useEffect(() => {
+    const urlError = searchParams.get("error");
+    if (urlError) {
+      setError(urlError);
+      // If it's an expired link error, show the resend option
+      if (urlError.toLowerCase().includes("expired")) {
+        setShowResendForm(true);
+      }
+    }
+  }, [searchParams]);
+
+  // Countdown timer for resend cooldown
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -36,11 +61,54 @@ export default function LoginPage() {
     }
   };
 
+  const handleResendEmail = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!email) {
+      setError("Please enter your email address");
+      return;
+    }
+    
+    setResendLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
+        },
+      });
+      if (error) throw error;
+      setResendCooldown(60); // 60 second cooldown
+      setResendSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to resend email");
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const handleBackToSignUp = () => {
+    setConfirmationSent(false);
+    setEmail("");
+    setPassword("");
+    setError(null);
+  };
+
+  const handleBackToLogin = () => {
+    setShowResendForm(false);
+    setResendSuccess(false);
+    setEmail("");
+    setError(null);
+    // Clear URL params
+    router.replace("/login");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setMessage(null);
 
     try {
       if (isSignUp) {
@@ -48,11 +116,11 @@ export default function LoginPage() {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: `${window.location.origin}/auth/callback?type=signup`,
           },
         });
         if (error) throw error;
-        setMessage("Check your email for the confirmation link!");
+        setConfirmationSent(true);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -68,6 +136,152 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Confirmation email sent screen
+  if (confirmationSent) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Mail Icon */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-chart-2/10">
+              <Mail className="h-8 w-8 text-chart-2" />
+            </div>
+            <h1 className="text-2xl font-semibold text-foreground">Check your inbox</h1>
+            <p className="text-muted-foreground text-center">
+              We sent a confirmation link to
+            </p>
+            <p className="font-medium text-foreground">{email}</p>
+          </div>
+
+          {/* Instructions */}
+          <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+            <p className="text-sm text-muted-foreground text-center">
+              Click the link in the email to activate your account. If you don&apos;t see it, check your spam folder.
+            </p>
+          </div>
+
+          {error && (
+            <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
+              {error}
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="space-y-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="pill-lg"
+              onClick={handleResendEmail}
+              disabled={resendLoading || resendCooldown > 0}
+              className="w-full"
+            >
+              <RotateCw className={`h-4 w-4 ${resendLoading ? "animate-spin" : ""}`} />
+              {resendCooldown > 0
+                ? `Resend in ${resendCooldown}s`
+                : resendLoading
+                  ? "Sending..."
+                  : "Resend email"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="pill-lg"
+              onClick={handleBackToSignUp}
+              className="w-full text-muted-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Use a different email
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Request new confirmation link screen (for expired links)
+  if (showResendForm) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Icon */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/10">
+              <RotateCw className="h-8 w-8 text-amber-500" />
+            </div>
+            <h1 className="text-2xl font-semibold text-foreground">
+              {resendSuccess ? "Check your inbox" : "Link expired"}
+            </h1>
+            <p className="text-muted-foreground text-center">
+              {resendSuccess
+                ? "We sent a new confirmation link to"
+                : "Enter your email to receive a new confirmation link"}
+            </p>
+            {resendSuccess && email && (
+              <p className="font-medium text-foreground">{email}</p>
+            )}
+          </div>
+
+          {!resendSuccess && (
+            <form onSubmit={handleResendEmail} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="resend-email">Email</Label>
+                <Input
+                  id="resend-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
+                  {error}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                size="pill-lg"
+                disabled={resendLoading || resendCooldown > 0}
+                className="w-full"
+              >
+                <Mail className="h-4 w-4" />
+                {resendCooldown > 0
+                  ? `Resend in ${resendCooldown}s`
+                  : resendLoading
+                    ? "Sending..."
+                    : "Send new link"}
+              </Button>
+            </form>
+          )}
+
+          {resendSuccess && (
+            <div className="bg-muted/50 rounded-xl p-4">
+              <p className="text-sm text-muted-foreground text-center">
+                Click the link in the email to activate your account. If you don&apos;t see it, check your spam folder.
+              </p>
+            </div>
+          )}
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="pill-lg"
+            onClick={handleBackToLogin}
+            className="w-full text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to sign in
+          </Button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
@@ -160,12 +374,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {message && (
-            <div className="p-3 rounded-lg bg-chart-2/10 text-chart-2 text-sm text-center">
-              {message}
-            </div>
-          )}
-
           <Button
             type="submit"
             size="pill-lg"
@@ -185,7 +393,6 @@ export default function LoginPage() {
             onClick={() => {
               setIsSignUp(!isSignUp);
               setError(null);
-              setMessage(null);
             }}
           >
             {isSignUp
@@ -195,5 +402,17 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen flex items-center justify-center p-6">
+        <div className="w-14 h-14 rounded-2xl bg-chart-1/20 animate-pulse" />
+      </main>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

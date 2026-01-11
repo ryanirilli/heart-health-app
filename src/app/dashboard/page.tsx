@@ -92,7 +92,11 @@ async function getGoalsData(userId: string) {
   return goals;
 }
 
-export default async function Dashboard() {
+interface DashboardProps {
+  searchParams: Promise<{ confirmed?: string }>;
+}
+
+export default async function Dashboard({ searchParams }: DashboardProps) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -103,11 +107,20 @@ export default async function Dashboard() {
     return null;
   }
 
+  const { confirmed } = await searchParams;
+
   // Fetch all data in parallel
   const [{ types, activities }, goals] = await Promise.all([
     getActivityData(user.id),
     getGoalsData(user.id),
   ]);
 
-  return <DashboardContent types={types} activities={activities} goals={goals} />;
+  return (
+    <DashboardContent 
+      types={types} 
+      activities={activities} 
+      goals={goals} 
+      showWelcomeToast={confirmed === 'true'}
+    />
+  );
 }

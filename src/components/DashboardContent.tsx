@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ActivityCalendar,
@@ -12,20 +12,34 @@ import { FloatingNavBar, AppView } from "@/components/FloatingNavBar";
 import { ActivityTypeMap } from "@/lib/activityTypes";
 import { ActivityMap } from "@/lib/activities";
 import { GoalMap } from "@/lib/goals";
+import { toast, Toaster } from "sonner";
 
 interface DashboardContentProps {
   types: ActivityTypeMap;
   activities: ActivityMap;
   goals: GoalMap;
+  showWelcomeToast?: boolean;
 }
 
 export function DashboardContent({
   types,
   activities,
   goals,
+  showWelcomeToast,
 }: DashboardContentProps) {
   const [currentView, setCurrentView] = useState<AppView>("activities");
   const pendingViewRef = useRef<AppView | null>(null);
+
+  // Show welcome toast for newly confirmed users
+  useEffect(() => {
+    if (showWelcomeToast) {
+      toast.success("Email confirmed!", {
+        description: "Welcome to Rhythm. Start tracking your first activity.",
+      });
+      // Clean up the URL param without triggering navigation
+      window.history.replaceState(null, "", "/dashboard");
+    }
+  }, [showWelcomeToast]);
 
   const handleViewChange = useCallback((view: AppView) => {
     const scrollY = window.scrollY || document.documentElement.scrollTop;
@@ -132,6 +146,8 @@ export function DashboardContent({
         />
         {/* Goal form dialog - always mounted so it can be opened from anywhere */}
         <GoalFormDialog />
+        {/* Toast notifications */}
+        <Toaster position="top-center" richColors theme="dark" />
       </GoalsProvider>
     </ActivityProvider>
   );
