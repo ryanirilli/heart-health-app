@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Activity, Mail, ArrowLeft, RotateCw } from "lucide-react";
+import { Activity, Mail, ArrowLeft, RotateCw, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,8 @@ function LoginContent() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [showResendForm, setShowResendForm] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -98,11 +100,37 @@ function LoginContent() {
 
   const handleBackToLogin = () => {
     setShowResendForm(false);
+    setShowForgotPassword(false);
     setResendSuccess(false);
+    setResetEmailSent(false);
     setEmail("");
     setError(null);
     // Clear URL params
     router.replace("/login");
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setError("Please enter your email address");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery&next=/reset-password`,
+      });
+      if (error) throw error;
+      setResetEmailSent(true);
+      setResendCooldown(60);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send reset email");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -196,6 +224,106 @@ function LoginContent() {
               Use a different email
             </Button>
           </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Forgot password screen
+  if (showForgotPassword) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-6">
+        <div className="w-full max-w-sm space-y-8">
+          {/* Icon */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center justify-center w-16 h-16 rounded-full bg-chart-2/10">
+              {resetEmailSent ? (
+                <Mail className="h-8 w-8 text-chart-2" />
+              ) : (
+                <KeyRound className="h-8 w-8 text-chart-2" />
+              )}
+            </div>
+            <h1 className="text-2xl font-semibold text-foreground">
+              {resetEmailSent ? "Check your inbox" : "Reset password"}
+            </h1>
+            <p className="text-muted-foreground text-center">
+              {resetEmailSent
+                ? "We sent a password reset link to"
+                : "Enter your email and we'll send you a reset link"}
+            </p>
+            {resetEmailSent && email && (
+              <p className="font-medium text-foreground">{email}</p>
+            )}
+          </div>
+
+          {!resetEmailSent && (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="reset-email">Email</Label>
+                <Input
+                  id="reset-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="you@example.com"
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
+                  {error}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                size="pill-lg"
+                disabled={loading}
+                className="w-full"
+              >
+                <Mail className="h-4 w-4" />
+                {loading ? "Sending..." : "Send reset link"}
+              </Button>
+            </form>
+          )}
+
+          {resetEmailSent && (
+            <div className="space-y-4">
+              <div className="bg-muted/50 rounded-xl p-4">
+                <p className="text-sm text-muted-foreground text-center">
+                  Click the link in the email to reset your password. If you don&apos;t see it, check your spam folder.
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="pill-lg"
+                onClick={handleForgotPassword}
+                disabled={loading || resendCooldown > 0}
+                className="w-full"
+              >
+                <RotateCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                {resendCooldown > 0
+                  ? `Resend in ${resendCooldown}s`
+                  : loading
+                    ? "Sending..."
+                    : "Resend email"}
+              </Button>
+            </div>
+          )}
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="pill-lg"
+            onClick={handleBackToLogin}
+            className="w-full text-muted-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to sign in
+          </Button>
         </div>
       </main>
     );
@@ -356,7 +484,23 @@ function LoginContent() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              {!isSignUp && (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  onClick={() => {
+                    setShowForgotPassword(true);
+                    setError(null);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground px-0 h-auto"
+                >
+                  Forgot password?
+                </Button>
+              )}
+            </div>
             <Input
               id="password"
               type="password"

@@ -31,6 +31,10 @@ export async function GET(request: Request) {
     });
 
     if (!error) {
+      // For password recovery, redirect to reset password page
+      if (type === 'recovery') {
+        return NextResponse.redirect(`${origin}/reset-password`);
+      }
       // Add query param to show welcome toast for new signups
       const redirectUrl = type === 'signup' 
         ? `${origin}${next}?confirmed=true`
