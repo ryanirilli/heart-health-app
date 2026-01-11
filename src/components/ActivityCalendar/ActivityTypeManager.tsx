@@ -97,9 +97,9 @@ const PRESET_ACTIVITY_TYPES: PresetActivityType[] = [
       goalType: "neutral",
       uiType: "buttonGroup",
       buttonOptions: [
-        { label: "Bad", value: 1 },
-        { label: "Neutral", value: 2 },
         { label: "Good", value: 3 },
+        { label: "Neutral", value: 2 },
+        { label: "Bad", value: 1 },
       ],
       order,
     }),

@@ -848,6 +848,8 @@ function StepSummary({ formData, activityTypes, errors }: StepSummaryProps) {
             <span className="text-sm font-medium">
               {selectedActivityType?.uiType === 'toggle'
                 ? (formData.targetValue === 1 ? 'Yes' : 'No')
+                : selectedActivityType?.uiType === 'buttonGroup'
+                ? (selectedActivityType.buttonOptions?.find(o => o.value === formData.targetValue)?.label || formData.targetValue)
                 : selectedActivityType
                 ? formatValueOnly(formData.targetValue, selectedActivityType)
                 : formData.targetValue}

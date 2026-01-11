@@ -7,8 +7,9 @@ import { Activity, ActivityEntry, ActivityMap } from '@/lib/activities';
 import { GoalMap, getRelevantGoalsForDate } from '@/lib/goals';
 import { ActivityViewCard, ActivityTypeCard } from './ActivityFormContent';
 import { GoalStatusSection } from './GoalStatusSection';
+import { useGoals } from '@/components/Goals';
 import { cn } from '@/lib/utils';
-import { Settings } from 'lucide-react';
+import { Settings, Target } from 'lucide-react';
 
 interface DayContentViewProps {
   dateStr: string;
@@ -98,7 +99,31 @@ export function DayContentView({
           />
         </div>
       )}
+
+      {/* Goal CTA - show when activities exist but no goals have been created */}
+      {entriesWithTypes.length > 0 && !hasRelevantGoals && <CreateGoalCTA />}
     </>
+  );
+}
+
+/**
+ * Minimal CTA to encourage users to create their first goal
+ * Only shown when they have activities but no goals
+ */
+function CreateGoalCTA() {
+  const { goalsList, openCreateDialog } = useGoals();
+
+  // Only show if user has no goals at all
+  if (goalsList.length > 0) return null;
+
+  return (
+    <button
+      onClick={openCreateDialog}
+      className="mt-4 w-full flex items-center justify-center gap-1.5 text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+    >
+      <Target className="h-3.5 w-3.5" />
+      <span className="text-sm">Set a goal</span>
+    </button>
   );
 }
 

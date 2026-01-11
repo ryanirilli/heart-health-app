@@ -930,6 +930,22 @@ function GoalStatusItem({
         };
       }
 
+      // For daily buttonGroup goals, show the label instead of numeric value
+      if (goal.dateType === "daily" && activityType.uiType === "buttonGroup") {
+        const currentOption = activityType.buttonOptions?.find(
+          (o) => o.value === activityValue
+        );
+        const targetOption = activityType.buttonOptions?.find(
+          (o) => o.value === goal.targetValue
+        );
+        const currentLabel = currentOption?.label || String(activityValue ?? 0);
+        const targetLabel = targetOption?.label || String(goal.targetValue);
+        return {
+          text: currentLabel,
+          goalBadge: `Goal: ${targetLabel}`,
+        };
+      }
+
       // For daily goals or increment types, show current/cumulative value with unit
       const rawValue =
         goal.dateType === "daily" ? activityValue ?? 0 : effectiveValue ?? 0;
