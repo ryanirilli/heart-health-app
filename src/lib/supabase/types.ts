@@ -45,8 +45,19 @@ export interface DbGoal {
   updated_at: string;
 }
 
+export interface DbProfile {
+  id: string;
+  user_id: string;
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Insert types (without auto-generated fields)
 export type DbActivityTypeInsert = Omit<DbActivityType, 'created_at' | 'updated_at'>;
 export type DbActivityInsert = Omit<DbActivity, 'id' | 'created_at' | 'updated_at'>;
 export type DbGoalInsert = Omit<DbGoal, 'id' | 'created_at' | 'updated_at'>;
+export type DbProfileUpdate = Partial<Pick<DbProfile, 'display_name' | 'bio' | 'avatar_url'>>;
 

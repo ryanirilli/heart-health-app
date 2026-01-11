@@ -22,7 +22,7 @@ export default function TermsPage() {
             </Link>
             <Link
               href="/"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors px-3 py-1.5 rounded-full"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
