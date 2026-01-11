@@ -1016,14 +1016,12 @@ function GoalStatusItem({
           Update Goal
         </Button>
       ) : (
-        !styles.hideBadges && (
-          <Badge
-            variant={styles.badgeVariant}
-            className="flex-shrink-0 text-[10px]"
-          >
-            {formatGoalDateInfo(goal)}
-          </Badge>
-        )
+        <Badge
+          variant={styles.badgeVariant}
+          className="flex-shrink-0 text-[10px]"
+        >
+          {formatGoalDateInfo(goal)}
+        </Badge>
       )}
     </div>
   );
