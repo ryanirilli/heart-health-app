@@ -51,11 +51,12 @@ function LoginContent() {
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [confirmationEmail, setConfirmationEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
+  const [showResendOption, setShowResendOption] = useState(false);
   const [showResendForm, setShowResendForm] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [showResetResendOption, setShowResetResendOption] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -89,13 +90,6 @@ function LoginContent() {
     }
   }, [searchParams]);
 
-  // Countdown timer for resend cooldown
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown]);
 
   // Reset form when switching between sign in and sign up
   useEffect(() => {
@@ -133,8 +127,8 @@ function LoginContent() {
         },
       });
       if (error) throw error;
-      setResendCooldown(60);
       setResendSuccess(true);
+      setShowResendOption(false);
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Failed to resend email");
     } finally {
@@ -145,6 +139,8 @@ function LoginContent() {
   const handleBackToSignUp = () => {
     setConfirmationSent(false);
     setConfirmationEmail("");
+    setShowResendOption(false);
+    setResendSuccess(false);
     authForm.reset();
     setServerError(null);
   };
@@ -154,6 +150,7 @@ function LoginContent() {
     setShowForgotPassword(false);
     setResendSuccess(false);
     setResetEmailSent(false);
+    setShowResetResendOption(false);
     forgotForm.reset();
     resendForm.reset();
     setServerError(null);
@@ -169,7 +166,7 @@ function LoginContent() {
       });
       if (error) throw error;
       setResetEmailSent(true);
-      setResendCooldown(60);
+      setShowResetResendOption(false);
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Failed to send reset email");
     }
@@ -232,22 +229,36 @@ function LoginContent() {
             </div>
           )}
 
+          {resendSuccess && (
+            <div className="p-3 rounded-lg bg-chart-1/10 text-chart-1 text-sm text-center">
+              Email sent! Check your inbox.
+            </div>
+          )}
+
           <div className="space-y-3">
-            <Button
-              type="button"
-              variant="outline"
-              size="pill-lg"
-              onClick={() => handleResendEmail({ email: confirmationEmail })}
-              disabled={resendLoading || resendCooldown > 0}
-              className="w-full"
-            >
-              <RotateCw className={`h-4 w-4 ${resendLoading ? "animate-spin" : ""}`} />
-              {resendCooldown > 0
-                ? `Resend in ${resendCooldown}s`
-                : resendLoading
-                  ? "Sending..."
-                  : "Resend email"}
-            </Button>
+            {!showResendOption ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="pill-lg"
+                onClick={() => setShowResendOption(true)}
+                className="w-full"
+              >
+                <Mail className="h-4 w-4" />
+                Didn&apos;t receive an email?
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                size="pill-lg"
+                onClick={() => handleResendEmail({ email: confirmationEmail })}
+                disabled={resendLoading}
+                className="w-full"
+              >
+                <RotateCw className={`h-4 w-4 ${resendLoading ? "animate-spin" : ""}`} />
+                {resendLoading ? "Sending..." : "Resend email"}
+              </Button>
+            )}
 
             <Button
               type="button"
@@ -332,21 +343,29 @@ function LoginContent() {
                 </p>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                size="pill-lg"
-                onClick={() => forgotForm.handleSubmit(handleForgotPassword)()}
-                disabled={forgotForm.formState.isSubmitting || resendCooldown > 0}
-                className="w-full"
-              >
-                <RotateCw className={`h-4 w-4 ${forgotForm.formState.isSubmitting ? "animate-spin" : ""}`} />
-                {resendCooldown > 0
-                  ? `Resend in ${resendCooldown}s`
-                  : forgotForm.formState.isSubmitting
-                    ? "Sending..."
-                    : "Resend email"}
-              </Button>
+              {!showResetResendOption ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="pill-lg"
+                  onClick={() => setShowResetResendOption(true)}
+                  className="w-full"
+                >
+                  <Mail className="h-4 w-4" />
+                  Didn&apos;t receive an email?
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="pill-lg"
+                  onClick={() => forgotForm.handleSubmit(handleForgotPassword)()}
+                  disabled={forgotForm.formState.isSubmitting}
+                  className="w-full"
+                >
+                  <RotateCw className={`h-4 w-4 ${forgotForm.formState.isSubmitting ? "animate-spin" : ""}`} />
+                  {forgotForm.formState.isSubmitting ? "Sending..." : "Resend email"}
+                </Button>
+              )}
             </div>
           )}
 
@@ -411,15 +430,11 @@ function LoginContent() {
               <Button
                 type="submit"
                 size="pill-lg"
-                disabled={resendLoading || resendCooldown > 0}
+                disabled={resendLoading}
                 className="w-full"
               >
                 <Mail className="h-4 w-4" />
-                {resendCooldown > 0
-                  ? `Resend in ${resendCooldown}s`
-                  : resendLoading
-                    ? "Sending..."
-                    : "Send new link"}
+                {resendLoading ? "Sending..." : "Send new link"}
               </Button>
             </form>
           )}
