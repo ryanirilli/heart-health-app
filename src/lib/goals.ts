@@ -107,21 +107,24 @@ export function isValidGoalIcon(icon: string): icon is GoalIcon {
  * Tracking type determines how discrete value goals (buttonGroup/options) are evaluated:
  * - 'average': Target is compared against the average value over the period
  * - 'absolute': Target is compared against the sum/total over the period
- */
-export type GoalTrackingType = 'average' | 'absolute';
+ * - 'sum': Target is compared against the total sum over the period
+  */
+export type GoalTrackingType = 'average' | 'absolute' | 'sum';
 
 /** All available tracking types */
-export const GOAL_TRACKING_TYPES: GoalTrackingType[] = ['average', 'absolute'];
+export const GOAL_TRACKING_TYPES: GoalTrackingType[] = ['average', 'sum', 'absolute'];
 
 /** Human-readable labels for tracking types */
 export const GOAL_TRACKING_TYPE_LABELS: Record<GoalTrackingType, string> = {
-  average: 'Average',
+  average: 'Average Daily Value',
+  sum: 'Sum',
   absolute: 'Absolute',
 };
 
 /** Descriptions for tracking types */
 export const GOAL_TRACKING_TYPE_DESCRIPTIONS: Record<GoalTrackingType, string> = {
-  average: 'Goal is met when your average value meets or exceeds the target',
+  average: 'Goal is met when your average daily value meets the target',
+  sum: 'Goal is met when your total value over the period meets the target',
   absolute: 'Goal is met only when every logged day meets the target',
 };
 
@@ -446,6 +449,261 @@ export function isGoalMet(
       // More is better - goal is met when value is at or above target
       return activityValue >= goal.targetValue;
   }
+}
+
+// ... existing imports ...
+import { ActivityMap } from './activities';
+import { ActivityTypeMap } from './activityTypes';
+
+/**
+ * Get the start of the week (Monday) for a given date string.
+ */
+export function getWeekStart(dateStr: string): string {
+  const date = new Date(dateStr + "T12:00:00");
+  const day = date.getDay();
+  // Adjust for Monday start (0 = Sunday, so we need to go back 6 days, 1 = Monday = 0 days back, etc.)
+  const daysToSubtract = day === 0 ? 6 : day - 1;
+  date.setDate(date.getDate() - daysToSubtract);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Get the start of the month for a given date string.
+ */
+export function getMonthStart(dateStr: string): string {
+  const date = new Date(dateStr + "T12:00:00");
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-01`;
+}
+
+/**
+ * Calculate values for a goal over a specific period.
+ */
+export function getValuesForPeriod(
+  goal: Goal,
+  allActivities: ActivityMap | undefined,
+  startDate: string,
+  endDate: string,
+  goalType: "positive" | "negative" | "neutral" = "positive",
+  isDiscreteType: boolean = false
+): {
+  sum: number;
+  count: number;
+  average: number;
+  daysMetTarget: number;
+  allDaysMet: boolean;
+} {
+  if (!allActivities)
+    return {
+      sum: 0,
+      count: 0,
+      average: 0,
+      daysMetTarget: 0,
+      allDaysMet: false,
+    };
+
+  let sum = 0;
+  let count = 0;
+  let daysMetTarget = 0;
+
+  for (const [dateStr, activity] of Object.entries(allActivities)) {
+    if (dateStr >= startDate && dateStr <= endDate) {
+      const value = activity.entries?.[goal.activityTypeId]?.value;
+      if (value !== undefined) {
+        sum += value;
+        count++;
+
+        // For discrete options (buttonGroup/toggle), "day met" means EXACT MATCH
+        let dayMet = false;
+        if (isDiscreteType) {
+          dayMet = value === goal.targetValue;
+        } else {
+          if (goalType === "negative") {
+            dayMet = value <= goal.targetValue;
+          } else if (goalType === "neutral") {
+            dayMet = value === goal.targetValue;
+          } else {
+            dayMet = value >= goal.targetValue;
+          }
+        }
+        if (dayMet) {
+          daysMetTarget++;
+        }
+      }
+    }
+  }
+
+  return {
+    sum,
+    count,
+    average: count > 0 ? sum / count : 0,
+    daysMetTarget,
+    allDaysMet: count > 0 && daysMetTarget === count,
+  };
+}
+
+/**
+ * Result of goal value calculation for a period.
+ */
+export interface GoalValueResult {
+  /** The effective value for display (average, sum, or days met count) */
+  effectiveValue: number;
+  /** Whether all logged days met the target (for absolute tracking) */
+  allDaysMet: boolean;
+  /** Number of days that met the target */
+  daysMetTarget: number;
+  /** Total number of days with logged activities */
+  dayCount: number;
+}
+
+/**
+ * Get the effective value for goal comparison based on activity type and goal tracking type.
+ */
+export function getEffectiveValueForGoal(
+  goal: Goal,
+  activityType: ActivityType | undefined,
+  allActivities: ActivityMap | undefined,
+  dateStr: string
+): GoalValueResult {
+  const defaultResult: GoalValueResult = {
+    effectiveValue: 0,
+    allDaysMet: false,
+    daysMetTarget: 0,
+    dayCount: 0,
+  };
+
+  if (!allActivities || !activityType) return defaultResult;
+
+  // Get the goal type for proper target comparison
+  const goalType = getGoalType(activityType);
+
+  // Determine the period based on goal date type
+  let startDate: string;
+  let endDate: string;
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(
+    today.getMonth() + 1
+  ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  switch (goal.dateType) {
+    case "daily":
+      // For daily goals, just use the single day value
+      const dailyValue =
+        allActivities[dateStr]?.entries?.[goal.activityTypeId]?.value ?? 0;
+      // Check if daily goal is met based on goal type
+      let dailyMet = false;
+      if (goalType === "negative") {
+        dailyMet = dailyValue <= goal.targetValue;
+      } else if (goalType === "neutral") {
+        dailyMet = dailyValue === goal.targetValue;
+      } else {
+        dailyMet = dailyValue >= goal.targetValue;
+      }
+      return {
+        effectiveValue: dailyValue,
+        allDaysMet: dailyMet,
+        daysMetTarget: dailyMet ? 1 : 0,
+        dayCount: dailyValue !== undefined ? 1 : 0,
+      };
+
+    case "weekly":
+      startDate = getWeekStart(dateStr);
+      endDate = dateStr;
+      break;
+
+    case "monthly":
+      startDate = getMonthStart(dateStr);
+      endDate = dateStr;
+      break;
+
+    case "by_date":
+      startDate = goal.createdAt || todayStr;
+      endDate =
+        todayStr < (goal.targetDate || todayStr)
+          ? todayStr
+          : goal.targetDate || todayStr;
+      break;
+
+    case "date_range":
+      startDate = goal.startDate || todayStr;
+      endDate =
+        todayStr < (goal.endDate || todayStr)
+          ? todayStr
+          : goal.endDate || todayStr;
+      break;
+
+    default:
+      return defaultResult;
+  }
+
+  // Check if this is a discrete option type (buttonGroup/toggle)
+  const isDiscreteType =
+    activityType.uiType === "buttonGroup" || activityType.uiType === "toggle";
+
+  const { sum, average, daysMetTarget, allDaysMet, count } = getValuesForPeriod(
+    goal,
+    allActivities,
+    startDate,
+    endDate,
+    goalType,
+    isDiscreteType
+  );
+
+  // Check for explicit 'sum' tracking type first
+  const goalTrackingType =
+    goal.trackingType?.toString().trim().toLowerCase() || "average";
+
+  if (goalTrackingType === "sum") {
+    return {
+      effectiveValue: sum,
+      allDaysMet,
+      daysMetTarget,
+      dayCount: count,
+    };
+  }
+
+  // For buttonGroup and toggle types, check the goal's tracking type
+  if (isDiscreteType) {
+    if (goalTrackingType === "absolute") {
+      return {
+        effectiveValue: daysMetTarget,
+        allDaysMet,
+        daysMetTarget,
+        dayCount: count,
+      };
+    }
+    const matchRatio = count > 0 ? daysMetTarget / count : 0;
+    return {
+      effectiveValue: matchRatio,
+      allDaysMet,
+      daysMetTarget,
+      dayCount: count,
+    };
+  }
+
+  // Slider types always use average unless they fell into 'sum' above
+  if (activityType.uiType === "slider") {
+    return {
+      effectiveValue: average,
+      allDaysMet,
+      daysMetTarget,
+      dayCount: count,
+    };
+  }
+
+  // Increment types use sum
+  return {
+    effectiveValue: sum,
+    allDaysMet,
+    daysMetTarget,
+    dayCount: count,
+  };
 }
 
 /** Validate a goal has required fields */

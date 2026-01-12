@@ -487,6 +487,16 @@ function StepSchedule({ formData, setFormData }: StepScheduleProps) {
 // STEP 3: VALUE (Target threshold with UI matching activity type)
 // =============================================================================
 
+// =============================================================================
+// STEP 3: VALUE (Target threshold with UI matching activity type)
+// =============================================================================
+
+const TIME_UNITS = [
+  { label: 'Minutes', value: 'minutes', multiplier: 1 },
+  { label: 'Hours', value: 'hours', multiplier: 60 },
+  { label: 'Days', value: 'days', multiplier: 1440 },
+];
+
 interface StepValueProps {
   formData: Goal;
   setFormData: (data: Goal) => void;
@@ -499,35 +509,176 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
   const maxValue = selectedActivityType?.maxValue ?? 100;
   const step = selectedActivityType?.step ?? 1;
   const uiType = selectedActivityType?.uiType ?? 'increment';
+  
+  const [timeUnit, setTimeUnit] = useState('minutes');
+
+  // Initialize time unit based on value magnitude if it looks like a clean conversion
+  useEffect(() => {
+    if (selectedActivityType?.unit === 'minute' && currentValue > 0) {
+      if (currentValue % 1440 === 0) setTimeUnit('days');
+      else if (currentValue % 60 === 0) setTimeUnit('hours');
+    }
+  }, []); // Only run once on mount
 
   const handleChange = (value: number) => {
     setFormData({ ...formData, targetValue: value });
   };
 
-  // Check if goal uses average (non-daily goals with slider/buttonGroup/toggle)
-  const usesAverage = formData.dateType !== 'daily' && 
-    (uiType === 'slider' || uiType === 'buttonGroup' || uiType === 'toggle');
+  const handleTimeValueChange = (val: number) => {
+    const multiplier = TIME_UNITS.find(u => u.value === timeUnit)?.multiplier || 1;
+    handleChange(val * multiplier);
+  };
 
-  // Get schedule description for average note
+  const handleTimeUnitChange = (newUnit: string) => {
+    setTimeUnit(newUnit);
+    // Be helpful: when switching units, try to keep the *duration* constant?
+    // Current behavior: The input value stays the same, so the total target changes. 
+    // E.g. 5 minutes -> switch to hours -> 5 hours. This is usually what users expect when changing units before typing.
+    // BUT if they already typed "120" (minutes) and switch to "Hours", they might expect "2" (hours).
+    
+    // Let's implement the "keep duration constant" logic if possible, but it might be confusing if it results in decimals.
+    // User request: "If it's time based unit it should allow you to choose minutes, hours, or days."
+    // Let's stick to the simpler UX: Changing unit simply changes the multiplier for future edits, AND we re-calculate the display value.
+  };
+
+  const showTrackingType = formData.dateType !== 'daily';
+
+  // Get schedule description for labels
   const getScheduleLabel = () => {
     switch (formData.dateType) {
-      case 'daily':
-        return 'day';
-      case 'weekly':
-        return 'week';
-      case 'monthly':
-        return 'month';
-      case 'by_date':
-        return 'period';
-      case 'date_range':
-        return 'period';
-      default:
-        return 'period';
+      case 'daily': return 'day';
+      case 'weekly': return 'week';
+      case 'monthly': return 'month';
+      case 'by_date': return 'period';
+      case 'date_range': return 'period';
+      default: return 'period';
     }
   };
 
+  const renderTrackingTypeSelector = () => {
+    if (!showTrackingType) return null;
+    
+    return (
+      <div className="space-y-3 mb-6 pb-6 border-b">
+        <Label className="text-sm font-medium">How should progress be measured?</Label>
+        <div className="grid gap-2">
+          {GOAL_TRACKING_TYPES.map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setFormData({ ...formData, trackingType: type })}
+              className={cn(
+                'w-full p-3 rounded-lg border text-left transition-all',
+                formData.trackingType === type
+                  ? 'border-primary bg-primary/5 ring-1 ring-primary'
+                  : 'border-border hover:border-primary/50 hover:bg-muted/50'
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">{GOAL_TRACKING_TYPE_LABELS[type]}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {GOAL_TRACKING_TYPE_DESCRIPTIONS[type]}
+                  </p>
+                </div>
+                {formData.trackingType === type && (
+                  <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
+                    <Check className="h-3 w-3 text-primary-foreground" />
+                  </div>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderSumInput = () => {
+    const isTimeBased = selectedActivityType?.unit === 'minute';
+    
+    if (isTimeBased) {
+      const multiplier = TIME_UNITS.find(u => u.value === timeUnit)?.multiplier || 1;
+      const displayValue = currentValue / multiplier;
+
+      return (
+        <div className="space-y-4">
+          <div className="flex gap-4">
+            <div className="flex-1 space-y-2">
+              <Label>Target Value</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.1}
+                value={displayValue}
+                onChange={(e) => handleTimeValueChange(parseFloat(e.target.value) || 0)}
+                className="text-lg"
+              />
+            </div>
+            <div className="w-32 space-y-2">
+              <Label>Unit</Label>
+              <Select value={timeUnit} onValueChange={handleTimeUnitChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIME_UNITS.map(unit => (
+                    <SelectItem key={unit.value} value={unit.value}>
+                      {unit.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground text-center">
+             Total: {formatValueOnly(currentValue, selectedActivityType!)} per {getScheduleLabel()}
+          </p>
+        </div>
+      );
+    }
+
+    // Generic sum input for non-time activities
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label className="text-center block">Total Target Value</Label>
+          <div className="flex items-center justify-center gap-4">
+            <Input
+              type="number"
+              min={0}
+              value={currentValue}
+              onChange={(e) => handleChange(parseFloat(e.target.value) || 0)}
+              className="w-32 text-center text-lg font-medium"
+            />
+            {selectedActivityType?.unit && (
+               <span className="text-sm text-muted-foreground">
+                {selectedActivityType.pluralize && currentValue !== 1
+                  ? plural(selectedActivityType.unit)
+                  : selectedActivityType.unit}
+              </span>
+            )}
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground text-center">
+           Total value per {getScheduleLabel()}
+        </p>
+      </div>
+    );
+  };
+
   const renderInput = () => {
-    // For slider UI type - show a slider
+    // If 'sum' is selected, show the custom sum input regardless of UI type
+    // (unless it's daily, which doesn't support sum tracking type anyway)
+    if (formData.trackingType === 'sum' && showTrackingType) {
+      return (
+        <div className="space-y-6">
+          {renderSumInput()}
+        </div>
+      );
+    }
+
+    // For slider UI type
     if (uiType === 'slider') {
       const progress = ((currentValue - minValue) / (maxValue - minValue)) * 100;
 
@@ -550,25 +701,17 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
             className="activity-slider w-full"
             style={{ '--slider-progress': `${progress}%` } as React.CSSProperties}
           />
-          {usesAverage ? (
-            <p className="text-xs text-muted-foreground text-center">
-              Your <span className="font-medium">average</span> value across the {getScheduleLabel()} must meet this target
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground text-center">
-              Target value per {getScheduleLabel()}
-            </p>
-          )}
+          
+          <p className="text-xs text-muted-foreground text-center">
+            Target value per {getScheduleLabel()}
+          </p>
         </div>
       );
     }
 
-    // For buttonGroup UI type - show button options
+    // For buttonGroup UI type
     if (uiType === 'buttonGroup') {
       const options = selectedActivityType?.buttonOptions ?? [];
-      // Show tracking type selector for non-daily goals
-      const showTrackingType = formData.dateType !== 'daily';
-
       return (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -589,54 +732,15 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
             ))}
           </div>
 
-          {/* Tracking Type Selector for non-daily goals */}
-          {showTrackingType && (
-            <div className="space-y-3 pt-2">
-              <Label className="text-sm font-medium">How should progress be measured?</Label>
-              {GOAL_TRACKING_TYPES.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, trackingType: type })}
-                  className={cn(
-                    'w-full p-3 rounded-lg border text-left transition-all',
-                    formData.trackingType === type
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{GOAL_TRACKING_TYPE_LABELS[type]}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {GOAL_TRACKING_TYPE_DESCRIPTIONS[type]}
-                      </p>
-                    </div>
-                    {formData.trackingType === type && (
-                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="h-3 w-3 text-primary-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {!showTrackingType && (
-            <p className="text-xs text-muted-foreground text-center">
-              Target value per {getScheduleLabel()}
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground text-center">
+            Target value per {getScheduleLabel()}
+          </p>
         </div>
       );
     }
 
-    // For toggle UI type - show Yes/No buttons
+    // For toggle UI type
     if (uiType === 'toggle') {
-      // Show tracking type selector for non-daily goals
-      const showTrackingType = formData.dateType !== 'daily';
-
       return (
         <div className="space-y-4">
           <div className="flex gap-2">
@@ -666,50 +770,14 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
             </button>
           </div>
 
-          {/* Tracking Type Selector for non-daily goals */}
-          {showTrackingType && (
-            <div className="space-y-3 pt-2">
-              <Label className="text-sm font-medium">How should progress be measured?</Label>
-              {GOAL_TRACKING_TYPES.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, trackingType: type })}
-                  className={cn(
-                    'w-full p-3 rounded-lg border text-left transition-all',
-                    formData.trackingType === type
-                      ? 'border-primary bg-primary/5 ring-1 ring-primary'
-                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{GOAL_TRACKING_TYPE_LABELS[type]}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {GOAL_TRACKING_TYPE_DESCRIPTIONS[type]}
-                      </p>
-                    </div>
-                    {formData.trackingType === type && (
-                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="h-3 w-3 text-primary-foreground" />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {!showTrackingType && (
-            <p className="text-xs text-muted-foreground text-center">
-              Target: {currentValue === 1 ? 'Yes' : 'No'} per {getScheduleLabel()}
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground text-center">
+            Target: {currentValue === 1 ? 'Yes' : 'No'} per {getScheduleLabel()}
+          </p>
         </div>
       );
     }
 
-    // For increment UI type - show a number input
+    // Default increment/input
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-center gap-4">
@@ -730,11 +798,10 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
             </span>
           )}
         </div>
-        {selectedActivityType && (
-          <p className="text-sm text-muted-foreground text-center">
-            Goal: {formatValueOnly(currentValue, selectedActivityType)}
-          </p>
-        )}
+        
+        <p className="text-sm text-muted-foreground text-center">
+          Goal: {formatValueOnly(currentValue, selectedActivityType!)}
+        </p>
       </div>
     );
   };
@@ -748,6 +815,7 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
         </p>
       </div>
 
+      {renderTrackingTypeSelector()}
       {renderInput()}
     </div>
   );

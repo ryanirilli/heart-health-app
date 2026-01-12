@@ -18,7 +18,7 @@ import { useGoals } from "@/components/Goals";
 import { ActivityEntryDialog } from "./ActivityEntryDialog";
 import { ActivityEntry } from "@/lib/activities";
 import { getGoalType, ActivityTypeMap } from "@/lib/activityTypes";
-import { getGoalsWithIndicatorForDate, isGoalMet } from "@/lib/goals";
+import { getGoalsWithIndicatorForDate, isGoalMet, getEffectiveValueForGoal } from "@/lib/goals";
 
 interface ActivityDayProps {
   date: Date | null;
@@ -68,7 +68,7 @@ export function ActivityDay({
   compact = false,
 }: ActivityDayProps) {
   const { activityTypes } = useActivityTypes();
-  const { updateActivity, deleteActivity, isSaving, isDeleting } =
+  const { updateActivity, deleteActivity, isSaving, isDeleting, activities } =
     useActivities();
   const { goals } = useGoals();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -87,8 +87,27 @@ export function ActivityDay({
   const goalsWithIndicator = getGoalsWithIndicatorForDate(goals, dateStr);
   const hasAchievedGoal = goalsWithIndicator.some((goal) => {
     const activityType = activityTypes[goal.activityTypeId];
-    const activityValue = activity?.entries?.[goal.activityTypeId]?.value;
-    return isGoalMet(goal, activityValue, activityType);
+    
+    // For daily goals, check the specific day's value
+    if (goal.dateType === 'daily') {
+      const activityValue = activity?.entries?.[goal.activityTypeId]?.value;
+      return isGoalMet(goal, activityValue, activityType);
+    }
+    
+    // For non-daily goals (weekly, monthly, by_date, sum, average),
+    // calculate the effective value over the period
+    const result = getEffectiveValueForGoal(goal, activityType, activities, dateStr);
+    
+    // For Absolute tracking, we expect ALL days to be met
+    const isAbsolute = goal.trackingType === 'absolute' && 
+      (activityType.uiType === 'buttonGroup' || activityType.uiType === 'toggle');
+      
+    if (isAbsolute) {
+      return result.allDaysMet && result.dayCount > 0;
+    }
+    
+    // For Sum/Average positive/negative goals, check if effectiveValue meets target
+    return isGoalMet(goal, result.effectiveValue, activityType);
   });
 
   /**
