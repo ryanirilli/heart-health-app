@@ -10,7 +10,7 @@ export function HeroContent() {
 
   useEffect(() => {
     // Delay before animation starts for a moment of anticipation
-    const timer = setTimeout(() => setIsVisible(true), 1000);
+    const timer = setTimeout(() => setIsVisible(true), 700);
     return () => clearTimeout(timer);
   }, []);
 
@@ -86,4 +86,3 @@ export function HeroContent() {
     </div>
   );
 }
-
