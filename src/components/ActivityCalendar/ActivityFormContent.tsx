@@ -215,8 +215,8 @@ function ActivityTypeCard({
         type.deleted
           ? "bg-muted/50"
           : isTracked
-          ? "bg-muted"
-          : "bg-muted/70 hover:bg-muted"
+          ? "bg-secondary/80 relative z-10 shadow-sm"
+          : "bg-muted/60 hover:bg-muted"
       )}
     >
       <AccordionItem value={type.id} className="border-0 bg-transparent !px-0">

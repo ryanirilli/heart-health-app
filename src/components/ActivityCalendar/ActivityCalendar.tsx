@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { PillToggle } from '@/components/ui/pill-toggle';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type ViewMode = 'day' | 'month' | 'year';
 
@@ -62,6 +63,16 @@ export function ActivityCalendar() {
       setSelectedDate(prev => addDays(prev, 1));
     }
   }, [canGoNextDay]);
+
+  // Jump to today
+  const goToToday = useCallback(() => {
+    const today = new Date();
+    // If we're viewing a future date, slide right (backwards)
+    // If we're viewing a past date, slide left (forwards)
+    const isFuture = selectedDate > today;
+    setSlideDirection(isFuture ? 'right' : 'left');
+    setSelectedDate(today);
+  }, [selectedDate]);
 
   // Check if we can navigate (for month/year views)
   const canGoPrevious = useMemo(() => {
@@ -197,6 +208,27 @@ export function ActivityCalendar() {
           layoutId="view-mode-pill"
           size="sm"
         />
+
+        {/* Mobile Today Button */}
+        <AnimatePresence>
+          {viewMode === 'day' && !isToday(selectedDate) && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="md:hidden"
+            >
+              <Button
+                variant="outline"
+                size="pill-sm"
+                className="text-xs"
+                onClick={goToToday}
+              >
+                Today
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Navigation - shown for all views, but hidden on mobile for day view (swipe instead) */}
         <div className={cn("flex", viewMode === 'day' && "hidden md:flex")}>

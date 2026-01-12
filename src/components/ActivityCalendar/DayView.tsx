@@ -158,11 +158,13 @@ function EmptyPastDayCard({
     <Card>
       <CardHeader className="p-4 pt-4">
         <DateTile date={date} />
-        <CardTitle className="text-sm font-medium text-muted-foreground mt-2">
-          No Activity
-        </CardTitle>
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            No Activity
+          </CardTitle>
+        </div>
         <AddButton onClick={onLogActivity} />
       </CardContent>
     </Card>
@@ -511,73 +513,23 @@ export function DayView({
   const hasOpenItems = mode === "edit" && trackedTypes.size > 0;
   const canSwipe = isMobile && !hasOpenItems;
 
-  // Mobile swipe animation controls (similar to flashcard pattern)
-  const mobileControls = useAnimation();
-
-  // Initialize controls on mount
-  useEffect(() => {
-    mobileControls.set({ x: 0, y: 0, opacity: 1, rotate: 0 });
-  }, [mobileControls]);
-
   // Handle mobile swipe gesture
   const handleMobileDragEnd = useCallback(
-    async (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      const { offset } = info;
-      const absX = Math.abs(offset.x);
+    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      const { offset, velocity } = info;
+      const swipeConfidenceThreshold = 10000;
+      const swipePower = Math.abs(offset.x) * velocity.x;
 
-      if (absX > SWIPE_THRESHOLD) {
-        const isSwipeLeft = offset.x < 0;
-        const isSwipeRight = offset.x > 0;
-
-        // Check if we can navigate in the swiped direction
-        if ((isSwipeLeft && !canGoNext) || (!isSwipeLeft && !isSwipeRight)) {
-          // Can't navigate, spring back
-          mobileControls.start({
-            x: 0,
-            rotate: 0,
-            transition: { type: "spring", stiffness: 300 },
-          });
-          return;
-        }
-
-        // Animate card off screen
-        await mobileControls.start({
-          x: isSwipeLeft ? -window.innerWidth : window.innerWidth,
-          rotate: isSwipeLeft ? -15 : 15,
-          opacity: 0,
-          transition: { duration: 0.25, ease: "easeIn" },
-        });
-
-        // Navigate to new day
-        if (isSwipeRight) {
-          onPreviousDay();
-        } else if (isSwipeLeft && canGoNext) {
-          onNextDay();
-        }
-
-        // Instantly reset position to opposite side (still hidden)
-        mobileControls.set({
-          x: isSwipeLeft ? window.innerWidth : -window.innerWidth,
-          rotate: 0,
-          opacity: 0,
-        });
-
-        // Animate new card in from the side
-        await mobileControls.start({
-          x: 0,
-          opacity: 1,
-          transition: { duration: 0.25, ease: "easeOut" },
-        });
-      } else {
-        // Not enough swipe, spring back
-        mobileControls.start({
-          x: 0,
-          rotate: 0,
-          transition: { type: "spring", stiffness: 300 },
-        });
+      // Check if swipe is strong enough or far enough
+      if (offset.x < -SWIPE_THRESHOLD || swipePower < -swipeConfidenceThreshold) {
+        // Swiped Left -> Next Day (User moving forward in time)
+        if (canGoNext) onNextDay();
+      } else if (offset.x > SWIPE_THRESHOLD || swipePower > swipeConfidenceThreshold) {
+        // Swiped Right -> Previous Day (User moving backward in time)
+        onPreviousDay();
       }
     },
-    [canGoNext, mobileControls, onNextDay, onPreviousDay]
+    [canGoNext, onNextDay, onPreviousDay]
   );
 
   // Calculate previous and next dates for desktop preview
@@ -721,17 +673,32 @@ export function DayView({
       </div>
 
       {/* Mobile: Single card with swipe gesture (flashcard-style animation) */}
+      {/* Mobile: Single card with swipe gesture (flashcard-style animation) */}
       <div className="md:hidden overflow-hidden relative">
-        <motion.div
-          animate={mobileControls}
-          drag={canSwipe ? "x" : false}
-          onDragEnd={handleMobileDragEnd}
-          style={{
-            touchAction: canSwipe ? "pan-y" : "auto",
-          }}
+        <AnimatePresence
+          mode="popLayout"
+          initial={false}
+          custom={slideDirection}
         >
-          {mainCard}
-        </motion.div>
+          <motion.div
+            key={selectedDateStr}
+            custom={slideDirection}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={transition}
+            drag={canSwipe ? "x" : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleMobileDragEnd}
+            style={{
+              touchAction: canSwipe ? "pan-y" : "auto",
+            }}
+          >
+            {mainCard}
+          </motion.div>
+        </AnimatePresence>
 
         {/* Swipe hint */}
         {canSwipe && (

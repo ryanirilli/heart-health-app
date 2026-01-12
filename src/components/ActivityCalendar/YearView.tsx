@@ -40,8 +40,7 @@ function MobileYearView({ year }: YearViewProps) {
         })}
       </div>
 
-      {/* Legend */}
-      <Legend />
+
     </div>
   );
 }
@@ -132,27 +131,12 @@ function DesktopYearView({ year }: YearViewProps) {
         </div>
       </div>
 
-      {/* Legend */}
-      <Legend />
+
     </div>
   );
 }
 
-function Legend() {
-  return (
-    <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-xs text-muted-foreground">
-      <span>Less</span>
-      <div className="flex items-center gap-0.5">
-        <div className="w-3 h-3 rounded-sm bg-muted/50" />
-        <div className="w-3 h-3 rounded-sm bg-chart-3/50" />
-        <div className="w-3 h-3 rounded-sm bg-chart-3/65" />
-        <div className="w-3 h-3 rounded-sm bg-chart-3/80" />
-        <div className="w-3 h-3 rounded-sm bg-chart-3" />
-      </div>
-      <span>More</span>
-    </div>
-  );
-}
+
 
 export const YearView = memo(function YearView({ year }: YearViewProps) {
   return (

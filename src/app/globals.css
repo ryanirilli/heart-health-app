@@ -37,7 +37,7 @@ a {
 @layer base {
   :root {
     /* Soft cream background */
-    --background: 45 30% 96%;
+    --background: 45 30% 99%;
     --foreground: 220 20% 20%;
 
     /* Cards: clean white with subtle warmth */
