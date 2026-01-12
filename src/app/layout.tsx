@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s | Rhythm",
   },
   description:
-    "A simple, beautiful way to track habits, set goals, and see your progress at a glance.",
+    "A free, beautiful way to track habits, set goals, and see your progress at a glance simply.",
   keywords: [
     "health tracking",
     "habit tracker",
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     siteName: "Rhythm",
     title: "Less noise. More beats.",
     description:
-      "A simple, beautiful way to track habits, set goals, and see your progress at a glance.",
+      "A free, beautiful way to track habits, set goals, and see your progress at a glance simply.",
     images: [
       {
         url: "/og-image.png",
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Less noise. More beats.",
     description:
-      "A simple, beautiful way to track habits, set goals, and see your progress at a glance.",
+      "A free, beautiful way to track habits, set goals, and see your progress at a glance simply.",
     images: ["/og-image.png"],
   },
   robots: {

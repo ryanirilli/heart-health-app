@@ -47,8 +47,8 @@ export default async function LandingPage() {
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-md mb-10 leading-relaxed font-light">
-              A simple, beautiful way to track habits, set goals, and see your
-              progress at a glance.
+              A free, beautiful way to track habits, set goals, and see your
+              progress at a glance simply.
             </p>
 
             <Link
@@ -66,6 +66,12 @@ export default async function LandingPage() {
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <p>© {new Date().getFullYear()} Rhythm</p>
             <div className="flex gap-4">
+              <Link
+                href="/about"
+                className="hover:text-foreground transition-colors"
+              >
+                About
+              </Link>
               <Link
                 href="/privacy"
                 className="hover:text-foreground transition-colors"

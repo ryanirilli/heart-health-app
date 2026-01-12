@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border/40">
         <div className="max-w-3xl mx-auto px-6 py-6">
@@ -32,7 +32,7 @@ export default function TermsPage() {
       </header>
 
       {/* Content */}
-      <main className="max-w-3xl mx-auto px-6 py-12 md:py-16">
+      <main className="max-w-3xl mx-auto px-6 py-12 md:py-16 flex-1 w-full">
         <div className="space-y-2 mb-12">
           <h1 className="text-3xl md:text-4xl font-light text-foreground tracking-tight">
             Terms of Service
@@ -182,6 +182,7 @@ export default function TermsPage() {
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <p>© {new Date().getFullYear()} Rhythm</p>
             <div className="flex gap-4">
+              <Link href="/about" className="hover:text-foreground transition-colors">About</Link>
               <Link href="/privacy" className="hover:text-foreground transition-colors">
                 Privacy
               </Link>
