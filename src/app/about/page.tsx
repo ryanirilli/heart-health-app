@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Activity, ArrowLeft, Github, Linkedin, Instagram } from "lucide-react";
+import { FadeInImage } from "./FadeInImage";
 
 export const metadata = {
   title: "About",
@@ -38,46 +38,44 @@ export default function AboutPage() {
           {/* Profile Header */}
           <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
             <div className="relative w-32 h-32 flex-shrink-0 rounded-full overflow-hidden border-2 border-border/50 shadow-sm">
-              <Image
+              <FadeInImage
                 src="/ryan-avatar.jpg"
                 alt="Ryan Irilli"
                 fill
                 className="object-cover object-top"
               />
             </div>
-            
+
             <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-3 pt-2">
               <div>
                 <h1 className="text-3xl font-light text-foreground tracking-tight">
                   Ryan Irilli
                 </h1>
-                <p className="text-muted-foreground text-lg">
-                  Maker of Rhythm
-                </p>
+                <p className="text-muted-foreground text-lg">Maker of Rhythm</p>
               </div>
-              
+
               <div className="flex items-center gap-4 text-muted-foreground">
-                <a 
-                  href="https://github.com/ryanirilli" 
-                  target="_blank" 
+                <a
+                  href="https://github.com/ryanirilli"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-foreground transition-colors"
                   aria-label="GitHub"
                 >
                   <Github className="h-5 w-5" />
                 </a>
-                <a 
-                  href="https://www.linkedin.com/in/ryanirilli/" 
-                  target="_blank" 
+                <a
+                  href="https://www.linkedin.com/in/ryanirilli/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-foreground transition-colors"
                   aria-label="LinkedIn"
                 >
                   <Linkedin className="h-5 w-5" />
                 </a>
-                <a 
-                  href="https://www.instagram.com/ryanirilli" 
-                  target="_blank" 
+                <a
+                  href="https://www.instagram.com/ryanirilli"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-foreground transition-colors"
                   aria-label="Instagram"
@@ -91,15 +89,24 @@ export default function AboutPage() {
           {/* Bio Content */}
           <div className="prose prose-invert prose-neutral max-w-none">
             <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              I’m a software engineer, and also a husband and dad. Like a lot of people, I’ve struggled to stick with personal goals because they get drowned out by everyday life. When you’re juggling work, kids, and everything else, it’s easy for the stuff you care about to slide.
+              I’m a software engineer, and also a husband and dad. Like a lot of
+              people, I’ve struggled to stick with personal goals because they
+              get drowned out by everyday life. When you’re juggling work,
+              family, and everything else, it’s easy for the stuff you care
+              about to slide.
             </p>
-            
+
             <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              I built Rhythm because I wanted a simple daily check-in that keeps my goals visible without turning into a whole project. No guilt. No complicated dashboards. Just a lightweight way to stay mindful of the habits I’m trying to build.
+              I built Rhythm because I wanted a simple daily check-in that keeps
+              my goals visible without turning into a whole project. No guilt.
+              No complicated dashboards. Just a space to stay mindful of the
+              habits I’m trying to build.
             </p>
 
             <p className="text-lg text-muted-foreground leading-relaxed">
-              My kids are 1 and 3, so life is noisy and unpredictable (if you know, you know). Rhythm is my way of finding a steady beat in all of that, one day at a time.
+              My kids are 1 and 3, so life is noisy and unpredictable (iykyk).
+              Rhythm is my way of finding a steady beat in all of that, one day
+              at a time.
             </p>
           </div>
         </div>
@@ -111,7 +118,7 @@ export default function AboutPage() {
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <p>© {new Date().getFullYear()} Rhythm</p>
             <div className="flex gap-4">
-               <Link
+              <Link
                 href="/about"
                 className="hover:text-foreground transition-colors"
               >
