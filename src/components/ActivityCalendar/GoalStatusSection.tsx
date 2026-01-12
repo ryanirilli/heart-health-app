@@ -734,7 +734,7 @@ function GoalStatusItem({
       case "in_progress":
         // In progress - subtle, blends with content
         return {
-          container: "bg-transparent border-transparent",
+          container: "bg-muted/20 border-transparent",
           goalIcon: "bg-muted",
           goalIconColor: "text-muted-foreground",
           textColor: "text-foreground",

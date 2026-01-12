@@ -97,12 +97,10 @@ function SkeletonDayCard({ date }: { date: Date }) {
   return (
     <Card className="opacity-25">
       <CardHeader className="p-4 pt-4">
-        <div className="flex flex-col items-center gap-2">
-          <DateTile date={date} />
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Tomorrow
-          </CardTitle>
-        </div>
+        <DateTile date={date} />
+        <CardTitle className="text-sm font-medium text-muted-foreground mt-2">
+          Tomorrow
+        </CardTitle>
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
         <div className="space-y-2">
@@ -132,12 +130,10 @@ function ClickableSkeletonDayCard({
       onClick={onClick}
     >
       <CardHeader className="p-4 pt-4">
-        <div className="flex flex-col items-center gap-2">
-          <DateTile date={date} />
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Tomorrow
-          </CardTitle>
-        </div>
+        <DateTile date={date} />
+        <CardTitle className="text-sm font-medium text-muted-foreground mt-2">
+          Tomorrow
+        </CardTitle>
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
         <div className="space-y-2">
@@ -161,12 +157,10 @@ function EmptyPastDayCard({
   return (
     <Card>
       <CardHeader className="p-4 pt-4">
-        <div className="flex flex-col items-center gap-2">
-          <DateTile date={date} />
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            No Activity
-          </CardTitle>
-        </div>
+        <DateTile date={date} />
+        <CardTitle className="text-sm font-medium text-muted-foreground mt-2">
+          No Activity
+        </CardTitle>
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
         <AddButton onClick={onLogActivity} />
@@ -185,8 +179,13 @@ function getDayNumber(date: Date): number {
   return date.getDate();
 }
 
-// App icon tile component for displaying date
-function DateTile({ date }: { date: Date }) {
+// Helper to get day of week name
+function getDayOfWeek(date: Date): string {
+  return date.toLocaleDateString("en-US", { weekday: "long" });
+}
+
+// Calendar tile component for displaying date
+function CalendarTile({ date }: { date: Date }) {
   const shortMonth = getShortMonth(date);
   const dayNumber = getDayNumber(date);
 
@@ -213,6 +212,20 @@ function DateTile({ date }: { date: Date }) {
       <div className="flex-1 flex items-center justify-center">
         <span className="text-xl font-bold text-foreground">{dayNumber}</span>
       </div>
+    </div>
+  );
+}
+
+// Date header with tile and day of week - left aligned
+function DateTile({ date }: { date: Date }) {
+  const dayOfWeek = getDayOfWeek(date);
+
+  return (
+    <div className="flex items-center gap-3">
+      <CalendarTile date={date} />
+      <h2 className="text-2xl font-bold text-foreground tracking-tight">
+        {dayOfWeek}
+      </h2>
     </div>
   );
 }
@@ -251,9 +264,9 @@ function PreviewDayCard({
       onClick={onClick}
     >
       <CardHeader className="p-4 pt-4">
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-start gap-2">
           <DateTile date={date} />
-          <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {activity ? "Activity Summary" : "No Activity"}
             </CardTitle>
@@ -583,9 +596,7 @@ export function DayView({
     <Card className="relative">
       <CardHeader className="p-4 pt-4">
         <div className="absolute top-3 right-3">{editButton}</div>
-        <div className="flex flex-col items-center">
-          <DateTile date={selectedDate} />
-        </div>
+        <DateTile date={selectedDate} />
       </CardHeader>
 
       <CardContent className="px-4 py-2 pb-4">
