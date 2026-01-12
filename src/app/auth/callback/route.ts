@@ -40,7 +40,7 @@ export async function GET(request: Request) {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
-          maxAge: 60 * 10, // 10 minutes
+          maxAge: 60 * 60, // 1 hour
           path: '/',
         });
         return response;

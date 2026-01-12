@@ -10,6 +10,16 @@ export default async function LandingPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // If password reset is required, redirect to reset page
+  // This is a backup check in case middleware is bypassed
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  const passwordResetRequired = cookieStore.get("password_reset_required")?.value === "true";
+  
+  if (user && passwordResetRequired) {
+    redirect("/reset-password");
+  }
+
   if (user) {
     redirect("/dashboard");
   }
