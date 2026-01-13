@@ -3,4 +3,5 @@ export { GoalsView } from './GoalsView';
 export { GoalCard } from './GoalCard';
 export { GoalFormDialog } from './GoalFormDialog';
 export { GoalIconPicker } from './GoalIconPicker';
+export { AchievementsTable } from './AchievementsTable';
 

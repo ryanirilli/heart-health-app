@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useGoals } from './GoalsProvider';
 import { GoalCard } from './GoalCard';
+import { AchievementsTable } from './AchievementsTable';
 import { useActivityTypes } from '@/components/ActivityCalendar/ActivityProvider';
 
 const MAX_GOALS = 5;
@@ -23,23 +24,25 @@ export function GoalsView() {
   const canAddMore = goalsList.length < MAX_GOALS;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <h2 className="text-2xl font-semibold tracking-tight">Goals</h2>
-
-      {/* Goals Grid - always show grid with add card */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {goalsList.map((goal) => (
-          <GoalCard
-            key={goal.id}
-            goal={goal}
-            activityType={activityTypes[goal.activityTypeId]}
-            onClick={() => openEditDialog(goal)}
-          />
-        ))}
-        {/* Add Goal Card - only shown if under limit */}
-        {canAddMore && <AddGoalCard onClick={openCreateDialog} />}
+    <div className="space-y-8">
+      {/* Goals Section */}
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Goals</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {goalsList.map((goal) => (
+            <GoalCard
+              key={goal.id}
+              goal={goal}
+              activityType={activityTypes[goal.activityTypeId]}
+              onClick={() => openEditDialog(goal)}
+            />
+          ))}
+          {canAddMore && <AddGoalCard onClick={openCreateDialog} />}
+        </div>
       </div>
+
+      {/* Achievements Section */}
+      <AchievementsTable />
     </div>
   );
 }
