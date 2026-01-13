@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryProvider } from "@/lib/providers/QueryProvider";
+import { PostHogProvider } from "@/lib/providers/PostHogProvider";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -85,13 +86,15 @@ export default function RootLayout({
         className={`${dmSans.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <QueryProvider>
-          <TooltipProvider
-            delayDuration={100}
-            skipDelayDuration={0}
-            disableHoverableContent
-          >
-            {children}
-          </TooltipProvider>
+          <PostHogProvider>
+            <TooltipProvider
+              delayDuration={100}
+              skipDelayDuration={0}
+              disableHoverableContent
+            >
+              {children}
+            </TooltipProvider>
+          </PostHogProvider>
         </QueryProvider>
       </body>
     </html>

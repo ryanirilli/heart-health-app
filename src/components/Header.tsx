@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { DbProfile } from "@/lib/supabase/types";
+import posthog from "posthog-js";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,6 +74,9 @@ export function Header() {
   };
 
   const handleSignOut = async () => {
+    // Reset PostHog identity before signing out
+    // This ensures the user's analytics identity is cleared
+    posthog.reset();
     await supabase.auth.signOut();
     router.push("/");
     router.refresh();
