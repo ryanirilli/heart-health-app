@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ActivityCalendar,
@@ -15,6 +16,8 @@ import { GoalMap } from "@/lib/goals";
 import { toast, Toaster } from "sonner";
 import { TrendsView } from "@/components/Trends/TrendsView";
 
+const VALID_VIEWS: AppView[] = ["activities", "goals", "trends"];
+
 interface DashboardContentProps {
   types: ActivityTypeMap;
   activities: ActivityMap;
@@ -28,7 +31,10 @@ export function DashboardContent({
   goals,
   showWelcomeToast,
 }: DashboardContentProps) {
-  const [currentView, setCurrentView] = useState<AppView>("activities");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const viewParam = searchParams.get("view") as AppView | null;
+  const currentView: AppView = viewParam && VALID_VIEWS.includes(viewParam) ? viewParam : "activities";
   const pendingViewRef = useRef<AppView | null>(null);
 
   // Show welcome toast for newly confirmed users
@@ -41,6 +47,11 @@ export function DashboardContent({
       window.history.replaceState(null, "", "/dashboard");
     }
   }, [showWelcomeToast]);
+
+  const navigateToView = useCallback((view: AppView) => {
+    const url = view === "activities" ? "/dashboard" : `/dashboard?view=${view}`;
+    router.push(url, { scroll: false });
+  }, [router]);
 
   const handleViewChange = useCallback((view: AppView) => {
     const scrollY = window.scrollY || document.documentElement.scrollTop;
@@ -58,7 +69,7 @@ export function DashboardContent({
         if (pendingViewRef.current === view) {
           pendingViewRef.current = null;
           window.scrollTo({ top: 0, behavior: "instant" });
-          setCurrentView(view);
+          navigateToView(view);
         }
       }, 500);
 
@@ -76,7 +87,7 @@ export function DashboardContent({
           // Scroll complete, change view
           clearTimeout(timeoutId);
           pendingViewRef.current = null;
-          setCurrentView(view);
+          navigateToView(view);
         } else {
           // Keep polling
           requestAnimationFrame(checkScrollComplete);
@@ -86,9 +97,9 @@ export function DashboardContent({
     } else {
       // Already at top, change view immediately
       pendingViewRef.current = null;
-      setCurrentView(view);
+      navigateToView(view);
     }
-  }, []);
+  }, [navigateToView]);
 
   // Z-axis animation - scale down/fade out, scale up/fade in
   // Important: pointer-events must be disabled during exit to prevent blocking clicks on new view
