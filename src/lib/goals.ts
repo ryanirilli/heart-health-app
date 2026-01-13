@@ -687,8 +687,16 @@ export function getEffectiveValueForGoal(
     };
   }
 
-  // Slider types always use average unless they fell into 'sum' above
+  // Slider types use average or absolute (sum is handled above)
   if (activityType.uiType === "slider") {
+    if (goalTrackingType === "absolute") {
+      return {
+        effectiveValue: daysMetTarget,
+        allDaysMet,
+        daysMetTarget,
+        dayCount: count,
+      };
+    }
     return {
       effectiveValue: average,
       allDaysMet,

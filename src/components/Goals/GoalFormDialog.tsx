@@ -1082,8 +1082,8 @@ function StepSummary({ formData, activityTypes, errors }: StepSummaryProps) {
             <span className="text-sm text-muted-foreground">Schedule</span>
             <Badge variant="secondary">{getScheduleText()}</Badge>
           </div>
-          {/* Show tracking type for buttonGroup and toggle with non-daily goals */}
-          {(selectedActivityType?.uiType === 'buttonGroup' || selectedActivityType?.uiType === 'toggle') && formData.dateType !== 'daily' && (
+          {/* Show tracking type for non-daily goals */}
+          {formData.dateType !== 'daily' && (
             <div className="flex items-center justify-between py-1">
               <span className="text-sm text-muted-foreground">Tracking</span>
               <Badge variant="secondary">{GOAL_TRACKING_TYPE_LABELS[formData.trackingType]}</Badge>

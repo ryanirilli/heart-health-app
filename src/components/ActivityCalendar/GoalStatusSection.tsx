@@ -145,10 +145,8 @@ export function GoalStatusSection({
       // Use strict comparison and handle potential whitespace/case issues
       const goalTrackingType =
         goal.trackingType?.toString().trim().toLowerCase() || "average";
-      const usesAbsoluteTracking =
-        isDiscreteType && goalTrackingType === "absolute";
-      const usesAverageTracking =
-        isDiscreteType && goalTrackingType === "average";
+      const usesAbsoluteTracking = goalTrackingType === "absolute";
+      const usesAverageTracking = goalTrackingType === "average";
 
       if (goal.dateType === "daily") {
         // For daily goals, use single day value (exact match for discrete types)
@@ -168,7 +166,7 @@ export function GoalStatusSection({
           dateStr
         );
 
-        if (isDiscreteType) {
+        if (isDiscreteType || usesAbsoluteTracking || usesAverageTracking) {
           // For discrete types (buttonGroup/toggle):
           // - Absolute tracking: "Every day must match target" (allDaysMet)
           // - Average tracking: "Most days match target" (>50% of days)
@@ -251,22 +249,9 @@ export function GoalStatusSection({
         displayStatus = "in_progress";
       }
 
-      // Calculate effective value for non-daily goals
-      // Determine if this goal uses average value display
-      // - Slider always uses average
-      // - ButtonGroup and toggle use average unless trackingType is 'absolute'
-      const usesAverageValueDisplay =
-        goalTrackingType !== "sum" &&
-        (activityType?.uiType === "slider" ||
-          ((activityType?.uiType === "buttonGroup" ||
-            activityType?.uiType === "toggle") &&
-            goalTrackingType !== "absolute"));
+      const usesAverageValueDisplay = goalTrackingType === "average";
 
-      // For buttonGroup and toggle with absolute tracking, we track days met
-      const usesAbsoluteTrackingDisplay =
-        (activityType?.uiType === "buttonGroup" ||
-          activityType?.uiType === "toggle") &&
-        goalTrackingType === "absolute";
+      const usesAbsoluteTrackingDisplay = goalTrackingType === "absolute";
 
       // Get the value result for display
       const valueResultForDisplay =
@@ -607,20 +592,30 @@ function GoalStatusItem({
         }
       }
 
-      // For buttonGroup with absolute tracking (toggle is handled above)
+      // For absolute tracking (any type except toggle which is handled above)
       if (
         usesAbsoluteTracking &&
-        goal.dateType !== "daily" &&
-        activityType.uiType === "buttonGroup"
+        goal.dateType !== "daily"
       ) {
-        // Find target label
-        const targetOption = activityType.buttonOptions?.find(
-          (o) => o.value === goal.targetValue
-        );
-        const targetLabel = targetOption?.label || String(goal.targetValue);
+        // For buttonGroup/toggle, target is a label
+        if (
+          activityType.uiType === "buttonGroup"
+        ) {
+          const targetOption = activityType.buttonOptions?.find(
+            (o) => o.value === goal.targetValue
+          );
+          const targetLabel = targetOption?.label || String(goal.targetValue);
+          return {
+            text: `${daysMetTarget}/${dayCount} days at ${targetLabel}`,
+            goalBadge: `Goal: Every day`,
+          };
+        }
+
+        // For slider/increment, target is a value with unit
+        const targetLabel = formatValueOnly(goal.targetValue, activityType);
         return {
-          text: `${daysMetTarget}/${dayCount} days at ${targetLabel}`,
-          goalBadge: `Goal: Every day`,
+          text: `${daysMetTarget}/${dayCount} days met`,
+          goalBadge: `Goal: Every day ${targetLabel}`,
         };
       }
 
