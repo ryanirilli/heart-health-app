@@ -523,8 +523,9 @@ export function ActivityFormContent({
     ),
   ];
 
-  // Check if this is a new entry (no existing activity)
-  const isNewEntry = !existingActivity;
+  // Check if a specific activity type has an existing saved entry
+  // (used to determine if delete should require confirmation)
+  const hasExistingEntry = (typeId: string) => !!existingActivity?.entries?.[typeId];
 
   // Get entries with their types for view mode
   const entriesWithTypes = existingActivity?.entries
@@ -601,7 +602,7 @@ export function ActivityFormContent({
               onToggleTracked={(tracked) =>
                 handleToggleTracked(type.id, tracked)
               }
-              isNewEntry={isNewEntry}
+              isNewEntry={!hasExistingEntry(type.id)}
             />
           ))}
         </div>

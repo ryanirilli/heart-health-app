@@ -85,18 +85,14 @@ export function DayContentView({
         )}
       </div>
 
-      {/* Note Section - clickable row */}
-      {onNoteClick && (
+      {/* Note Section - in view mode, only show if note exists */}
+      {onNoteClick && activity?.note && (
         <button
           onClick={onNoteClick}
           className="mt-4 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-start gap-3"
         >
           <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-          {activity?.note ? (
-            <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
-          ) : (
-            <span className="text-sm text-muted-foreground">Add note</span>
-          )}
+          <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
         </button>
       )}
 
@@ -191,7 +187,9 @@ export function DayContentEdit({
     [activeTypes, typesWithExistingEntries]
   );
 
-  const isNewEntry = !activity;
+  // Check if a specific activity type has an existing saved entry
+  // (used to determine if delete should require confirmation)
+  const hasExistingEntry = (typeId: string) => !!activity?.entries?.[typeId];
 
   // Empty state when no activity types defined
   if (activeTypes.length === 0) {
@@ -228,7 +226,7 @@ export function DayContentEdit({
             isTracked={trackedTypes.has(type.id)}
             onChange={(value) => onEntryChange(type.id, value)}
             onToggleTracked={(tracked) => onToggleTracked(type.id, tracked)}
-            isNewEntry={isNewEntry}
+            isNewEntry={!hasExistingEntry(type.id)}
           />
         ))}
       </div>

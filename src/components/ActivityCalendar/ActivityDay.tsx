@@ -238,7 +238,8 @@ export function ActivityDay({
     <div
       onClick={handleCellClick}
       className={cn(
-        "aspect-square transition-all duration-200 flex items-center justify-center rounded-sm relative",
+        "aspect-square transition-all duration-200 flex items-center justify-center relative",
+        compact ? "rounded-[3px]" : "rounded-sm",
         cellColor,
         isFutureDate
           ? "cursor-not-allowed opacity-50"

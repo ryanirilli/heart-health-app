@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { formatDate, ActivityEntry, Activity } from "@/lib/activities";
+import { formatDate, ActivityEntry, Activity, hasActivityData } from "@/lib/activities";
 import { useActivities, useActivityTypes } from "./ActivityProvider";
 import { formatDialogDate, ActivityViewCard } from "./ActivityFormContent";
 import { DayContentView, DayContentEdit } from "./DayContent";
@@ -18,14 +18,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Pencil, Loader2, Plus, ArrowLeft } from "lucide-react";
+import { Pencil, Loader2, Plus } from "lucide-react";
 import { ActivityType } from "@/lib/activityTypes";
 import { useGoals } from "@/components/Goals";
+import { NoteEditorContent, NoteEditorFooter } from "./NoteEditor";
 
 type FormMode = "view" | "edit" | "note";
 
 const SWIPE_THRESHOLD = 50;
-const MAX_NOTE_LENGTH = 500;
 
 // Helper to check if a date is today
 function isToday(date: Date): boolean {
@@ -408,6 +408,8 @@ export function DayView({
       activityEntries[typeId] = { typeId, value };
     }
     updateActivity(selectedDateStr, activityEntries);
+    // Switch to view mode after saving
+    setMode("view");
   }, [trackedTypes, entries, updateActivity, selectedDateStr]);
 
   const handleDelete = useCallback(() => {
@@ -513,9 +515,11 @@ export function DayView({
 
 
   // Edit mode footer
+  // For today with no saved activity, only show Save (no Cancel/Delete)
+  const showCancelDelete = hasActivityData(existingActivity) || showPastDayForm;
   const editFooter = (
     <div className="flex items-center justify-between gap-2 w-full">
-      {existingActivity && (
+      {showCancelDelete && existingActivity && (
         <ConfirmDeleteButton
           onDelete={handleDelete}
           disabled={isSaving}
@@ -523,7 +527,7 @@ export function DayView({
         />
       )}
       <div className="flex-1" />
-      {(existingActivity || showPastDayForm) && (
+      {showCancelDelete && (
         <Button
           variant="muted"
           size="sm"
@@ -550,56 +554,24 @@ export function DayView({
     </div>
   );
 
-  // Note input content
+  // Note input content using shared component
   const noteContent = (
-    <div className="space-y-3">
-      <div className="relative">
-        <textarea
-          value={noteText}
-          onChange={(e) => {
-            if (e.target.value.length <= MAX_NOTE_LENGTH) {
-              setNoteText(e.target.value);
-            }
-          }}
-          placeholder="Add a note for this day..."
-          className="w-full min-h-[120px] p-3 text-base sm:text-sm rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          autoFocus
-        />
-        <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-          {noteText.length}/{MAX_NOTE_LENGTH}
-        </div>
-      </div>
-    </div>
+    <NoteEditorContent
+      noteText={noteText}
+      onNoteChange={setNoteText}
+    />
   );
 
-  // Note mode footer
+  // Note mode footer using shared component
   const noteFooter = (
-    <div className="flex items-center justify-between gap-2 w-full">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleCancelNote}
-        disabled={isPending}
-        className="gap-2"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back
-      </Button>
-      <Button
-        size="pill"
-        onClick={handleSaveNote}
-        disabled={isPending}
-      >
-        {isSaving ? (
-          <span className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Saving...
-          </span>
-        ) : (
-          "Save"
-        )}
-      </Button>
-    </div>
+    <NoteEditorFooter
+      onCancel={handleCancelNote}
+      onSave={handleSaveNote}
+      onDelete={handleDeleteNote}
+      hasExistingNote={!!existingActivity?.note}
+      isSaving={isSaving}
+      isDeleting={isDeleting}
+    />
   );
 
   // Determine if we should show the empty past day card
