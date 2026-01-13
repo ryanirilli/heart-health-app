@@ -562,7 +562,7 @@ export function DayView({
             }
           }}
           placeholder="Add a note for this day..."
-          className="w-full min-h-[120px] p-3 text-sm rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="w-full min-h-[120px] p-3 text-base sm:text-sm rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           autoFocus
         />
         <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
