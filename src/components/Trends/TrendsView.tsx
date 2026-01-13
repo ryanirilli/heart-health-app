@@ -66,7 +66,7 @@ export function TrendsView() {
       });
       
     // Filter out nulls
-    return result.filter((item): item is { type: ActivityType; data: { date: string; value: number | null }[] } => item !== null);
+    return result.filter((item) => item !== null) as { type: ActivityType; data: { date: string; value: number | null }[] }[];
   }, [types, activities]);
 
   // Empty state if no eligible activities

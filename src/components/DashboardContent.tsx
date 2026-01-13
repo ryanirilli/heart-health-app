@@ -150,6 +150,8 @@ export function DashboardContent({
                     <ActivityHeader />
                     <ActivityCalendar />
                   </>
+                ) : currentView === "goals" ? (
+                  <GoalsView />
                 ) : (
                   <TrendsView />
                 )}
