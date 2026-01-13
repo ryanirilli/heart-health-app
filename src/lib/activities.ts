@@ -306,3 +306,18 @@ export function getDateRange(activities: ActivityMap): {
     maxMonth: last.month,
   };
 }
+
+/**
+ * Get the date of the very first entry for a specific activity type.
+ * Returns null if no entries found.
+ */
+export function getFirstEntryDate(activityTypeId: string, activities: ActivityMap): Date | null {
+  const dates = Object.values(activities)
+    .filter(activity => activity.entries[activityTypeId] !== undefined)
+    .map(activity => new Date(activity.date));
+
+  if (dates.length === 0) return null;
+
+  // Find the earliest date
+  return new Date(Math.min(...dates.map(date => date.getTime())));
+}

@@ -2,16 +2,17 @@
 
 import { useEffect, useRef } from "react";
 import posthog from "posthog-js";
+import { PostHogProvider as PHProvider } from 'posthog-js/react'
 import { createClient } from "@/lib/supabase/client";
 
-/**
- * PostHogProvider component that handles user identification and logout.
- * 
- * This component:
- * - Identifies users when they log in (linking anonymous events to the user)
- * - Sets user properties (email, name) for segmentation in PostHog
- * - Resets the PostHog identity on logout (clears distinct_id and starts fresh)
- */
+if (typeof window !== 'undefined') {
+  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+    person_profiles: 'identified_only',
+    capture_pageview: false, // Disable automatic pageview capture, as we capture manually
+  })
+}
+
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const hasIdentified = useRef(false);
@@ -69,5 +70,5 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     };
   }, [supabase.auth]);
 
-  return <>{children}</>;
+  return <PHProvider client={posthog}>{children}</PHProvider>;
 }

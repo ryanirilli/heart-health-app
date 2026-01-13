@@ -13,6 +13,7 @@ import { ActivityTypeMap } from "@/lib/activityTypes";
 import { ActivityMap } from "@/lib/activities";
 import { GoalMap } from "@/lib/goals";
 import { toast, Toaster } from "sonner";
+import { TrendsView } from "@/components/Trends/TrendsView";
 
 interface DashboardContentProps {
   types: ActivityTypeMap;
@@ -133,8 +134,10 @@ export function DashboardContent({
                     <ActivityHeader />
                     <ActivityCalendar />
                   </>
-                ) : (
+                ) : currentView === "goals" ? (
                   <GoalsView />
+                ) : (
+                  <TrendsView types={types} activities={activities} />
                 )}
               </motion.div>
             </AnimatePresence>

@@ -1,21 +1,34 @@
 'use client';
 
-import { CalendarDays, Target } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CalendarDays, Target, TrendingUp } from 'lucide-react';
 import { PillToggle } from '@/components/ui/pill-toggle';
+import { useFeatureFlagEnabled } from 'posthog-js/react';
 
-export type AppView = 'activities' | 'goals';
+export type AppView = 'activities' | 'goals' | 'trends';
 
 interface FloatingNavBarProps {
   currentView: AppView;
   onViewChange: (view: AppView) => void;
 }
 
-const navOptions: { value: AppView; label: string; icon: typeof CalendarDays }[] = [
-  { value: 'activities', label: 'Activities', icon: CalendarDays },
-  { value: 'goals', label: 'Goals', icon: Target },
-];
-
 export function FloatingNavBar({ currentView, onViewChange }: FloatingNavBarProps) {
+  const trendsEnabled = useFeatureFlagEnabled('trends-feature');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  const navOptions: { value: AppView; label: string; icon: typeof CalendarDays }[] = [
+    { value: 'activities', label: 'Activities', icon: CalendarDays },
+    { value: 'goals', label: 'Goals', icon: Target },
+  ];
+
+  if (isMounted && trendsEnabled) {
+    navOptions.push({ value: 'trends', label: 'Trends', icon: TrendingUp });
+  }
+
   return (
     <>
       {/* Gradient backdrop - theme aware */}
