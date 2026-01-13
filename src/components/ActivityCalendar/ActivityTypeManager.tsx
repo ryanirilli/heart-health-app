@@ -863,9 +863,15 @@ export function ActivityTypeManager({
 
     // The provider's addActivityType now handles the API call via React Query
     addActivityType(newType);
-    // Stay on the presets screen so user can add more
-    // Reset the adding state after a short delay to show feedback
-    setTimeout(() => setAddingPreset(null), 300);
+
+    // If we've reached the limit, go back to the list
+    if (activeTypes.length + 1 >= maxTypes) {
+      setShowAddNew(false);
+    } else {
+      // Stay on the presets screen so user can add more
+      // Reset the adding state after a short delay to show feedback
+      setTimeout(() => setAddingPreset(null), 300);
+    }
   };
 
   // Check which presets are already added (by name)

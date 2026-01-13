@@ -15,7 +15,7 @@ import { format } from "date-fns";
 
 interface TrendChartProps {
   type: ActivityType;
-  data: { date: string; value: number }[];
+  data: { date: string; value: number | null }[];
   color: string;
 }
 
@@ -32,13 +32,28 @@ export function TrendChart({ type, data, color }: TrendChartProps) {
   const { chartData, weeklyTotal } = useMemo(() => {
     let total = 0;
     const formatted = data.map((d) => {
-      total += d.value;
+      // Treat null as 0 for total calculation, or just ignore?
+      // For charts, we might want null to stay null, or be 0.
+      // If it's missing data, 0 is probably safer for the total sum, 
+      // but strictly it implies "no added value".
+      const val = d.value ?? 0;
+      total += val;
       const dateObj = new Date(d.date + "T00:00:00");
       return {
         ...d,
+        value: val, // Recharts needs a number usually, or null. Let's pass val (0 if null) to ensure bar shows as empty? 
+                    // Wait, if it's null, Recharts Bar simply doesn't render it if we pass null?
+                    // But if we want to differentiate "No" (0) from "Missing" (null), 
+                    // "No" (0) renders a tiny bar or empty space?
+                    // Actually, let's keep it simple: 
+                    // If d.value is null, pass 0 to chart but maybe mark it?
+                    // Or let's pass null to chart if allowed.
+                    // Checking Recharts docs (memory): null values are skipped.
+                    // But here we are calculating total. 
         dayName: format(dateObj, "EEE"), 
         fullDate: format(dateObj, "MMM d, yyyy"),
-        formattedValue: formatValueOnly(d.value, type),
+        formattedValue: d.value !== null ? formatValueOnly(d.value, type) : "No entry",
+        originalValue: d.value
       };
     });
     
@@ -122,8 +137,14 @@ export function TrendChart({ type, data, color }: TrendChartProps) {
               {chartData.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
-                  fill={entry.value > 0 ? color : "hsl(var(--muted))"} 
-                  fillOpacity={entry.value > 0 ? 1 : 0.3}
+                  // If originalValue is null (missing), show muted/low opacity or transparent?
+                  // If originalValue is 0, it's "No" or just 0.
+                  // Current logic: value > 0 ? color : muted.
+                  // If value is 0 (from null or 0), it shows muted.
+                  // We want to distinguish missing (null) from 0?
+                  // Maybe make missing TRANSPARENT or lighter?
+                  fill={entry.originalValue !== null && entry.value > 0 ? color : "hsl(var(--muted))"} 
+                  fillOpacity={entry.originalValue !== null && entry.value > 0 ? 1 : 0.3}
                   onMouseEnter={() => {
                     setHoveredData({
                       date: entry.dayName,

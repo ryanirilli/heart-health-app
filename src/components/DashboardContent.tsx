@@ -150,10 +150,8 @@ export function DashboardContent({
                     <ActivityHeader />
                     <ActivityCalendar />
                   </>
-                ) : currentView === "goals" ? (
-                  <GoalsView />
                 ) : (
-                  <TrendsView types={types} activities={activities} />
+                  <TrendsView />
                 )}
               </motion.div>
             </AnimatePresence>

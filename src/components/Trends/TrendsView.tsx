@@ -1,20 +1,18 @@
 "use client";
 
 import { useMemo } from "react";
-import { ActivityMap, getFirstEntryDate } from "@/lib/activities";
-import { ActivityType, ActivityTypeMap, getActiveActivityTypes } from "@/lib/activityTypes";
+import { getFirstEntryDate } from "@/lib/activities";
+import { ActivityType, getActiveActivityTypes } from "@/lib/activityTypes";
 import { TrendChart } from "./TrendChart";
 import { TrendTable } from "./TrendTable";
-import { subDays, format, isAfter, eachDayOfInterval, startOfDay } from "date-fns";
+import { subDays, format, eachDayOfInterval, startOfDay } from "date-fns";
 import { CalendarDays } from "lucide-react";
 import { motion } from "framer-motion";
+import { useActivities, useActivityTypes } from "@/components/ActivityCalendar";
 
-interface TrendsViewProps {
-  types: ActivityTypeMap;
-  activities: ActivityMap;
-}
-
-export function TrendsView({ types, activities }: TrendsViewProps) {
+export function TrendsView() {
+  const { activityTypes: types } = useActivityTypes();
+  const { activities } = useActivities();
   // Logic to determine eligible activities and prepare chart data
   const eligibleActivities = useMemo(() => {
     const activeTypes = getActiveActivityTypes(types);
@@ -57,7 +55,7 @@ export function TrendsView({ types, activities }: TrendsViewProps) {
           const entry = dayActivity?.entries[type.id];
           return {
             date: dateStr,
-            value: entry?.value || 0,
+            value: entry?.value ?? null,
           };
         });
 
@@ -68,7 +66,7 @@ export function TrendsView({ types, activities }: TrendsViewProps) {
       });
       
     // Filter out nulls
-    return result.filter((item): item is { type: ActivityType; data: { date: string; value: number }[] } => item !== null);
+    return result.filter((item): item is { type: ActivityType; data: { date: string; value: number | null }[] } => item !== null);
   }, [types, activities]);
 
   // Empty state if no eligible activities

@@ -86,14 +86,13 @@ export function DayContentView({
       </div>
 
       {/* Note Section - in view mode, only show if note exists */}
-      {onNoteClick && activity?.note && (
-        <button
-          onClick={onNoteClick}
-          className="mt-4 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-start gap-3"
+      {activity?.note && (
+        <div
+          className="mt-4 w-full p-3 rounded-lg bg-muted/50 border border-border/50 text-left flex items-start gap-3"
         >
           <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
           <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
-        </button>
+        </div>
       )}
 
       {/* Goals Section - full bleed with subtle background */}

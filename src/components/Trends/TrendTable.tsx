@@ -6,7 +6,7 @@ import { format } from "date-fns";
 
 interface TrendTableProps {
   type: ActivityType;
-  data: { date: string; value: number }[];
+  data: { date: string; value: number | null }[];
   color: string;
 }
 
@@ -14,24 +14,30 @@ export function TrendTable({ type, data, color }: TrendTableProps) {
   // Sort data Newest -> Oldest
   const processedData = [...data].reverse().map((d) => {
     const dateObj = new Date(d.date + "T00:00:00");
-    const label = formatValueOnly(d.value, type);
-    const isZero = d.value === 0;
+    const label = d.value !== null ? formatValueOnly(d.value, type) : "";
+    const isMissing = d.value === null;
     
     // Determine color for this specific value
     let valueColor = color;
     
-    if (type.buttonOptions) {
-        // Sort options by value to ensure consistent coloring order
-        const sortedOptions = [...type.buttonOptions].sort((a, b) => a.value - b.value);
-        const index = sortedOptions.findIndex(o => o.value === d.value);
-        if (index !== -1) {
-            // Cycle through chart-1 to chart-5
-            const chartIndex = (index % 5) + 1;
-            valueColor = `hsl(var(--chart-${chartIndex}))`;
+    if (d.value !== null) {
+        if (type.buttonOptions) {
+            // Sort options by value to ensure consistent coloring order
+            const sortedOptions = [...type.buttonOptions].sort((a, b) => a.value - b.value);
+            const index = sortedOptions.findIndex(o => o.value === d.value);
+            if (index !== -1) {
+                // Cycle through chart-1 to chart-5
+                const chartIndex = (index % 5) + 1;
+                valueColor = `hsl(var(--chart-${chartIndex}))`;
+            }
+        } else if (type.uiType === "toggle") {
+            // Toggle: 1 (Yes) gets the main color, 0 (No) also gets handled here
+            // We usually want "No" to look distinct? Or just same color? 
+            // Previous logic: "1 (Yes) gets the main color, 0 is already handled as "No entry"". 
+            // But now 0 is "No". 
+            // Let's keep strict color for now.
+            valueColor = color;
         }
-    } else if (type.uiType === "toggle") {
-        // Toggle: 1 (Yes) gets the main color, 0 is already handled as "No entry"
-        valueColor = color;
     }
     
     return {
@@ -40,7 +46,7 @@ export function TrendTable({ type, data, color }: TrendTableProps) {
       fullDate: format(dateObj, "MMM d"),
       value: d.value,
       label,
-      isZero,
+      isMissing,
       valueColor
     };
   });
@@ -62,7 +68,7 @@ export function TrendTable({ type, data, color }: TrendTableProps) {
                  <span className="text-foreground">{item.dayName}</span>
               </div>
               
-              {item.isZero ? (
+              {item.isMissing ? (
                  <span className="text-muted-foreground italic text-xs">No entry</span>
               ) : (
                 <Badge 
