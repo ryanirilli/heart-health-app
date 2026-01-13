@@ -151,12 +151,14 @@ a {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
 
 @layer utilities {
+
   /* Prevent 300ms tap delay on mobile and disable double-tap zoom */
   .touch-action-manipulation {
     touch-action: manipulation;
@@ -183,13 +185,11 @@ a {
 .activity-slider::-webkit-slider-runnable-track {
   height: 8px;
   border-radius: 9999px;
-  background: linear-gradient(
-    to right,
-    hsl(var(--ring)) 0%,
-    hsl(var(--ring)) var(--slider-progress, 0%),
-    hsl(var(--border)) var(--slider-progress, 0%),
-    hsl(var(--border)) 100%
-  );
+  background: linear-gradient(to right,
+      hsl(var(--ring)) 0%,
+      hsl(var(--ring)) var(--slider-progress, 0%),
+      hsl(var(--border)) var(--slider-progress, 0%),
+      hsl(var(--border)) 100%);
 }
 
 /* Track fill (Firefox) */
