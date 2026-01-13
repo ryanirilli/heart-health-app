@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useRef, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useCallback, useRef, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ActivityCalendar,
@@ -32,9 +32,11 @@ export function DashboardContent({
   showWelcomeToast,
 }: DashboardContentProps) {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const viewParam = searchParams.get("view") as AppView | null;
-  const currentView: AppView = viewParam && VALID_VIEWS.includes(viewParam) ? viewParam : "activities";
+  const initialView: AppView = viewParam && VALID_VIEWS.includes(viewParam) ? viewParam : "activities";
+  
+  // Use local state for instant view switching
+  const [currentView, setCurrentView] = useState<AppView>(initialView);
   const pendingViewRef = useRef<AppView | null>(null);
 
   // Show welcome toast for newly confirmed users
@@ -48,10 +50,13 @@ export function DashboardContent({
     }
   }, [showWelcomeToast]);
 
-  const navigateToView = useCallback((view: AppView) => {
-    const url = view === "activities" ? "/dashboard" : `/dashboard?view=${view}`;
-    router.push(url, { scroll: false });
-  }, [router]);
+  // Sync URL when view changes (for bookmarking/sharing)
+  useEffect(() => {
+    const url = currentView === "activities" ? "/dashboard" : `/dashboard?view=${currentView}`;
+    // Use pushState to update URL without triggering Next.js navigation
+    // This allows for instant UI updates while keeping URL in sync
+    window.history.pushState(null, "", url);
+  }, [currentView]);
 
   const handleViewChange = useCallback((view: AppView) => {
     const scrollY = window.scrollY || document.documentElement.scrollTop;
@@ -69,7 +74,7 @@ export function DashboardContent({
         if (pendingViewRef.current === view) {
           pendingViewRef.current = null;
           window.scrollTo({ top: 0, behavior: "instant" });
-          navigateToView(view);
+          setCurrentView(view);
         }
       }, 500);
 
@@ -87,7 +92,7 @@ export function DashboardContent({
           // Scroll complete, change view
           clearTimeout(timeoutId);
           pendingViewRef.current = null;
-          navigateToView(view);
+          setCurrentView(view);
         } else {
           // Keep polling
           requestAnimationFrame(checkScrollComplete);
@@ -97,9 +102,9 @@ export function DashboardContent({
     } else {
       // Already at top, change view immediately
       pendingViewRef.current = null;
-      navigateToView(view);
+      setCurrentView(view);
     }
-  }, [navigateToView]);
+  }, []);
 
   // Z-axis animation - scale down/fade out, scale up/fade in
   // Important: pointer-events must be disabled during exit to prevent blocking clicks on new view

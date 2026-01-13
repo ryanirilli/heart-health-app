@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { CalendarIcon, Check, Pencil } from 'lucide-react';
 import {
@@ -95,14 +95,20 @@ export function GoalFormDialog() {
   // Dialog mode: 'view' shows summary (for existing goals), 'edit' shows stepper form
   const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('edit');
 
-  // Get active (non-deleted) activity types
-  const activeTypes = Object.values(activityTypes).filter(t => !t.deleted);
+  // Get active (non-deleted) activity types - memoized to prevent excessive re-renders
+  const activeTypes = useMemo(
+    () => Object.values(activityTypes).filter(t => !t.deleted),
+    [activityTypes]
+  );
 
-  // Get activity type IDs that already have goals (excluding the one being edited)
-  const usedActivityTypeIds = new Set(
-    goalsList
-      .filter(g => !editingGoal || g.id !== editingGoal.id)
-      .map(g => g.activityTypeId)
+  // Get activity type IDs that already have goals (excluding the one being edited) - memoized
+  const usedActivityTypeIds = useMemo(
+    () => new Set(
+      goalsList
+        .filter(g => !editingGoal || g.id !== editingGoal.id)
+        .map(g => g.activityTypeId)
+    ),
+    [goalsList, editingGoal]
   );
 
   // Reset form when dialog opens/closes or editing goal changes
@@ -159,7 +165,7 @@ export function GoalFormDialog() {
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogContent className="max-w-md h-[85vh] flex flex-col p-0 gap-0 overflow-hidden" hideCloseButton>
-        {dialogMode === 'view' && editingGoal ? (
+        {dialogOpen && dialogMode === 'view' && editingGoal ? (
           // View mode: Show goal summary with edit icon
           <GoalSummaryView
             goal={formData}
@@ -169,7 +175,7 @@ export function GoalFormDialog() {
             onClose={closeDialog}
             isDeleting={isDeleting}
           />
-        ) : (
+        ) : dialogOpen ? (
           // Edit mode: Show stepper form
           <Stepper steps={STEPS} initialStep={0} className="flex-1 min-h-0 flex flex-col">
             <GoalFormContent
@@ -188,7 +194,7 @@ export function GoalFormDialog() {
               onCancel={closeDialog}
             />
           </Stepper>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );
