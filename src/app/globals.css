@@ -86,6 +86,21 @@ a {
     --activity-positive: 160 25% 85%;
     --activity-negative: 10 30% 88%;
     --activity-neutral: 40 10% 88%;
+    --activity-discrete: 210 60% 92%;
+    /* Light Blue for discrete activities */
+
+    /* Discrete Option Colors (Calm Neutrals - No Red/Green) */
+    /* Light Mode: Soft, pastel-like but legible */
+    --discrete-1: 210 25% 60%;
+    /* Slate Blue */
+    --discrete-2: 40 35% 60%;
+    /* Warm Sand */
+    --discrete-3: 260 25% 65%;
+    /* Lavender Grey */
+    --discrete-4: 180 25% 55%;
+    /* Muted Teal */
+    --discrete-5: 230 25% 60%;
+    /* Dusty Indigo */
 
     /* Contrast: very subtle tint for layering within cards */
     --contrast: 40 20% 94%;
@@ -141,6 +156,21 @@ a {
     --activity-positive: 160 30% 20%;
     --activity-negative: 0 30% 22%;
     --activity-neutral: 230 14% 18%;
+    --activity-discrete: 210 30% 25%;
+    /* Dark Blue/Slack for discrete activities */
+
+    /* Discrete Option Colors (Calm Neutrals - Dark Mode) */
+    /* Dark Mode: Slightly deeper/desaturated to sit well on dark bg */
+    --discrete-1: 210 25% 50%;
+    /* Slate Blue */
+    --discrete-2: 40 35% 50%;
+    /* Warm Sand */
+    --discrete-3: 260 25% 55%;
+    /* Lavender Grey */
+    --discrete-4: 180 25% 45%;
+    /* Muted Teal */
+    --discrete-5: 230 25% 50%;
+    /* Dusty Indigo */
 
     /* Contrast: subtle tint for layering within cards */
     --contrast: 230 18% 11%;
@@ -155,6 +185,8 @@ a {
   body {
     @apply bg-background text-foreground;
   }
+
+
 }
 
 @layer utilities {
@@ -162,6 +194,27 @@ a {
   /* Prevent 300ms tap delay on mobile and disable double-tap zoom */
   .touch-action-manipulation {
     touch-action: manipulation;
+  }
+
+  /* Discrete Activity Colors - Safe-listed for dynamic usage */
+  .bg-discrete-1 {
+    background-color: hsl(var(--discrete-1));
+  }
+
+  .bg-discrete-2 {
+    background-color: hsl(var(--discrete-2));
+  }
+
+  .bg-discrete-3 {
+    background-color: hsl(var(--discrete-3));
+  }
+
+  .bg-discrete-4 {
+    background-color: hsl(var(--discrete-4));
+  }
+
+  .bg-discrete-5 {
+    background-color: hsl(var(--discrete-5));
   }
 }
 

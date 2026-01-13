@@ -1,17 +1,29 @@
 'use client';
 
-import { useState, useMemo, useCallback, useTransition } from 'react';
+import { useState, useMemo, useCallback, useTransition, useEffect } from 'react';
 import { getShortMonthName, getDateRange } from '@/lib/activities';
 import { DayView } from './DayView';
 import { MonthView } from './MonthView';
 import { YearView } from './YearView';
-import { useActivities } from './ActivityProvider';
+import { useActivities, useActivityTypes } from './ActivityProvider';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PillToggle } from '@/components/ui/pill-toggle';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup, // Added missing import
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type ViewMode = 'day' | 'month' | 'year';
 
@@ -38,7 +50,68 @@ function formatShortDate(date: Date): string {
 
 export function ActivityCalendar() {
   const { activities } = useActivities();
+  const { activeTypes } = useActivityTypes();
   const dateRange = useMemo(() => getDateRange(activities), [activities]);
+  
+  // Filter state - Single selection (Radio)
+  // null or "all" means show everything
+  const [selectedTypeId, setSelectedTypeId] = useState<string>("all");
+
+  const handleValueChange = useCallback((value: string) => {
+    setSelectedTypeId(value);
+    setExcludedValues(new Set()); // Reset exclusions when type changes
+  }, []);
+
+  const currentActivityType = useMemo(() => {
+    if (selectedTypeId === "all") return undefined;
+    return activeTypes.find(t => t.id === selectedTypeId);
+  }, [activeTypes, selectedTypeId]);
+
+  // Values to hide from view (for discrete filtering)
+  const [excludedValues, setExcludedValues] = useState<Set<number>>(new Set());
+
+  const handleToggleValue = useCallback((value: number) => {
+    setExcludedValues(prev => {
+      const next = new Set(prev);
+      if (next.has(value)) {
+        next.delete(value);
+      } else {
+        next.add(value);
+      }
+      return next;
+    });
+  }, []);
+
+  // Filtered activities
+  const filteredActivities = useMemo(() => {
+    if (selectedTypeId === "all") {
+      return activities;
+    }
+
+    const filtered: typeof activities = {};
+    
+    Object.entries(activities).forEach(([date, activity]) => {
+      // Filter entries for this activity
+      const newEntries: typeof activity.entries = {};
+      let hasEntries = false;
+      
+      const entry = activity.entries[selectedTypeId];
+      if (entry) {
+        newEntries[selectedTypeId] = entry;
+        hasEntries = true;
+      }
+
+      if (hasEntries || activity.note) {
+         filtered[date] = {
+           ...activity,
+           entries: newEntries
+         };
+      }
+    });
+    
+    return filtered;
+  }, [activities, selectedTypeId]);
+
   
   const [viewMode, setViewMode] = useState<ViewMode>('day');
   const [isPending, startTransition] = useTransition();
@@ -258,30 +331,73 @@ export function ActivityCalendar() {
             </Button>
           </div>
         </div>
+
+        {/* Filter - Moved inside Month/Year view components */}
       </div>
 
-      {/* Calendar view */}
-      <div className={cn(
-        'transition-opacity duration-200',
-        isPending && 'opacity-60'
-      )}>
-        {viewMode === 'day' ? (
-          <DayView 
-            selectedDate={selectedDate}
-            slideDirection={slideDirection}
-            onPreviousDay={goToPreviousDay}
-            onNextDay={goToNextDay}
-            canGoNext={canGoNextDay}
-          />
-        ) : viewMode === 'month' ? (
-          <MonthView year={year} month={month} />
-        ) : (
-          <Card>
-            <CardContent className="p-6">
-              <YearView year={year} />
-            </CardContent>
-          </Card>
-        )}
+      {/* Calendar View Area */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 lg:pb-0">
+        <AnimatePresence mode="wait" initial={false}>
+          {viewMode === 'day' ? (
+            <motion.div
+              key="day-view"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              <DayView 
+                selectedDate={selectedDate} 
+                slideDirection={slideDirection}
+                onPreviousDay={goToPreviousDay}
+                onNextDay={goToNextDay}
+                canGoNext={canGoNextDay}
+              />
+            </motion.div>
+          ) : viewMode === 'month' ? (
+            <motion.div 
+              key="month-view"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              <MonthView 
+                year={year} 
+                month={month} 
+                activities={filteredActivities}
+                isDiscreteFilter={!!currentActivityType}
+                selectedTypeId={selectedTypeId}
+                onFilterChange={handleValueChange}
+                excludedValues={excludedValues}
+                onToggleValue={handleToggleValue}
+                activeType={currentActivityType}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="year-view"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              <YearView 
+                year={year} 
+                activities={filteredActivities}
+                isDiscreteFilter={!!currentActivityType}
+                selectedTypeId={selectedTypeId}
+                onFilterChange={handleValueChange}
+                excludedValues={excludedValues}
+                onToggleValue={handleToggleValue}
+                activeType={currentActivityType}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
