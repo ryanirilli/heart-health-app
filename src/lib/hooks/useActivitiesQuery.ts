@@ -9,6 +9,7 @@ export const ACTIVITIES_QUERY_KEY = ['activities'] as const;
 interface SaveActivityParams {
   date: string;
   entries: { [typeId: string]: ActivityEntry };
+  note?: string;
 }
 
 interface DeleteActivityParams {
@@ -36,20 +37,20 @@ export function useSaveActivity() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ date, entries }: SaveActivityParams) => {
+    mutationFn: async ({ date, entries, note }: SaveActivityParams) => {
       const response = await fetch('/api/activities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, entries }),
+        body: JSON.stringify({ date, entries, note }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to save activity');
       }
 
-      return { date, entries };
+      return { date, entries, note };
     },
-    onMutate: async ({ date, entries }) => {
+    onMutate: async ({ date, entries, note }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ACTIVITIES_QUERY_KEY });
 
@@ -58,10 +59,12 @@ export function useSaveActivity() {
 
       // Optimistically update to the new value
       queryClient.setQueryData<ActivityMap>(ACTIVITIES_QUERY_KEY, (old) => {
-        if (!old) return { [date]: { date, entries } };
+        const existingNote = old?.[date]?.note;
+        const newNote = note !== undefined ? note : existingNote;
+        if (!old) return { [date]: { date, entries, note: newNote } };
         return {
           ...old,
-          [date]: { date, entries },
+          [date]: { date, entries, note: newNote },
         };
       });
 

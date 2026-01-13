@@ -18,13 +18,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Pencil, Loader2, Plus } from "lucide-react";
+import { Pencil, Loader2, Plus, ArrowLeft } from "lucide-react";
 import { ActivityType } from "@/lib/activityTypes";
 import { useGoals } from "@/components/Goals";
 
-type FormMode = "view" | "edit";
+type FormMode = "view" | "edit" | "note";
 
 const SWIPE_THRESHOLD = 50;
+const MAX_NOTE_LENGTH = 500;
 
 // Helper to check if a date is today
 function isToday(date: Date): boolean {
@@ -308,7 +309,7 @@ export function DayView({
   onNextDay,
   canGoNext,
 }: DayViewProps) {
-  const { activities, updateActivity, deleteActivity, isSaving, isDeleting } =
+  const { activities, updateActivity, saveNote, deleteActivity, isSaving, isDeleting } =
     useActivities();
   const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
   const { goals } = useGoals();
@@ -331,8 +332,14 @@ export function DayView({
   const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
   // Track if user explicitly wants to log activity for a past day with no existing activity
   const [showPastDayForm, setShowPastDayForm] = useState(false);
+  // Note text for the note input mode
+  const [noteText, setNoteText] = useState("");
+  // Track animation direction for note mode transitions (1 = forward/right, -1 = back/left)
+  const [noteSlideDirection, setNoteSlideDirection] = useState<1 | -1>(1);
+  // Track the mode we came from when entering note mode
+  const [modeBeforeNote, setModeBeforeNote] = useState<"view" | "edit">("view");
 
-  // Reset state when existingActivity or selectedDate changes
+  // Reset state when selectedDate changes or activity data loads
   useEffect(() => {
     const initialEntries: { [typeId: string]: number | undefined } = {};
     const initialTracked = new Set<string>();
@@ -346,9 +353,22 @@ export function DayView({
 
     setEntries(initialEntries);
     setTrackedTypes(initialTracked);
-    setMode(existingActivity ? "view" : "edit");
-    setShowPastDayForm(false); // Reset when navigating to a new day
-  }, [existingActivity, selectedDateStr]);
+    
+    // Determine initial mode based on whether there are actual activity entries
+    // (not just a note). For today/new entries, stay in edit mode.
+    const hasActivityEntries = existingActivity?.entries && Object.keys(existingActivity.entries).length > 0;
+    
+    // Only set mode if we are not already in a specific mode, or if we switched dates
+    // But since this effect runs on data load, we should be careful.
+    // Ideally we only reset mode on date change.
+    // For simplicity given the bug, let's allow it to reset to view/edit based on data presence,
+    // which effectively handles the "refresh" case correctly.
+    setMode(hasActivityEntries ? "view" : "edit");
+    
+    // Reset other state
+    setShowPastDayForm(false);
+    setNoteText(existingActivity?.note ?? ""); 
+  }, [selectedDateStr, existingActivity]); // Sync when data changes
 
   const handleEntryChange = useCallback(
     (typeId: string, value: number | undefined) => {
@@ -415,6 +435,34 @@ export function DayView({
     setShowPastDayForm(true);
   }, []);
 
+  // Note mode handlers
+  const handleOpenNoteMode = useCallback(() => {
+    setNoteText(existingActivity?.note ?? "");
+    setModeBeforeNote(mode as "view" | "edit"); // Remember where we came from
+    setNoteSlideDirection(1); // Going forward (to note)
+    setMode("note");
+  }, [existingActivity?.note, mode]);
+
+  const handleSaveNote = useCallback(() => {
+    const trimmedNote = noteText.trim();
+    saveNote(selectedDateStr, trimmedNote || undefined);
+    setNoteSlideDirection(-1); // Going back
+    setMode(modeBeforeNote); // Return to where we came from
+  }, [noteText, saveNote, selectedDateStr, modeBeforeNote]);
+
+  const handleCancelNote = useCallback(() => {
+    setNoteText(existingActivity?.note ?? "");
+    setNoteSlideDirection(-1); // Going back
+    setMode(modeBeforeNote); // Return to where we came from
+  }, [existingActivity?.note, modeBeforeNote]);
+
+  const handleDeleteNote = useCallback(() => {
+    saveNote(selectedDateStr, ""); // Empty string deletes the note
+    setNoteText("");
+    setNoteSlideDirection(-1); // Going back
+    setMode(modeBeforeNote); // Return to where we came from
+  }, [saveNote, selectedDateStr, modeBeforeNote]);
+
   const isNewEntry = !existingActivity;
   const isPending = isSaving || isDeleting;
   const title = mode === "view" ? "Activity Summary" : "Log Activity";
@@ -427,6 +475,7 @@ export function DayView({
       activityTypes={activityTypes}
       goals={goals}
       onEditClick={() => setMode("edit")}
+      onNoteClick={handleOpenNoteMode}
       fullBleedBorder={true}
       allActivities={activities}
     />
@@ -444,6 +493,7 @@ export function DayView({
       onEntryChange={handleEntryChange}
       onToggleTracked={handleToggleTracked}
       onOpenSettings={openSettingsToAdd}
+      onNoteClick={handleOpenNoteMode}
     />
   );
 
@@ -459,6 +509,8 @@ export function DayView({
         <Pencil className="h-3.5 w-3.5" />
       </Button>
     ) : null;
+
+
 
   // Edit mode footer
   const editFooter = (
@@ -498,20 +550,72 @@ export function DayView({
     </div>
   );
 
+  // Note input content
+  const noteContent = (
+    <div className="space-y-3">
+      <div className="relative">
+        <textarea
+          value={noteText}
+          onChange={(e) => {
+            if (e.target.value.length <= MAX_NOTE_LENGTH) {
+              setNoteText(e.target.value);
+            }
+          }}
+          placeholder="Add a note for this day..."
+          className="w-full min-h-[120px] p-3 text-sm rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          autoFocus
+        />
+        <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+          {noteText.length}/{MAX_NOTE_LENGTH}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Note mode footer
+  const noteFooter = (
+    <div className="flex items-center justify-between gap-2 w-full">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleCancelNote}
+        disabled={isPending}
+        className="gap-2"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </Button>
+      <Button
+        size="pill"
+        onClick={handleSaveNote}
+        disabled={isPending}
+      >
+        {isSaving ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Saving...
+          </span>
+        ) : (
+          "Save"
+        )}
+      </Button>
+    </div>
+  );
+
   // Determine if we should show the empty past day card
   // Show it for past days with no activity, unless user has clicked to log
   const shouldShowEmptyPastCard =
     isNewEntry && isCurrentlyPast && !showPastDayForm;
 
-  const content = mode === "view" ? viewContent : editContent;
+  const content = mode === "view" ? viewContent : mode === "note" ? noteContent : editContent;
   // Hide footer when there are no activity types (show CTA instead)
   const footer =
-    mode === "view" || activeTypes.length === 0 ? null : editFooter;
+    mode === "view" ? null : mode === "note" ? noteFooter : activeTypes.length === 0 ? null : editFooter;
 
-  // Only enable drag/swipe on mobile when no activity items are open (tracked)
+  // Only enable drag/swipe on mobile when no activity items are open (tracked) and not in note mode
   const isMobile = useIsMobile();
   const hasOpenItems = mode === "edit" && trackedTypes.size > 0;
-  const canSwipe = isMobile && !hasOpenItems;
+  const canSwipe = isMobile && !hasOpenItems && mode !== "note";
 
   // Handle mobile swipe gesture
   const handleMobileDragEnd = useCallback(
@@ -545,20 +649,49 @@ export function DayView({
   const mainCard = shouldShowEmptyPastCard ? (
     <EmptyPastDayCard date={selectedDate} onLogActivity={handleLogPastDay} />
   ) : (
-    <Card className="relative">
+    <Card className="relative overflow-hidden">
       <CardHeader className="p-4 pt-4">
-        <div className="absolute top-3 right-3">{editButton}</div>
+        <div className="absolute top-3 right-3 flex gap-1">
+          {editButton}
+        </div>
         <DateTile date={selectedDate} />
       </CardHeader>
 
       <CardContent className="px-4 py-2 pb-4">
         <div className="flex items-center justify-between mb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            {title}
+            {mode === "note" ? (existingActivity?.note ? "Edit Note" : "Add Note") : title}
           </CardTitle>
-          {isCurrentlyToday && <Badge variant="today">Today</Badge>}
+          {mode === "note" && existingActivity?.note ? (
+            <ConfirmDeleteButton
+              onDelete={handleDeleteNote}
+              disabled={isSaving}
+              isDeleting={isDeleting}
+            />
+          ) : isCurrentlyToday && mode !== "note" ? (
+            <Badge variant="today">Today</Badge>
+          ) : null}
         </div>
-        {content}
+        <AnimatePresence mode="popLayout" initial={false} custom={noteSlideDirection}>
+          <motion.div
+            key={mode === "note" ? "note" : "main"}
+            custom={noteSlideDirection}
+            variants={{
+              initial: (direction: number) => ({ x: direction * 100, opacity: 0 }),
+              animate: { x: 0, opacity: 1 },
+              exit: (direction: number) => ({ x: direction * -100, opacity: 0 }),
+            }}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={{ 
+              duration: 0.7, 
+              ease: [0.16, 1, 0.3, 1] // Custom ease-out with long tail
+            }}
+          >
+            {content}
+          </motion.div>
+        </AnimatePresence>
       </CardContent>
 
       {footer && <CardFooter className="px-4 pt-4 pb-4">{footer}</CardFooter>}

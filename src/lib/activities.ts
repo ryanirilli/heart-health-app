@@ -16,6 +16,8 @@ export interface Activity {
   date: string;
   /** Map of activity type ID to entry */
   entries: { [typeId: string]: ActivityEntry };
+  /** Optional note for the day */
+  note?: string;
 }
 
 export interface ActivityMap {

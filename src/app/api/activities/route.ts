@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ActivityMap, ActivityEntry as AppActivityEntry } from '@/lib/activities';
-import { DbActivity } from '@/lib/supabase/types';
+import { DbActivity, DbActivityNote } from '@/lib/supabase/types';
+
+// Maximum note length
+const MAX_NOTE_LENGTH = 500;
 
 interface ActivityEntry {
   typeId: string;
@@ -32,6 +35,23 @@ export async function GET() {
       );
     }
 
+    // Fetch notes
+    const { data: dbNotes, error: notesError } = await supabase
+      .from('activity_notes')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (notesError) {
+      console.error('Failed to fetch activity notes:', notesError);
+      // Continue without notes - don't fail the whole request
+    }
+
+    // Create a map of date -> note
+    const notesMap = new Map<string, string>();
+    (dbNotes as DbActivityNote[] | null)?.forEach((n) => {
+      notesMap.set(n.date, n.note);
+    });
+
     // Convert DB activities to app format (grouped by date)
     const activities: ActivityMap = {};
     (dbActivities as DbActivity[] | null)?.forEach((a) => {
@@ -39,12 +59,24 @@ export async function GET() {
         activities[a.date] = {
           date: a.date,
           entries: {},
+          note: notesMap.get(a.date),
         };
       }
       activities[a.date].entries[a.activity_type_id] = {
         typeId: a.activity_type_id,
         value: a.value,
       } as AppActivityEntry;
+    });
+
+    // Also include notes for dates that have notes but no activities
+    notesMap.forEach((note, date) => {
+      if (!activities[date]) {
+        activities[date] = {
+          date,
+          entries: {},
+          note,
+        };
+      }
     });
 
     return NextResponse.json(activities);
@@ -68,9 +100,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { date, entries } = body as { 
+    const { date, entries, note } = body as { 
       date: string; 
-      entries: { [typeId: string]: ActivityEntry } 
+      entries: { [typeId: string]: ActivityEntry };
+      note?: string;
     };
 
     if (!date || typeof date !== 'string') {
@@ -78,6 +111,22 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid date format' },
         { status: 400 }
       );
+    }
+
+    // Validate note if provided
+    if (note !== undefined && note !== null) {
+      if (typeof note !== 'string') {
+        return NextResponse.json(
+          { error: 'Invalid note format' },
+          { status: 400 }
+        );
+      }
+      if (note.length > MAX_NOTE_LENGTH) {
+        return NextResponse.json(
+          { error: `Note must be ${MAX_NOTE_LENGTH} characters or less` },
+          { status: 400 }
+        );
+      }
     }
 
     // Get all existing entries for this date
@@ -143,6 +192,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Handle note - upsert if provided, delete if explicitly set to empty string
+    if (note !== undefined) {
+      if (note === '' || note === null) {
+        // Delete note if it exists
+        const { error: deleteNoteError } = await supabase
+          .from('activity_notes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('date', date);
+
+        if (deleteNoteError) {
+          console.error('Failed to delete note:', deleteNoteError);
+        }
+      } else {
+        // Upsert note
+        const { error: noteError } = await supabase
+          .from('activity_notes')
+          .upsert({
+            user_id: user.id,
+            date,
+            note: note.trim(),
+          }, {
+            onConflict: 'user_id,date',
+            ignoreDuplicates: false
+          });
+
+        if (noteError) {
+          console.error('Failed to save note:', noteError);
+          return NextResponse.json(
+            { error: 'Failed to save note' },
+            { status: 500 }
+          );
+        }
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to save activity:', error);
@@ -186,6 +271,18 @@ export async function DELETE(request: NextRequest) {
         { error: 'Failed to delete activity' },
         { status: 500 }
       );
+    }
+
+    // Also delete the note for this date
+    const { error: noteError } = await supabase
+      .from('activity_notes')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('date', date);
+
+    if (noteError) {
+      console.error('Failed to delete note:', noteError);
+      // Don't fail the whole request if note deletion fails
     }
 
     return NextResponse.json({ success: true });

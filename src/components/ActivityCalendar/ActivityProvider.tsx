@@ -36,6 +36,7 @@ interface ActivityContextValue {
   // Activities
   activities: ActivityMap;
   updateActivity: (date: string, entries: { [typeId: string]: ActivityEntry }) => void;
+  saveNote: (date: string, note: string | undefined) => void;
   deleteActivity: (date: string) => void;
   deleteActivityEntry: (date: string, typeId: string) => void;
   isLoading: boolean;
@@ -58,6 +59,7 @@ const ActivityContext = createContext<ActivityContextValue>({
   deleteActivityType: () => {},
   activities: {},
   updateActivity: () => {},
+  saveNote: () => {},
   deleteActivity: () => {},
   deleteActivityEntry: () => {},
   isLoading: false,
@@ -141,6 +143,18 @@ export function ActivityProvider({
     deleteActivityMutation.mutate({ date });
   }, [deleteActivityMutation]);
 
+  // Save just the note for a date (without changing activity entries)
+  const saveNote = useCallback((date: string, note: string | undefined) => {
+    // Get current entries for this date (may be empty)
+    const currentActivities = queryClient.getQueryData<ActivityMap>(ACTIVITIES_QUERY_KEY);
+    const activity = currentActivities?.[date];
+    const entries = activity?.entries ?? {};
+    
+    // Save with the same entries but updated note
+    // Empty string means delete the note
+    saveActivityMutation.mutate({ date, entries, note: note === '' ? '' : note });
+  }, [queryClient, saveActivityMutation]);
+
   const deleteActivityEntry = useCallback((date: string, typeId: string) => {
     // Get current activity and remove the entry
     const currentActivities = queryClient.getQueryData<ActivityMap>(ACTIVITIES_QUERY_KEY);
@@ -169,7 +183,8 @@ export function ActivityProvider({
     updateActivityType,
     deleteActivityType,
     activities, 
-    updateActivity, 
+    updateActivity,
+    saveNote,
     deleteActivity,
     deleteActivityEntry,
     isLoading,
@@ -188,6 +203,7 @@ export function ActivityProvider({
     deleteActivityType,
     activities,
     updateActivity,
+    saveNote,
     deleteActivity,
     deleteActivityEntry,
     isLoading,
@@ -237,8 +253,8 @@ export function useActivityTypes() {
 }
 
 export function useActivities() {
-  const { activities, updateActivity, deleteActivity, deleteActivityEntry, isLoading, isSaving, isDeleting } = useContext(ActivityContext);
-  return { activities, updateActivity, deleteActivity, deleteActivityEntry, isLoading, isSaving, isDeleting };
+  const { activities, updateActivity, saveNote, deleteActivity, deleteActivityEntry, isLoading, isSaving, isDeleting } = useContext(ActivityContext);
+  return { activities, updateActivity, saveNote, deleteActivity, deleteActivityEntry, isLoading, isSaving, isDeleting };
 }
 
 // Re-export for convenience

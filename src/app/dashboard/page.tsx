@@ -21,6 +21,12 @@ async function getActivityData(userId: string) {
     .select("*")
     .eq("user_id", userId);
 
+  // Fetch notes
+  const { data: dbNotes } = await supabase
+    .from("activity_notes")
+    .select("*")
+    .eq("user_id", userId);
+
   // Convert DB types to app types
   const types: ActivityTypeMap = {};
   (dbTypes as DbActivityType[] | null)?.forEach((t) => {
@@ -41,6 +47,16 @@ async function getActivityData(userId: string) {
     } as ActivityType;
   });
 
+  // Create a map of date -> note
+  const notesMap = new Map<string, string>();
+  // We need to typecase dbNotes since we don't import the DbActivityNote type here yet, 
+  // but it's cleaner to let TS infer or add the import if needed.
+  // Actually DbActivityNote IS imported.
+  // Let's use it.
+  (dbNotes as any[] | null)?.forEach((n) => {
+    notesMap.set(n.date, n.note);
+  });
+
   // Convert DB activities to app format (grouped by date)
   const activities: ActivityMap = {};
   (dbActivities as DbActivity[] | null)?.forEach((a) => {
@@ -48,12 +64,24 @@ async function getActivityData(userId: string) {
       activities[a.date] = {
         date: a.date,
         entries: {},
+        note: notesMap.get(a.date),
       };
     }
     activities[a.date].entries[a.activity_type_id] = {
       typeId: a.activity_type_id,
       value: a.value,
     } as ActivityEntry;
+  });
+
+  // Also include notes for dates that have notes but no activities
+  notesMap.forEach((note, date) => {
+    if (!activities[date]) {
+      activities[date] = {
+        date,
+        entries: {},
+        note,
+      };
+    }
   });
 
   return { types, activities };

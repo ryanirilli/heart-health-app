@@ -55,6 +55,15 @@ export interface DbProfile {
   updated_at: string;
 }
 
+export interface DbActivityNote {
+  id: string;
+  user_id: string;
+  date: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Insert types (without auto-generated fields)
 export type DbActivityTypeInsert = Omit<DbActivityType, 'created_at' | 'updated_at'>;
 export type DbActivityInsert = Omit<DbActivity, 'id' | 'created_at' | 'updated_at'>;

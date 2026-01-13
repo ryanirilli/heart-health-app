@@ -9,7 +9,7 @@ import { ActivityViewCard, ActivityTypeCard } from './ActivityFormContent';
 import { GoalStatusSection } from './GoalStatusSection';
 import { useGoals } from '@/components/Goals';
 import { cn } from '@/lib/utils';
-import { Settings, Target } from 'lucide-react';
+import { Settings, Target, MessageSquareMore } from 'lucide-react';
 
 interface DayContentViewProps {
   dateStr: string;
@@ -17,6 +17,7 @@ interface DayContentViewProps {
   activityTypes: ActivityTypeMap;
   goals: GoalMap;
   onEditClick?: () => void;
+  onNoteClick?: () => void;
   /** Whether to show full-bleed border for goals section */
   fullBleedBorder?: boolean;
   /** Padding class to use for full-bleed border (default: 4 for px-4 containers) */
@@ -35,6 +36,7 @@ export function DayContentView({
   activityTypes,
   goals,
   onEditClick,
+  onNoteClick,
   fullBleedBorder = false,
   containerPadding = 4,
   allActivities,
@@ -82,6 +84,21 @@ export function DayContentView({
           ))
         )}
       </div>
+
+      {/* Note Section - clickable row */}
+      {onNoteClick && (
+        <button
+          onClick={onNoteClick}
+          className="mt-4 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-start gap-3"
+        >
+          <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+          {activity?.note ? (
+            <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
+          ) : (
+            <span className="text-sm text-muted-foreground">Add note</span>
+          )}
+        </button>
+      )}
 
       {/* Goals Section - full bleed with subtle background */}
       {hasRelevantGoals && (
@@ -137,6 +154,7 @@ interface DayContentEditProps {
   onEntryChange: (typeId: string, value: number | undefined) => void;
   onToggleTracked: (typeId: string, tracked: boolean) => void;
   onOpenSettings?: () => void;
+  onNoteClick?: () => void;
 }
 
 /**
@@ -152,6 +170,7 @@ export function DayContentEdit({
   onEntryChange,
   onToggleTracked,
   onOpenSettings,
+  onNoteClick,
 }: DayContentEditProps) {
   // Get all types that have entries (including deleted types for viewing)
   const typesWithExistingEntries = useMemo(() => {
@@ -199,19 +218,36 @@ export function DayContentEdit({
 
   // Show all activity types directly with tap to log
   return (
-    <div className="space-y-3">
-      {allRelevantTypes.map((type) => (
-        <ActivityTypeCard
-          key={type.id}
-          type={type}
-          value={entries[type.id]}
-          isTracked={trackedTypes.has(type.id)}
-          onChange={(value) => onEntryChange(type.id, value)}
-          onToggleTracked={(tracked) => onToggleTracked(type.id, tracked)}
-          isNewEntry={isNewEntry}
-        />
-      ))}
-    </div>
+    <>
+      <div className="space-y-3">
+        {allRelevantTypes.map((type) => (
+          <ActivityTypeCard
+            key={type.id}
+            type={type}
+            value={entries[type.id]}
+            isTracked={trackedTypes.has(type.id)}
+            onChange={(value) => onEntryChange(type.id, value)}
+            onToggleTracked={(tracked) => onToggleTracked(type.id, tracked)}
+            isNewEntry={isNewEntry}
+          />
+        ))}
+      </div>
+
+      {/* Note Section - clickable row */}
+      {onNoteClick && (
+        <button
+          onClick={onNoteClick}
+          className="mt-4 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-start gap-3"
+        >
+          <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+          {activity?.note ? (
+            <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
+          ) : (
+            <span className="text-sm text-muted-foreground">Add note</span>
+          )}
+        </button>
+      )}
+    </>
   );
 }
 
