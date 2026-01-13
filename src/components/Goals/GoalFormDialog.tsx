@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarIcon, Check } from 'lucide-react';
+import { CalendarIcon, Check, Pencil } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -92,6 +92,8 @@ export function GoalFormDialog() {
 
   const [formData, setFormData] = useState<Goal>(createDefaultGoal());
   const [errors, setErrors] = useState<string[]>([]);
+  // Dialog mode: 'view' shows summary (for existing goals), 'edit' shows stepper form
+  const [dialogMode, setDialogMode] = useState<'view' | 'edit'>('edit');
 
   // Get active (non-deleted) activity types
   const activeTypes = Object.values(activityTypes).filter(t => !t.deleted);
@@ -112,12 +114,16 @@ export function GoalFormDialog() {
           ...editingGoal,
           trackingType: editingGoal.trackingType || 'average',
         });
+        // Start in view mode for existing goals
+        setDialogMode('view');
       } else {
         // Find the first activity type that doesn't already have a goal
         const availableType = activeTypes.find(t => !usedActivityTypeIds.has(t.id));
         setFormData(createDefaultGoal({
           activityTypeId: availableType?.id || '',
         }));
+        // Start in edit mode for new goals
+        setDialogMode('edit');
       }
       setErrors([]);
     }
@@ -152,26 +158,169 @@ export function GoalFormDialog() {
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogContent className="max-w-md h-[85vh] flex flex-col p-0 gap-0 overflow-hidden">
-        <Stepper steps={STEPS} initialStep={0} className="flex-1 min-h-0 flex flex-col">
-          <GoalFormContent
-            formData={formData}
-            setFormData={setFormData}
-            errors={errors}
-            activeTypes={activeTypes}
-            selectedActivityType={selectedActivityType}
+      <DialogContent className="max-w-md h-[85vh] flex flex-col p-0 gap-0 overflow-hidden" hideCloseButton>
+        {dialogMode === 'view' && editingGoal ? (
+          // View mode: Show goal summary with edit icon
+          <GoalSummaryView
+            goal={formData}
             activityTypes={activityTypes}
-            usedActivityTypeIds={usedActivityTypeIds}
-            isEditing={isEditing}
-            isSubmitting={isSubmitting}
-            isDeleting={isDeleting}
-            onSubmit={handleSubmit}
+            onEdit={() => setDialogMode('edit')}
             onDelete={handleDelete}
-            onCancel={closeDialog}
+            onClose={closeDialog}
+            isDeleting={isDeleting}
           />
-        </Stepper>
+        ) : (
+          // Edit mode: Show stepper form
+          <Stepper steps={STEPS} initialStep={0} className="flex-1 min-h-0 flex flex-col">
+            <GoalFormContent
+              formData={formData}
+              setFormData={setFormData}
+              errors={errors}
+              activeTypes={activeTypes}
+              selectedActivityType={selectedActivityType}
+              activityTypes={activityTypes}
+              usedActivityTypeIds={usedActivityTypeIds}
+              isEditing={isEditing}
+              isSubmitting={isSubmitting}
+              isDeleting={isDeleting}
+              onSubmit={handleSubmit}
+              onDelete={handleDelete}
+              onCancel={closeDialog}
+            />
+          </Stepper>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// =============================================================================
+// GOAL SUMMARY VIEW (view mode for existing goals)
+// =============================================================================
+
+interface GoalSummaryViewProps {
+  goal: Goal;
+  activityTypes: ActivityTypeMap;
+  onEdit: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+  isDeleting: boolean;
+}
+
+function GoalSummaryView({
+  goal,
+  activityTypes,
+  onEdit,
+  onDelete,
+  onClose,
+  isDeleting,
+}: GoalSummaryViewProps) {
+  const selectedActivityType = activityTypes[goal.activityTypeId];
+  const IconComponent = getGoalIconComponent(goal.icon);
+
+  const getScheduleText = () => {
+    switch (goal.dateType) {
+      case 'daily':
+        return 'Every day';
+      case 'weekly':
+        return 'Every week';
+      case 'monthly':
+        return 'Every month';
+      case 'by_date':
+        return goal.targetDate
+          ? `By ${format(parseDateString(goal.targetDate), 'MMMM d, yyyy')}`
+          : 'By date (not set)';
+      case 'date_range':
+        if (goal.startDate && goal.endDate) {
+          return `${format(parseDateString(goal.startDate), 'MMM d')} - ${format(parseDateString(goal.endDate), 'MMM d, yyyy')}`;
+        }
+        return 'Date range (not set)';
+      default:
+        return '';
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header with edit button */}
+      <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0 relative">
+        <Button
+          variant="outline"
+          size="icon-sm"
+          onClick={onEdit}
+          className="absolute right-4 top-4"
+          aria-label="Edit goal"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <DialogTitle>Goal Summary</DialogTitle>
+      </DialogHeader>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto px-6">
+        {/* Goal Preview Card */}
+        <div className="rounded-xl border bg-card p-5 space-y-4">
+          {/* Icon and Name */}
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <IconComponent className="h-6 w-6 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-lg truncate">{goal.name || 'Untitled Goal'}</h4>
+              <p className="text-sm text-muted-foreground">{GOAL_ICON_LABELS[goal.icon]}</p>
+            </div>
+          </div>
+
+          {/* Details - full bleed border */}
+          <div className="-mx-5 px-5 space-y-2 pt-4 border-t">
+            <div className="flex items-center justify-between py-1">
+              <span className="text-sm text-muted-foreground">Activity</span>
+              <span className="text-sm font-medium">
+                {selectedActivityType?.name || 'Not selected'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-1">
+              <span className="text-sm text-muted-foreground">Target</span>
+              <span className="text-sm font-medium">
+                {selectedActivityType?.uiType === 'toggle'
+                  ? (goal.targetValue === 1 ? 'Yes' : 'No')
+                  : selectedActivityType?.uiType === 'buttonGroup'
+                  ? (selectedActivityType.buttonOptions?.find(o => o.value === goal.targetValue)?.label || goal.targetValue)
+                  : selectedActivityType
+                  ? formatValueOnly(goal.targetValue, selectedActivityType)
+                  : goal.targetValue}
+              </span>
+            </div>
+            <div className="flex items-center justify-between py-1">
+              <span className="text-sm text-muted-foreground">Schedule</span>
+              <Badge variant="secondary">{getScheduleText()}</Badge>
+            </div>
+            {/* Show tracking type for buttonGroup and toggle with non-daily goals */}
+            {(selectedActivityType?.uiType === 'buttonGroup' || selectedActivityType?.uiType === 'toggle') && goal.dateType !== 'daily' && (
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm text-muted-foreground">Tracking</span>
+                <Badge variant="secondary">{GOAL_TRACKING_TYPE_LABELS[goal.trackingType]}</Badge>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-6 py-4 flex-shrink-0 bg-background">
+        <div className="flex items-center justify-between gap-2">
+          <ConfirmDeleteButton
+            onDelete={onDelete}
+            disabled={isDeleting}
+            isDeleting={isDeleting}
+          />
+          <div className="flex-1" />
+          <Button size="pill" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
