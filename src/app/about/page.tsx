@@ -34,81 +34,154 @@ export default function AboutPage() {
 
       {/* Content */}
       <main className="max-w-3xl mx-auto px-6 py-12 md:py-16 flex-1 w-full">
-        <div className="space-y-12">
-          {/* Profile Header */}
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-            <div className="relative w-32 h-32 flex-shrink-0 rounded-full overflow-hidden border-2 border-border/50 shadow-sm">
-              <FadeInImage
-                src="/ryan-avatar.jpg"
-                alt="Ryan Irilli"
-                fill
-                className="object-cover object-top"
-              />
-            </div>
-
-            <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-3 pt-2">
-              <div>
-                <h1 className="text-3xl font-light text-foreground tracking-tight">
-                  Ryan Irilli
-                </h1>
-                <p className="text-muted-foreground text-lg">Maker of Rhythm</p>
+        <div className="space-y-24">
+          {/* Ryan Irilli */}
+          <section className="space-y-12">
+            {/* Profile Header */}
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+              <div className="relative w-32 h-32 flex-shrink-0 rounded-full overflow-hidden border-2 border-border/50 shadow-sm">
+                <FadeInImage
+                  src="/ryan-avatar.jpg"
+                  alt="Ryan Irilli"
+                  fill
+                  className="object-cover object-top"
+                />
               </div>
 
-              <div className="flex items-center gap-4 text-muted-foreground">
-                <a
-                  href="https://github.com/ryanirilli"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                  aria-label="GitHub"
-                >
-                  <Github className="h-5 w-5" />
-                </a>
-                <a
-                  href="https://www.linkedin.com/in/ryanirilli/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin className="h-5 w-5" />
-                </a>
-                <a
-                  href="https://www.instagram.com/ryanirilli"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-foreground transition-colors"
-                  aria-label="Instagram"
-                >
-                  <Instagram className="h-5 w-5" />
-                </a>
+              <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-3 pt-2">
+                <div>
+                  <h1 className="text-3xl font-light text-foreground tracking-tight">
+                    Ryan Irilli
+                  </h1>
+                  <p className="text-muted-foreground text-lg">Maker of Rhythm</p>
+                </div>
+
+                <div className="flex items-center gap-4 text-muted-foreground">
+                  <a
+                    href="https://github.com/ryanirilli"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-foreground transition-colors"
+                    aria-label="GitHub"
+                  >
+                    <Github className="h-5 w-5" />
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/ryanirilli/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-foreground transition-colors"
+                    aria-label="LinkedIn"
+                  >
+                    <Linkedin className="h-5 w-5" />
+                  </a>
+                  <a
+                    href="https://www.instagram.com/ryanirilli"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-foreground transition-colors"
+                    aria-label="Instagram"
+                  >
+                    <Instagram className="h-5 w-5" />
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Bio Content */}
-          <div className="prose prose-invert prose-neutral max-w-none">
-            <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              I’m a software engineer, and also a husband and dad. Like a lot of
-              people, I’ve struggled to stick with personal goals because they
-              get drowned out by everyday life. When you’re juggling work,
-              family, and everything else, it’s easy for the stuff you care
-              about to slide.
-            </p>
+            {/* Bio Content */}
+            <div className="prose prose-invert prose-neutral max-w-none">
+              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                I’m a software engineer, and also a husband and dad. Like a lot of
+                people, I’ve struggled to stick with personal goals because they
+                get drowned out by everyday life. When you’re juggling work,
+                family, and everything else, it’s easy for the stuff you care
+                about to slide.
+              </p>
 
-            <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-              I built Rhythm because I wanted a simple daily check-in that keeps
-              my goals visible without turning into a whole project. No guilt.
-              No complicated dashboards. Just a space to stay mindful of the
-              habits I’m trying to build.
-            </p>
+              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                I built Rhythm because I wanted a simple daily check-in that keeps
+                my goals visible without turning into a whole project. Just a space
+                to stay mindful of the habits I’m trying to build.
+              </p>
 
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              My kids are 1 and 3, so life is noisy and unpredictable (iykyk).
-              Rhythm is my way of finding a steady beat in all of that, one day
-              at a time.
-            </p>
-          </div>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                My kids are 1 and 3, so life is noisy and unpredictable (iykyk).
+                Rhythm is my way of finding a steady beat in all of that, one day
+                at a time.
+              </p>
+            </div>
+          </section>
+
+          {/* Mark Stratford */}
+          <section className="space-y-12">
+            {/* Profile Header */}
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+              <div className="relative w-32 h-32 flex-shrink-0 rounded-full overflow-hidden border-2 border-border/50 shadow-sm">
+                <FadeInImage
+                  src="/mark-avatar.jpeg"
+                  alt="Mark Stratford"
+                  fill
+                  className="object-cover object-top scale-110 origin-top"
+                />
+              </div>
+
+              <div className="flex flex-col items-center md:items-start text-center md:text-left space-y-3 pt-2">
+                <div>
+                  <h1 className="text-3xl font-light text-foreground tracking-tight">
+                    Mark Stratford
+                  </h1>
+                  <p className="text-muted-foreground text-lg">Partner in Rhythm</p>
+                </div>
+
+                <div className="flex items-center gap-4 text-muted-foreground">
+                  <a
+                    href="https://github.com/MarkStratford"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-foreground transition-colors"
+                    aria-label="GitHub"
+                  >
+                    <Github className="h-5 w-5" />
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/stratfordmark"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-foreground transition-colors"
+                    aria-label="LinkedIn"
+                  >
+                    <Linkedin className="h-5 w-5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Bio Content */}
+            <div className="prose prose-invert prose-neutral max-w-none">
+              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                I’m a product manager, and like Ryan, a husband and dad to two
+                toddlers. I’m originally from Ireland but have called the US
+                home for almost a decade now.
+              </p>
+
+              <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+                I’ve always found that indefinite resolutions just don't work. They
+                become daunting and eventually, they break. My approach is built on
+                distilling big ambitions into monthly challenges. By focusing on
+                30-day "trials" with daily commitments, growth becomes achievable
+                and exciting rather than overwhelming. If a habit brings value, I
+                keep it; if not, I move on without the guilt.
+              </p>
+
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                I'm here because I love making well designed products that
+                facilitate real meaning in the world. Together we’ve created
+                Rhythm to be the quietest part of your day. It’s an opportunity to
+                help people cut through the noise and build momentum that actually
+                sticks.
+              </p>
+            </div>
+          </section>
         </div>
       </main>
 
