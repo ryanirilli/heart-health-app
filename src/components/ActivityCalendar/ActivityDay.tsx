@@ -378,6 +378,17 @@ export function ActivityDay({
     </div>
   );
 
+  // Fetch the FULL activity for this date from context (unfiltered) to use in the dialog
+  // The 'activity' prop passed in is potentially filtered by the parent view
+  const fullActivity = date ? activities[formatDate(date)] : undefined;
+  
+  // Check if we need to use full activity or filtered activity for interactions
+  // For the dialog (view/edit), we ALWAYS want the full activity.
+  // For the tooltip summary, if we're filtered, maybe we want to show just the filtered summary?
+  // Let's assume tooltip should also show everything or at least match the dialog expectation.
+  // But typically tooltip summarizes what you see. Let's stick to using 'activity' (filtered) for Tooltip summary
+  // and 'fullActivity' for the Dialog.
+
   // Mobile: use drawer on tap (for viewing in year view / compact mode)
   // Desktop: use tooltip on hover, click opens dialog
   return (
@@ -415,7 +426,7 @@ export function ActivityDay({
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         date={date}
-        existingActivity={activity}
+        existingActivity={fullActivity} // Use full unfiltered activity here
         onSave={handleSave}
         onDelete={hasData ? handleDelete : undefined}
         isSaving={isSaving}
