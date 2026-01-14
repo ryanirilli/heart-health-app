@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { formatDate, ActivityEntry, Activity, hasActivityData } from "@/lib/activities";
 import { useActivities, useActivityTypes } from "./ActivityProvider";
 import { formatDialogDate, ActivityViewCard } from "./ActivityFormContent";
@@ -22,8 +22,11 @@ import { Pencil, Loader2, Plus } from "lucide-react";
 import { ActivityType } from "@/lib/activityTypes";
 import { useGoals } from "@/components/Goals";
 import { NoteEditorContent, NoteEditorFooter } from "./NoteEditor";
+import { VoiceNoteEditorContent, VoiceNoteEditorFooter } from "./VoiceNoteEditor";
+import { useVoiceNoteForDate } from "@/lib/hooks/useVoiceNotesQuery";
+import { useFeatureFlag, FEATURE_FLAGS } from "@/lib/hooks/useFeatureFlag";
 
-type FormMode = "view" | "edit" | "note";
+type FormMode = "view" | "edit" | "note" | "voiceNote";
 
 const SWIPE_THRESHOLD = 50;
 
@@ -313,6 +316,9 @@ export function DayView({
     useActivities();
   const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
   const { goals } = useGoals();
+  
+  // Feature flag for voice notes
+  const voiceNotesEnabled = useFeatureFlag(FEATURE_FLAGS.VOICE_NOTES);
 
   const selectedDateStr = useMemo(
     () => formatDate(selectedDate),
@@ -336,8 +342,11 @@ export function DayView({
   const [noteText, setNoteText] = useState("");
   // Track animation direction for note mode transitions (1 = forward/right, -1 = back/left)
   const [noteSlideDirection, setNoteSlideDirection] = useState<1 | -1>(1);
-  // Track the mode we came from when entering note mode
+  // Track the mode we came from when entering note or voice note mode
   const [modeBeforeNote, setModeBeforeNote] = useState<"view" | "edit">("view");
+  // Voice note preview state (for save button in footer)
+  const [hasVoiceNotePreview, setHasVoiceNotePreview] = useState(false);
+  const voiceNotePreviewRef = useRef<{ blob: Blob; duration: number } | null>(null);
 
   // Reset state when selectedDate changes or activity data loads
   useEffect(() => {
@@ -465,6 +474,61 @@ export function DayView({
     setMode(modeBeforeNote); // Return to where we came from
   }, [saveNote, selectedDateStr, modeBeforeNote]);
 
+  // Voice note hook and handlers
+  const {
+    voiceNote: existingVoiceNote,
+    saveVoiceNote,
+    deleteVoiceNote,
+    isSaving: isVoiceNoteSaving,
+    isDeleting: isVoiceNoteDeleting,
+  } = useVoiceNoteForDate(selectedDateStr);
+
+  const handleOpenVoiceNoteMode = useCallback(() => {
+    setModeBeforeNote(mode as "view" | "edit");
+    setNoteSlideDirection(1); // Going forward
+    setHasVoiceNotePreview(false);
+    voiceNotePreviewRef.current = null;
+    setMode("voiceNote");
+  }, [mode]);
+
+  const handleCancelVoiceNote = useCallback(() => {
+    setNoteSlideDirection(-1); // Going back
+    setHasVoiceNotePreview(false);
+    voiceNotePreviewRef.current = null;
+    setMode(modeBeforeNote);
+  }, [modeBeforeNote]);
+
+  const handleSaveVoiceNote = useCallback(async (audioBlob: Blob, durationSeconds: number) => {
+    await saveVoiceNote(audioBlob, durationSeconds);
+    setNoteSlideDirection(-1); // Going back
+    setHasVoiceNotePreview(false);
+    voiceNotePreviewRef.current = null;
+    setMode(modeBeforeNote);
+  }, [saveVoiceNote, modeBeforeNote]);
+
+  const handleDeleteVoiceNote = useCallback(async () => {
+    await deleteVoiceNote();
+    setNoteSlideDirection(-1); // Going back
+    setMode(modeBeforeNote);
+  }, [deleteVoiceNote, modeBeforeNote]);
+
+  // Callback to track when preview is available (for footer save button)
+  const handleVoiceNotePreviewChange = useCallback((blob: Blob | null, duration: number) => {
+    if (blob) {
+      voiceNotePreviewRef.current = { blob, duration };
+      setHasVoiceNotePreview(true);
+    } else {
+      voiceNotePreviewRef.current = null;
+      setHasVoiceNotePreview(false);
+    }
+  }, []);
+
+  const handleSaveVoiceNoteFromFooter = useCallback(async () => {
+    if (voiceNotePreviewRef.current) {
+      await handleSaveVoiceNote(voiceNotePreviewRef.current.blob, voiceNotePreviewRef.current.duration);
+    }
+  }, [handleSaveVoiceNote]);
+
   const isNewEntry = !existingActivity;
   const isPending = isSaving || isDeleting;
   const title = mode === "view" ? "Activity Summary" : "Log Activity";
@@ -496,6 +560,9 @@ export function DayView({
       onToggleTracked={handleToggleTracked}
       onOpenSettings={openSettingsToAdd}
       onNoteClick={handleOpenNoteMode}
+      onVoiceNoteClick={voiceNotesEnabled ? handleOpenVoiceNoteMode : undefined}
+      hasVoiceNote={!!existingVoiceNote}
+      voiceNoteDuration={existingVoiceNote?.durationSeconds}
     />
   );
 
@@ -574,20 +641,56 @@ export function DayView({
     />
   );
 
+  // Voice note content using VoiceNoteEditorContent
+  const voiceNoteContent = (
+    <VoiceNoteEditorContent
+      existingAudioUrl={existingVoiceNote?.signedUrl}
+      existingDuration={existingVoiceNote?.durationSeconds}
+      onSave={handleSaveVoiceNote}
+      onDelete={existingVoiceNote ? handleDeleteVoiceNote : undefined}
+      isSaving={isVoiceNoteSaving}
+      isDeleting={isVoiceNoteDeleting}
+      onPreviewChange={handleVoiceNotePreviewChange}
+    />
+  );
+
+  // Voice note mode footer
+  const voiceNoteFooter = (
+    <VoiceNoteEditorFooter
+      onCancel={handleCancelVoiceNote}
+      onSave={hasVoiceNotePreview ? handleSaveVoiceNoteFromFooter : undefined}
+      onDelete={existingVoiceNote ? handleDeleteVoiceNote : undefined}
+      hasExistingVoiceNote={!!existingVoiceNote}
+      hasPreview={hasVoiceNotePreview}
+      isSaving={isVoiceNoteSaving}
+      isDeleting={isVoiceNoteDeleting}
+    />
+  );
+
   // Determine if we should show the empty past day card
   // Show it for past days with no activity, unless user has clicked to log
   const shouldShowEmptyPastCard =
     isNewEntry && isCurrentlyPast && !showPastDayForm;
 
-  const content = mode === "view" ? viewContent : mode === "note" ? noteContent : editContent;
-  // Hide footer when there are no activity types (show CTA instead)
-  const footer =
-    mode === "view" ? null : mode === "note" ? noteFooter : activeTypes.length === 0 ? null : editFooter;
+  // Select content based on mode
+  const content = 
+    mode === "view" ? viewContent : 
+    mode === "note" ? noteContent : 
+    mode === "voiceNote" ? voiceNoteContent :
+    editContent;
 
-  // Only enable drag/swipe on mobile when no activity items are open (tracked) and not in note mode
+  // Select footer based on mode
+  // Hide footer when there are no activity types (show CTA instead) in edit mode
+  const footer =
+    mode === "view" ? null : 
+    mode === "note" ? noteFooter : 
+    mode === "voiceNote" ? voiceNoteFooter :
+    activeTypes.length === 0 ? null : editFooter;
+
+  // Only enable drag/swipe on mobile when no activity items are open (tracked) and not in note/voice note mode
   const isMobile = useIsMobile();
   const hasOpenItems = mode === "edit" && trackedTypes.size > 0;
-  const canSwipe = isMobile && !hasOpenItems && mode !== "note";
+  const canSwipe = isMobile && !hasOpenItems && mode !== "note" && mode !== "voiceNote";
 
   // Handle mobile swipe gesture
   const handleMobileDragEnd = useCallback(
@@ -632,7 +735,11 @@ export function DayView({
       <CardContent className="px-4 py-2 pb-4">
         <div className="flex items-center justify-between mb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            {mode === "note" ? (existingActivity?.note ? "Edit Note" : "Add Note") : title}
+            {mode === "note" 
+              ? (existingActivity?.note ? "Edit Note" : "Add Note") 
+              : mode === "voiceNote"
+              ? (existingVoiceNote ? "Voice Note" : "Record Voice Note")
+              : title}
           </CardTitle>
           {mode === "note" && existingActivity?.note ? (
             <ConfirmDeleteButton
@@ -640,13 +747,19 @@ export function DayView({
               disabled={isSaving}
               isDeleting={isDeleting}
             />
-          ) : isCurrentlyToday && mode !== "note" ? (
+          ) : mode === "voiceNote" && existingVoiceNote ? (
+            <ConfirmDeleteButton
+              onDelete={handleDeleteVoiceNote}
+              disabled={isVoiceNoteSaving}
+              isDeleting={isVoiceNoteDeleting}
+            />
+          ) : isCurrentlyToday && mode !== "note" && mode !== "voiceNote" ? (
             <Badge variant="today">Today</Badge>
           ) : null}
         </div>
         <AnimatePresence mode="popLayout" initial={false} custom={noteSlideDirection}>
           <motion.div
-            key={mode === "note" ? "note" : "main"}
+            key={mode === "note" ? "note" : mode === "voiceNote" ? "voiceNote" : "main"}
             custom={noteSlideDirection}
             variants={{
               initial: (direction: number) => ({ x: direction * 100, opacity: 0 }),

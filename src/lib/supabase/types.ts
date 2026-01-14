@@ -64,9 +64,20 @@ export interface DbActivityNote {
   updated_at: string;
 }
 
+export interface DbVoiceNote {
+  id: string;
+  user_id: string;
+  date: string;
+  storage_path: string;
+  duration_seconds: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // Insert types (without auto-generated fields)
 export type DbActivityTypeInsert = Omit<DbActivityType, 'created_at' | 'updated_at'>;
 export type DbActivityInsert = Omit<DbActivity, 'id' | 'created_at' | 'updated_at'>;
 export type DbGoalInsert = Omit<DbGoal, 'id' | 'created_at' | 'updated_at'>;
 export type DbProfileUpdate = Partial<Pick<DbProfile, 'display_name' | 'bio' | 'avatar_url'>>;
+export type DbVoiceNoteInsert = Omit<DbVoiceNote, 'id' | 'created_at' | 'updated_at'>;
 

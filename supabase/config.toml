@@ -112,6 +112,12 @@ file_size_limit = "50MiB"
 # allowed_mime_types = ["image/png", "image/jpeg"]
 # objects_path = "./images"
 
+# Voice notes storage bucket
+[storage.buckets.voice-notes]
+public = false
+file_size_limit = "5MiB"
+allowed_mime_types = ["audio/webm", "audio/mp4", "audio/mpeg", "audio/ogg"]
+
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]
 enabled = true
