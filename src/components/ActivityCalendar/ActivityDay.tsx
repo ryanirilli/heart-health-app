@@ -343,7 +343,10 @@ export function ActivityDay({
       </span>
       
       {!compact && discreteInfo && (
-          <span className={cn("text-[10px] sm:text-xs font-bold truncate px-0.5 leading-tight text-center", textColorClass)}>
+          <span className={cn(
+            "text-[10px] sm:text-xs font-bold px-0.5 leading-tight text-center break-words line-clamp-2",
+            textColorClass
+          )}>
               {discreteInfo.label}
           </span>
       )}
