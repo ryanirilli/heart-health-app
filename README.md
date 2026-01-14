@@ -9,27 +9,75 @@ A personal activity tracking calendar for monitoring heart health activities.
 - Tailwind CSS for styling
 - shadcn/ui components
 
+## Prerequisites
+
+- [Bun](https://bun.sh/) - JavaScript runtime and package manager
+- [Supabase CLI](https://supabase.com/docs/guides/cli) - For local development and migrations
+
+### Installing Bun
+
+```bash
+# macOS/Linux
+curl -fsSL https://bun.sh/install | bash
+
+# Or via Homebrew (macOS)
+brew install oven-sh/bun/bun
+```
+
+### Installing Supabase CLI
+
+```bash
+# macOS via Homebrew
+brew install supabase/tap/supabase
+
+# Or via npm/bun
+bun add -g supabase
+```
+
 ## Getting Started
+
+### 1. Install Dependencies
 
 ```bash
 bun install
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
+### 2. Set Up Environment Variables
 
-## Environment Variables
-
-Copy `env.example` to `.env.local` and fill in your Supabase credentials:
+Copy `env.example` to `.env.local` and update the variable values with your Supabase credentials:
 
 ```bash
 cp env.example .env.local
 ```
 
-Required variables:
+### 3. Set Up Supabase Locally (Optional)
 
-- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anon/public key
+For local development with a local Supabase instance:
+
+```bash
+# Start local Supabase services (requires Docker)
+supabase start
+
+# This will output local credentials - update .env.local with these values
+```
+
+To use a remote Supabase project instead:
+
+```bash
+# Link to your Supabase project
+supabase link
+
+# Push all migrations to the database
+supabase db push
+```
+
+### 4. Run the Development Server
+
+```bash
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ## Database & Migrations
 
