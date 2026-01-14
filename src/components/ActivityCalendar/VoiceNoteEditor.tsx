@@ -55,6 +55,11 @@ export function VoiceNoteEditorContent({
 
   const isPending = isSaving || isDeleting;
   const hasExisting = !!existingAudioUrl;
+  
+  // Detect iOS non-Safari browsers (which don't support getUserMedia)
+  const isIOSNonSafari = typeof navigator !== 'undefined' && 
+    /iPad|iPhone|iPod/.test(navigator.userAgent) && 
+    !(/Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(navigator.userAgent));
 
   // Cleanup on unmount
   useEffect(() => {
@@ -130,7 +135,22 @@ export function VoiceNoteEditorContent({
 
     } catch (err) {
       console.error('Failed to start recording:', err);
-      setError('Microphone access denied. Please allow microphone access to record voice notes.');
+      
+      // Provide specific error messages based on error type
+      if (err instanceof DOMException) {
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setError('Microphone access denied. Please allow microphone access in your browser settings and try again.');
+        } else if (err.name === 'NotFoundError') {
+          setError('No microphone found. Please connect a microphone and try again.');
+        } else if (err.name === 'NotSupportedError' || err.name === 'SecurityError') {
+          // This typically happens when not on HTTPS
+          setError('Voice recording requires a secure connection (HTTPS). Please ensure you\'re accessing the app via HTTPS.');
+        } else {
+          setError(`Microphone error: ${err.message}`);
+        }
+      } else {
+        setError('Failed to access microphone. Please check your browser settings.');
+      }
     }
   }, [onPreviewChange]);
 
@@ -286,21 +306,34 @@ export function VoiceNoteEditorContent({
       {/* Idle state - record button */}
       {state === 'idle' && !previewUrl && (
         <div className="flex flex-col items-center gap-4 py-8">
-          <button
-            onClick={startRecording}
-            disabled={isPending}
-            className={cn(
-              "w-20 h-20 rounded-full flex items-center justify-center transition-all",
-              "bg-primary text-primary-foreground",
-              "hover:bg-primary/90 hover:scale-105",
-              "disabled:opacity-50 disabled:hover:scale-100"
-            )}
-          >
-            <Mic className="h-8 w-8" />
-          </button>
-          <p className="text-sm text-muted-foreground">
-            Tap to record (max {MAX_VOICE_NOTE_DURATION}s)
-          </p>
+          {isIOSNonSafari ? (
+            <>
+              <div className="w-20 h-20 rounded-full flex items-center justify-center bg-muted">
+                <Mic className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground text-center px-4">
+                Voice recording is only supported in Safari on iOS. Please open this app in Safari to record voice notes.
+              </p>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={startRecording}
+                disabled={isPending}
+                className={cn(
+                  "w-20 h-20 rounded-full flex items-center justify-center transition-all",
+                  "bg-primary text-primary-foreground",
+                  "hover:bg-primary/90 hover:scale-105",
+                  "disabled:opacity-50 disabled:hover:scale-100"
+                )}
+              >
+                <Mic className="h-8 w-8" />
+              </button>
+              <p className="text-sm text-muted-foreground">
+                Tap to record (max {MAX_VOICE_NOTE_DURATION}s)
+              </p>
+            </>
+          )}
         </div>
       )}
 
