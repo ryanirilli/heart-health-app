@@ -2,7 +2,7 @@
 import pluralizeLib from "pluralize-esm";
 const { plural } = pluralizeLib;
 
-export type UIType = "increment" | "slider" | "buttonGroup" | "toggle";
+export type UIType = "increment" | "slider" | "buttonGroup" | "toggle" | "fixedValue";
 
 /**
  * Goal type determines how the activity is framed:
@@ -47,6 +47,8 @@ export interface ActivityType {
   step?: number;
   /** For buttonGroup UI: the button options (max 3) */
   buttonOptions?: ButtonOption[];
+  /** For fixedValue UI: the constant value to record */
+  fixedValue?: number;
   /** Whether this type has been deleted (entries persist but can't add new) */
   deleted?: boolean;
   /** Display order */
@@ -75,10 +77,11 @@ export function createDefaultActivityType(
     unit: "times",
     pluralize: true,
     goalType: "neutral",
-    uiType: "increment",
+    uiType: "toggle",
     minValue: 0,
     maxValue: 10,
     step: 1,
+    fixedValue: 1,
     buttonOptions: [], // Start empty - user must add at least 2 options
     order: 0,
     ...partial,
@@ -170,6 +173,19 @@ export function formatValueOnly(value: number, type: ActivityType): string {
   // For toggle types, show Yes/No
   if (type.uiType === "toggle") {
     return value === 1 ? "Yes" : "No";
+  }
+
+  // For fixed value types, show the fixed value with unit
+  if (type.uiType === "fixedValue") {
+    const { unit, pluralize: shouldPluralize, fixedValue } = type;
+    const displayValue = fixedValue ?? value;
+    if (!unit) {
+      return String(displayValue);
+    }
+    if (shouldPluralize && displayValue !== 1) {
+      return `${displayValue} ${plural(unit)}`;
+    }
+    return `${displayValue} ${unit}`;
   }
 
   const { unit, pluralize: shouldPluralize } = type;

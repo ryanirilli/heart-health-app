@@ -80,6 +80,7 @@ export function GoalFormDialog() {
     dialogOpen,
     setDialogOpen,
     editingGoal,
+    preFilledGoal,
     goalsList,
     createGoal,
     updateGoal,
@@ -123,17 +124,25 @@ export function GoalFormDialog() {
         // Start in view mode for existing goals
         setDialogMode('view');
       } else {
-        // Find the first activity type that doesn't already have a goal
-        const availableType = activeTypes.find(t => !usedActivityTypeIds.has(t.id));
-        setFormData(createDefaultGoal({
-          activityTypeId: availableType?.id || '',
-        }));
+        // Check if we have pre-filled data from activity creation flow
+        if (preFilledGoal?.activityTypeId) {
+          setFormData(createDefaultGoal({
+            activityTypeId: preFilledGoal.activityTypeId,
+            name: preFilledGoal.name || '',
+          }));
+        } else {
+          // Find the first activity type that doesn't already have a goal
+          const availableType = activeTypes.find(t => !usedActivityTypeIds.has(t.id));
+          setFormData(createDefaultGoal({
+            activityTypeId: availableType?.id || '',
+          }));
+        }
         // Start in edit mode for new goals
         setDialogMode('edit');
       }
       setErrors([]);
     }
-  }, [dialogOpen, editingGoal, activeTypes, usedActivityTypeIds]);
+  }, [dialogOpen, editingGoal, preFilledGoal, activeTypes, usedActivityTypeIds]);
 
   const selectedActivityType = activityTypes[formData.activityTypeId];
 
@@ -162,6 +171,14 @@ export function GoalFormDialog() {
   const isSubmitting = isCreating || isUpdating;
   const isEditing = !!editingGoal;
 
+  // Filter steps based on activity type
+  const steps = useMemo(() => {
+    if (selectedActivityType?.uiType === 'fixedValue') {
+      return STEPS.filter(step => step.id !== 'value');
+    }
+    return STEPS;
+  }, [selectedActivityType?.uiType]);
+
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogContent className="max-w-md h-[85vh] flex flex-col p-0 gap-0 overflow-hidden" hideCloseButton>
@@ -177,7 +194,7 @@ export function GoalFormDialog() {
           />
         ) : dialogOpen ? (
           // Edit mode: Show stepper form
-          <Stepper steps={STEPS} initialStep={0} className="flex-1 min-h-0 flex flex-col">
+          <Stepper steps={steps} initialStep={0} className="flex-1 min-h-0 flex flex-col">
             <GoalFormContent
               formData={formData}
               setFormData={setFormData}
@@ -367,6 +384,16 @@ function GoalFormContent({
 }: GoalFormContentProps) {
   const { currentStep, setCanGoNext } = useStepper();
 
+  // Auto-set targetValue for fixedValue activity types
+  // Since we skip the value step, we must ensure it's set correctly here
+  useEffect(() => {
+    if (selectedActivityType?.uiType === 'fixedValue' && selectedActivityType.fixedValue) {
+      if (formData.targetValue !== selectedActivityType.fixedValue) {
+        setFormData({ ...formData, targetValue: selectedActivityType.fixedValue! });
+      }
+    }
+  }, [selectedActivityType?.uiType, selectedActivityType?.fixedValue, formData.targetValue]);
+
   // Validate current step and update canGoNext
   useEffect(() => {
     let canProceed = true;
@@ -415,7 +442,9 @@ function GoalFormContent({
               formData={formData}
               setFormData={setFormData}
               activeTypes={activeTypes}
+              activityTypes={activityTypes}
               usedActivityTypeIds={usedActivityTypeIds}
+              isLockedActivity={!!formData.activityTypeId && !isEditing}
             />
           </StepItem>
 
@@ -428,13 +457,15 @@ function GoalFormContent({
           </StepItem>
 
           {/* Step 3: Value */}
-          <StepItem>
-            <StepValue
-              formData={formData}
-              setFormData={setFormData}
-              selectedActivityType={selectedActivityType}
-            />
-          </StepItem>
+          {selectedActivityType?.uiType !== 'fixedValue' && (
+            <StepItem>
+              <StepValue
+                formData={formData}
+                setFormData={setFormData}
+                selectedActivityType={selectedActivityType}
+              />
+            </StepItem>
+          )}
 
           {/* Step 4: Icon */}
           <StepItem>
@@ -484,10 +515,18 @@ interface StepBasicsProps {
   formData: Goal;
   setFormData: (data: Goal) => void;
   activeTypes: ActivityType[];
+  activityTypes: ActivityTypeMap;
   usedActivityTypeIds: Set<string>;
+  /** When true, shows activity type as a locked label instead of dropdown */
+  isLockedActivity?: boolean;
 }
 
-function StepBasics({ formData, setFormData, activeTypes, usedActivityTypeIds }: StepBasicsProps) {
+function StepBasics({ formData, setFormData, activeTypes, activityTypes, usedActivityTypeIds, isLockedActivity }: StepBasicsProps) {
+  // Get the activity type name for locked display
+  const lockedActivityType = isLockedActivity && formData.activityTypeId 
+    ? activityTypes[formData.activityTypeId] 
+    : null;
+
   return (
     <div className="space-y-5">
       <div className="text-center mb-6">
@@ -507,35 +546,41 @@ function StepBasics({ formData, setFormData, activeTypes, usedActivityTypeIds }:
         />
       </div>
 
-      {/* Activity Type */}
+      {/* Activity Type - show as locked label or dropdown */}
       <div className="space-y-2">
         <Label htmlFor="activity-type">Activity Type</Label>
-        <Select
-          value={formData.activityTypeId}
-          onValueChange={(value) => setFormData({ ...formData, activityTypeId: value })}
-        >
-          <SelectTrigger id="activity-type">
-            <SelectValue placeholder="Select activity type" />
-          </SelectTrigger>
-          <SelectContent>
-            {activeTypes.map((type) => {
-              const hasGoal = usedActivityTypeIds.has(type.id);
-              return (
-                <SelectItem 
-                  key={type.id} 
-                  value={type.id}
-                  disabled={hasGoal}
-                  className={hasGoal ? 'opacity-50' : ''}
-                >
-                  <span className="flex items-center gap-2">
-                    {type.name}
-                    {hasGoal && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
-                  </span>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
+        {isLockedActivity && lockedActivityType ? (
+          <div className="p-3 rounded-lg bg-muted/50 border border-border">
+            <span className="text-sm font-medium">{lockedActivityType.name}</span>
+          </div>
+        ) : (
+          <Select
+            value={formData.activityTypeId}
+            onValueChange={(value) => setFormData({ ...formData, activityTypeId: value })}
+          >
+            <SelectTrigger id="activity-type">
+              <SelectValue placeholder="Select activity type" />
+            </SelectTrigger>
+            <SelectContent>
+              {activeTypes.map((type) => {
+                const hasGoal = usedActivityTypeIds.has(type.id);
+                return (
+                  <SelectItem 
+                    key={type.id} 
+                    value={type.id}
+                    disabled={hasGoal}
+                    className={hasGoal ? 'opacity-50' : ''}
+                  >
+                    <span className="flex items-center gap-2">
+                      {type.name}
+                      {hasGoal && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
+                    </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        )}
       </div>
     </div>
   );
@@ -674,6 +719,16 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
       else if (currentValue % 60 === 0) setTimeUnit('hours');
     }
   }, []); // Only run once on mount
+
+  // Auto-set targetValue for fixedValue activity types
+  useEffect(() => {
+    if (selectedActivityType?.uiType === 'fixedValue' && selectedActivityType.fixedValue) {
+      // Only set if different to avoid infinite loops
+      if (formData.targetValue !== selectedActivityType.fixedValue) {
+        setFormData({ ...formData, targetValue: selectedActivityType.fixedValue });
+      }
+    }
+  }, [selectedActivityType?.uiType, selectedActivityType?.fixedValue]);
 
   const handleChange = (value: number) => {
     setFormData({ ...formData, targetValue: value });
@@ -927,6 +982,29 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
 
           <p className="text-xs text-muted-foreground text-center">
             Target: {currentValue === 1 ? 'Yes' : 'No'} per {getScheduleLabel()}
+          </p>
+        </div>
+      );
+    }
+
+    // For fixedValue UI type - show the fixed value and auto-set
+    if (uiType === 'fixedValue') {
+      const fixedVal = selectedActivityType?.fixedValue ?? 1;
+      return (
+        <div className="space-y-4">
+          <div className="rounded-lg bg-muted/50 border border-border p-4 text-center">
+            <p className="text-2xl font-bold text-foreground mb-1">
+              {selectedActivityType
+                ? formatValueOnly(fixedVal, selectedActivityType)
+                : fixedVal}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              This activity always logs a fixed value
+            </p>
+          </div>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Target: {fixedVal} per {getScheduleLabel()}
           </p>
         </div>
       );

@@ -1,11 +1,13 @@
 'use client';
 
 import { ActivityTypeManager, useActivityTypes } from './ActivityCalendar';
+import { useGoals } from './Goals/GoalsProvider';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 
 export function ActivityHeader() {
   const { settingsOpen, setSettingsOpen, settingsStartInAddMode } = useActivityTypes();
+  const { openCreateDialogWithActivity } = useGoals();
 
   return (
     <>
@@ -28,6 +30,9 @@ export function ActivityHeader() {
         open={settingsOpen} 
         onOpenChange={setSettingsOpen}
         startInAddMode={settingsStartInAddMode}
+        onActivityCreatedWithGoal={(activityType) => {
+          openCreateDialogWithActivity(activityType.id, activityType.name);
+        }}
       />
     </>
   );

@@ -8,11 +8,12 @@ export interface DbActivityType {
   pluralize: boolean;
   is_negative: boolean | null;
   goal_type: 'positive' | 'negative' | 'neutral' | null;
-  ui_type: 'increment' | 'slider' | 'buttonGroup' | 'toggle';
+  ui_type: 'increment' | 'slider' | 'buttonGroup' | 'toggle' | 'fixedValue';
   min_value: number | null;
   max_value: number | null;
   step: number | null;
   button_options: { label: string; value: number }[] | null;
+  fixed_value: number | null;
   deleted: boolean;
   display_order: number;
   created_at: string;

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check } from 'lucide-react';
+import { Check, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 
@@ -308,20 +308,25 @@ export function StepNavigation({
   };
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
+    <div className={cn('flex flex-wrap items-center gap-2', className)}>
       {leftContent}
+      
+      {!isFirstStep && (
+        <button
+          type="button"
+          onClick={handlePrev}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors px-3 py-1.5 rounded-full"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {backLabel}
+        </button>
+      )}
       
       <div className="flex-1" />
       
       {isFirstStep && showCancel && onCancel && (
-        <Button type="button" variant="outline" onClick={onCancel} className="rounded-full">
+        <Button type="button" variant="muted" size="sm" onClick={onCancel}>
           Cancel
-        </Button>
-      )}
-      
-      {!isFirstStep && (
-        <Button type="button" variant="outline" onClick={handlePrev} className="rounded-full">
-          {backLabel}
         </Button>
       )}
       
