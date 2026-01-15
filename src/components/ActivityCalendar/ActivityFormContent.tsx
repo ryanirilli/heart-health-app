@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PillToggle } from "@/components/ui/pill-toggle";
-import { Settings } from "lucide-react";
+import { Settings, Check } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -127,6 +127,24 @@ function EntryInput({ type, value, onChange, disabled }: EntryInputProps) {
     );
   }
 
+  // Fixed Value UI (Completed Confirmation)
+  if (type.uiType === "fixedValue") {
+    // Being rendered means it is tracked (accordion open)
+    const fixedVal = type.fixedValue || 1;
+
+    return (
+      <div className={cn("flex flex-col items-center py-2", disabled && "opacity-50 pointer-events-none")}>
+        <div className="flex items-center gap-2 text-primary">
+          <Check className="h-5 w-5" />
+          <span className="font-medium text-lg">Completed</span>
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          {formatValueOnly(fixedVal, type)} logged
+        </p>
+      </div>
+    );
+  }
+
   // Increment/decrement UI
   return (
     <div className="flex items-center gap-3">
@@ -203,6 +221,8 @@ function ActivityTypeCard({
     // Closing accordion (value is empty) = untracking
     onToggleTracked(value === type.id);
   };
+
+
 
   return (
     <Accordion
@@ -304,6 +324,10 @@ function ActivityViewCard({
     if (type.uiType === "toggle") {
       // Just show Yes/No without the name since name is shown separately
       return value === 1 ? "Yes" : "No";
+    }
+    if (type.uiType === "fixedValue") {
+      // Show value just to be clear, or "Completed"
+      return `${formatValueOnly(value, type)}`;
     }
     return formatValueOnly(value, type);
   };
@@ -451,9 +475,12 @@ export function ActivityFormContent({
       const next = new Set(prev);
       if (tracked) {
         next.add(typeId);
-        // Initialize value to 0 when tracking starts
+        // Initialize value when tracking starts
         if (entries[typeId] === undefined) {
-          setEntries((prev) => ({ ...prev, [typeId]: 0 }));
+          const type = activityTypes[typeId];
+          // For fixedValue, start with the fixed value properly set
+          const initialValue = type?.uiType === "fixedValue" ? (type.fixedValue || 1) : 0;
+          setEntries((prev) => ({ ...prev, [typeId]: initialValue }));
         }
       } else {
         next.delete(typeId);

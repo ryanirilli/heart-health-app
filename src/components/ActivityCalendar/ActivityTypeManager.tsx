@@ -37,6 +37,8 @@ import {
   generateActivityTypeId,
 } from "@/lib/activityTypes";
 import { useActivityTypes } from "./ActivityProvider";
+import { ActivityStepperForm } from "./ActivityStepperForm";
+import { useGoals } from "@/components/Goals/GoalsProvider";
 import { AddButton } from "./DayView";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
@@ -811,12 +813,15 @@ interface ActivityTypeManagerProps {
   onOpenChange: (open: boolean) => void;
   /** If true, opens directly to the "add new" view */
   startInAddMode?: boolean;
+  /** Callback when user creates activity and wants to add goal */
+  onActivityCreatedWithGoal?: (activityType: ActivityType) => void;
 }
 
 export function ActivityTypeManager({
   open,
   onOpenChange,
   startInAddMode = false,
+  onActivityCreatedWithGoal,
 }: ActivityTypeManagerProps) {
   const {
     activeTypes,
@@ -827,6 +832,14 @@ export function ActivityTypeManager({
     maxTypes,
     createDefaultType,
   } = useActivityTypes();
+  const { setTransitioning } = useGoals();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const [editingType, setEditingType] = useState<ActivityType | null>(null);
   const [showAddNew, setShowAddNew] = useState(false);
@@ -1026,24 +1039,51 @@ export function ActivityTypeManager({
                 })}
               </div>
               <DialogFooter className="pt-4 sm:justify-start">
-                <Button
-                  variant="outline"
-                  size="pill"
+                <button
+                  type="button"
                   onClick={() => setShowAddNew(false)}
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors px-3 py-1.5 rounded-full"
                 >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <ArrowLeft className="h-4 w-4" />
                   Back
-                </Button>
+                </button>
               </DialogFooter>
             </TabsContent>
-            <TabsContent value="custom">
-              <CustomTypeForm
-                canAddType={canAddType}
-                createDefaultType={createDefaultType}
-                activeTypes={activeTypes}
-                addActivityType={addActivityType}
-                onCancel={() => setShowAddNew(false)}
-              />
+            <TabsContent value="custom" className="min-h-[400px]">
+              {!canAddType ? (
+                <div className="py-8 text-center text-muted-foreground">
+                  <p>Maximum activity types reached.</p>
+                  <p className="text-sm">Delete one to add more.</p>
+                </div>
+              ) : (
+                <ActivityStepperForm
+                  initialData={{ order: activeTypes.length }}
+                  onSave={async (activityType) => {
+                    await addActivityType(activityType);
+                    setShowAddNew(false);
+                  }}
+                  onSaveWithGoal={async (activityType) => {
+                    // Start transition (shows loading overlay)
+                    setTransitioning(true);
+                    
+                    // Close the dialog FIRST to avoid UI flash during data update
+                    onOpenChange(false);
+                    
+                    // Save the activity and wait for it to complete
+                    await addActivityType(activityType);
+                    
+                    // Trigger goal creation with this activity pre-selected
+                    if (onActivityCreatedWithGoal) {
+                      // Small delay to let the dialog close animation complete nicely
+                      setTimeout(() => onActivityCreatedWithGoal(activityType), 300);
+                    } else {
+                       // If no callback, ensure we clear transition state
+                       setTransitioning(false);
+                    }
+                  }}
+                  onCancel={() => setShowAddNew(false)}
+                />
+              )}
             </TabsContent>
           </Tabs>
         ) : editingType ? (

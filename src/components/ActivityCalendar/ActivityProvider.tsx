@@ -29,7 +29,7 @@ interface ActivityContextValue {
   activityTypes: ActivityTypeMap;
   activeTypes: ActivityType[];
   canAddType: boolean;
-  addActivityType: (type: ActivityType) => void;
+  addActivityType: (type: ActivityType) => Promise<void>;
   updateActivityType: (type: ActivityType) => void;
   deleteActivityType: (typeId: string) => void;
   
@@ -54,7 +54,7 @@ const ActivityContext = createContext<ActivityContextValue>({
   activityTypes: {},
   activeTypes: [],
   canAddType: true,
-  addActivityType: () => {},
+  addActivityType: async () => {},
   updateActivityType: () => {},
   deleteActivityType: () => {},
   activities: {},
@@ -118,9 +118,9 @@ export function ActivityProvider({
   const canAddType = useMemo(() => canAddActivityType(activityTypes), [activityTypes]);
 
   // Activity Type management - now using React Query mutations
-  const addActivityType = useCallback((type: ActivityType) => {
+  const addActivityType = useCallback(async (type: ActivityType): Promise<void> => {
     if (!canAddActivityType(activityTypes)) return;
-    createActivityTypeMutation.mutate(type);
+    await createActivityTypeMutation.mutateAsync(type);
   }, [activityTypes, createActivityTypeMutation]);
 
   const updateActivityType = useCallback((type: ActivityType) => {

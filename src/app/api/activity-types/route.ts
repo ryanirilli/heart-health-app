@@ -51,6 +51,7 @@ export async function GET() {
         maxValue: t.max_value ?? undefined,
         step: t.step ?? undefined,
         buttonOptions: t.button_options ?? undefined,
+        fixedValue: t.fixed_value ?? undefined,
         deleted: t.deleted,
         order: t.display_order,
       } as ActivityType;
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
       max_value: newType.maxValue ?? null,
       step: newType.step ?? null,
       button_options: newType.buttonOptions || null,
+      fixed_value: newType.fixedValue ?? null,
       deleted: false,
       display_order: newType.order ?? 0,
     });
@@ -182,6 +184,7 @@ export async function PUT(request: NextRequest) {
         max_value: updatedType.maxValue ?? null,
         step: updatedType.step ?? null,
         button_options: updatedType.buttonOptions || null,
+        fixed_value: updatedType.fixedValue ?? null,
         deleted: updatedType.deleted ?? false,
         display_order: updatedType.order ?? 0,
         updated_at: new Date().toISOString(),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 
 // Enable debug logging via localStorage: localStorage.setItem('DEBUG_FEATURE_FLAGS', 'true')
@@ -21,16 +21,26 @@ const isDebugEnabled = () => {
  */
 export function useFeatureFlag(flagName: string): boolean {
   const isEnabled = useFeatureFlagEnabled(flagName);
+  const [mounted, setMounted] = useState(false);
+  
+  // Handle hydration mismatch by waiting until mount to return the true flag value
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   // Debug logging - temporarily always on to diagnose
   useEffect(() => {
-    // Always log for now to debug
-    console.log(`[FeatureFlag] "${flagName}":`, {
-      rawValue: isEnabled,
-      resolvedValue: isEnabled === true,
-      status: isEnabled === undefined ? 'loading' : isEnabled ? 'enabled' : 'disabled'
-    });
-  }, [flagName, isEnabled]);
+    if (mounted) {
+      console.log(`[FeatureFlag] "${flagName}":`, {
+        rawValue: isEnabled,
+        resolvedValue: isEnabled === true,
+        status: isEnabled === undefined ? 'loading' : isEnabled ? 'enabled' : 'disabled'
+      });
+    }
+  }, [flagName, isEnabled, mounted]);
+  
+  // Always return false during SSR and initial hydration to match server output
+  if (!mounted) return false;
   
   // PostHog returns undefined while loading, treat as false
   return isEnabled === true;
