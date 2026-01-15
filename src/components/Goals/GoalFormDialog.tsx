@@ -487,7 +487,7 @@ function GoalFormContent({
       </div>
 
       {/* Fixed Footer */}
-      <div className="px-6 py-4 border-t flex-shrink-0 bg-background">
+      <div className="px-6 py-4 flex-shrink-0 bg-background">
         <StepNavigation
           onCancel={onCancel}
           completeLabel={isEditing ? 'Save Changes' : 'Create Goal'}
