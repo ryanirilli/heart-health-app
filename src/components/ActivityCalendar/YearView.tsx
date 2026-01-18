@@ -57,7 +57,7 @@ function MobileYearView({
          )}
       </div>
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-6">
         {months.map((month) => {
           const weeks = getWeeksInMonth(year, month);
           return (
@@ -65,7 +65,7 @@ function MobileYearView({
               <div className="text-xs font-medium text-muted-foreground">
                 {getShortMonthName(month)}
               </div>
-              <div className="grid grid-cols-7 gap-[2px]">
+              <div className="grid grid-cols-7 gap-1">
                 {weeks.flat().map((date, index) => (
                   <ActivityDay
                     key={index}
@@ -151,6 +151,9 @@ function DesktopYearView({
     }
   });
 
+  // Calculate the width percentage for each week column
+  const weekWidthPercent = 100 / weeks.length;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2">
@@ -190,20 +193,25 @@ function DesktopYearView({
 
             {/* Activity grid */}
             {/* We render columns (weeks) horizontally */}
-            <div className="flex gap-[2px]">
+            <div className="flex w-full gap-[2px]">
               {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex-col gap-[2px] flex">
+                <div 
+                  key={weekIndex} 
+                  className="flex-col gap-[2px] flex"
+                  style={{ width: `${weekWidthPercent}%` }}
+                >
                   {week.map((date, dayIndex) => (
-                    <ActivityDay
-                      key={dayIndex}
-                      date={date}
-                      activity={date ? activities[formatDate(date)] : undefined}
-                      compact
-                      isDiscreteFilter={isDiscreteFilter}
-                      excludedValues={excludedValues}
-                    />
+                    <div key={dayIndex} className="w-full aspect-square">
+                      <ActivityDay
+                        date={date}
+                        activity={date ? activities[formatDate(date)] : undefined}
+                        compact
+                        isDiscreteFilter={isDiscreteFilter}
+                        excludedValues={excludedValues}
+                      />
+                    </div>
                   ))}
-                </div>
+                 </div>
               ))}
             </div>
           </div>

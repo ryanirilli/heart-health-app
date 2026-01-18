@@ -78,7 +78,7 @@ export function ActivityDay({
   const [dialogOpen, setDialogOpen] = useState(false);
 
   if (!date) {
-    return <div className="aspect-square" />;
+    return <div className="size-3 aspect-square" />;
   }
 
   const hasData = hasActivityData(activity);
@@ -358,7 +358,7 @@ export function ActivityDay({
       onClick={handleCellClick}
       className={cn(
         "aspect-square transition-all duration-200 flex items-center justify-center relative",
-        compact ? "rounded-[3px]" : "rounded-sm",
+        compact ? "rounded" : "rounded-sm",
         cellColor,
         isFutureDate
           ? "cursor-not-allowed opacity-50"
@@ -369,8 +369,7 @@ export function ActivityDay({
     >
       {!compact && cellContent}
       {/* Goal indicator star - shows when goals are achieved on evaluation days */}
-      {hasAchievedGoal && !isFutureDate && ( // Hide star if discrete info might overlap? Or keep it?
-        // Keep it, but standard pos is top-right. Date is top-left. Should be fine.
+      {!compact && hasAchievedGoal && !isFutureDate && ( // Hide star in compact mode (Year view)
         <Star 
           className={cn(
             "absolute top-0.5 right-0.5 h-3.5 w-3.5",
