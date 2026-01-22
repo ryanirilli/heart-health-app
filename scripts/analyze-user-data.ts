@@ -33,9 +33,9 @@ function loadEnvFile() {
 }
 
 const envVars = loadEnvFile();
-const SUPABASE_URL = envVars.PROD_SUPABASE_URL || process.env.PROD_SUPABASE_URL;
+const SUPABASE_URL = envVars.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY =
-  envVars.PROD_SERVICE_ROLE_KEY || process.env.PROD_SERVICE_ROLE_KEY;
+  envVars.DEV_SERVICE_ROLE_KEY || process.env.DEV_SERVICE_ROLE_KEY;
 const TARGET_EMAIL =
   envVars.TARGET_EMAIL || process.env.TARGET_EMAIL || "ryanirilli@gmail.com";
 

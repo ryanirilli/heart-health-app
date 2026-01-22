@@ -50,7 +50,10 @@ import {
   getGoalIconComponent,
   GOAL_ICON_LABELS,
 } from '@/lib/goals';
-import { ActivityType, ActivityTypeMap, formatValueOnly } from '@/lib/activityTypes';
+import { ActivityType, ActivityTypeMap, formatValueOnly, getGoalType } from '@/lib/activityTypes';
+import { useActivities } from '@/components/ActivityCalendar/ActivityProvider';
+import { getEffectiveValueForGoal, getTodayDateStr, getDaysUntilGoal, isGoalMet, shouldShowGoalIndicator, isGoalExpired } from '@/lib/goals';
+import { Progress } from '@/components/ui/progress';
 import pluralizeLib from 'pluralize-esm';
 const { plural } = pluralizeLib;
 import { GoalIconPicker } from './GoalIconPicker';
@@ -240,6 +243,297 @@ function GoalSummaryView({
 }: GoalSummaryViewProps) {
   const selectedActivityType = activityTypes[goal.activityTypeId];
   const IconComponent = getGoalIconComponent(goal.icon);
+  const { activities } = useActivities();
+
+  // Calculate progress for non-daily goals
+  const todayStr = getTodayDateStr();
+  const progressData = goal.dateType !== 'daily' 
+    ? getEffectiveValueForGoal(goal, selectedActivityType, activities, todayStr)
+    : null;
+  
+  // Calculate days remaining
+  const daysRemaining = goal.dateType !== 'daily' ? getDaysUntilGoal(goal, todayStr) : null;
+  const expired = isGoalExpired(goal);
+
+  // Helper: Calculate time progress through period (0-100%)
+  const calculateTimeProgress = (): number => {
+    if (goal.dateType === 'daily') return 0;
+    
+    const today = new Date(todayStr + 'T12:00:00');
+    
+    switch (goal.dateType) {
+      case 'weekly': {
+        const dayOfWeek = today.getDay();
+        // Monday = 1, Sunday = 0; treat Sunday as end of week (100%)
+        const daysPassed = dayOfWeek === 0 ? 7 : dayOfWeek;
+        return (daysPassed / 7) * 100;
+      }
+      case 'monthly': {
+        const dayOfMonth = today.getDate();
+        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        return (dayOfMonth / daysInMonth) * 100;
+      }
+      case 'by_date':
+      case 'date_range': {
+        const startDate = new Date((goal.startDate || goal.createdAt || todayStr) + 'T12:00:00');
+        const endDate = new Date((goal.dateType === 'by_date' ? goal.targetDate : goal.endDate) + 'T12:00:00');
+        const totalDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+        const daysPassed = Math.max(0, Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+        return Math.min(100, (daysPassed / totalDays) * 100);
+      }
+      default:
+        return 0;
+    }
+  };
+
+  // Helper: Get period label
+  const getPeriodLabel = (): string => {
+    switch (goal.dateType) {
+      case 'weekly': return 'of week';
+      case 'monthly': return 'of month';
+      case 'by_date': return 'complete';
+      case 'date_range': return 'complete';
+      default: return '';
+    }
+  };
+
+  // Helper: Determine goal status and display info
+  const getGoalDisplayInfo = () => {
+    if (!progressData || !selectedActivityType) {
+      return {
+        status: 'on_pace' as const,
+        statusLabel: 'On Pace',
+        primaryText: '',
+        secondaryText: null,
+        statusColor: 'bg-primary',
+        bgColor: 'bg-primary/5',
+        textColor: 'text-foreground',
+      };
+    }
+
+    const goalType = getGoalType(selectedActivityType);
+    const trackingType = goal.trackingType?.toString().trim().toLowerCase() || 'average';
+    const isDiscreteType = selectedActivityType.uiType === 'buttonGroup' || selectedActivityType.uiType === 'toggle';
+    
+    const currentValue = progressData.effectiveValue;
+    const targetValue = goal.targetValue;
+    const timeProgress = calculateTimeProgress() / 100; // 0 to 1
+
+    // Determine if goal is met/missed
+    let isMet = false;
+    let isFailed = false;
+
+    if (isDiscreteType) {
+      if (trackingType === 'absolute') {
+        isMet = progressData.allDaysMet && progressData.dayCount > 0;
+        isFailed = !progressData.allDaysMet && progressData.dayCount > 0;
+      } else {
+        // Average tracking for discrete
+        isMet = currentValue > 0.5 && progressData.dayCount > 0;
+      }
+    } else if (goalType === 'negative') {
+      // Less is better - CRITICAL: Only mark as "met" if period complete
+      // While period is active, they could still fail by going over target
+      if (expired) {
+        // Period is over
+        isMet = currentValue <= targetValue;
+        isFailed = currentValue > targetValue;
+      } else {
+        // Period still active
+        isFailed = currentValue > targetValue; // Already failed
+        // Don't set isMet=true even if currently under target, since they could still fail
+      }
+    } else if (goalType === 'positive') {
+      // More is better - mark as met once target reached (can't fail after that)
+      isMet = currentValue >= targetValue;
+    } else {
+      // Neutral
+      isMet = currentValue === targetValue;
+    }
+
+    // For expired goals that aren't marked as met, they failed
+    if (expired && !isMet) {
+      isFailed = true;
+    }
+
+    // Determine pace status
+    let status: 'met' | 'ahead' | 'on_pace' | 'behind' | 'missed';
+    let statusLabel: string;
+    let statusColor: string;
+    let bgColor: string;
+    let textColor: string;
+
+    if (isFailed) {
+      status = 'missed';
+      statusLabel = 'Goal Missed';
+      statusColor = 'bg-muted-foreground/40';
+      bgColor = 'bg-muted/20';
+      textColor = 'text-muted-foreground/80';
+    } else if (isMet) {
+      status = 'met';
+      statusLabel = '\u2713 Goal Met';
+      statusColor = 'bg-emerald-500';
+      bgColor = 'bg-emerald-500/5';
+      textColor = 'text-emerald-700 dark:text-emerald-300';
+    } else {
+      // Not met yet - check pace
+      let isAhead = false;
+      let isBehind = false;
+
+      // IMPORTANT: Increment UI type always uses SUM for pace calculation
+      const effectiveTrackingForPace = selectedActivityType.uiType === 'increment' ? 'sum' : trackingType;
+
+      if (effectiveTrackingForPace === 'sum') {
+        // Sum tracking: compare current vs required by now
+        const requiredNow = targetValue * timeProgress;
+        if (goalType === 'positive') {
+          isAhead = currentValue > requiredNow * 1.1; // 10% ahead
+          isBehind = currentValue < requiredNow * 0.85; // 15% behind
+        } else if (goalType === 'negative') {
+          // For negative sum, being UNDER budget is good
+          isAhead = currentValue < requiredNow * 0.9; // Using <90% of budget
+          isBehind = currentValue > requiredNow * 1.1; // Over 110% of budget
+        }
+      } else if (effectiveTrackingForPace === 'average') {
+        // Average tracking: compare average vs target
+        if (goalType === 'positive') {
+          isAhead = currentValue > targetValue * 1.05;
+          isBehind = currentValue < targetValue * 0.95;
+        } else if (goalType === 'negative') {
+          isAhead = currentValue < targetValue * 0.95;
+          isBehind = currentValue > targetValue * 1.05;
+        }
+      } else if (effectiveTrackingForPace === 'absolute') {
+        // Absolute: must meet every day
+        const daysSoFar = Math.ceil(progressData.dayCount);
+        isBehind = progressData.daysMetTarget < daysSoFar;
+      }
+
+      if (isAhead) {
+        status = 'ahead';
+        statusLabel = 'Ahead of Pace';
+        statusColor = 'bg-emerald-500';
+        bgColor = 'bg-emerald-500/5';
+        textColor = 'text-emerald-700 dark:text-emerald-300';
+      } else if (isBehind) {
+        status = 'behind';
+        statusLabel = 'Behind Pace';
+        statusColor = 'bg-amber-500';
+        bgColor = 'bg-amber-500/5';
+        textColor = 'text-amber-700 dark:text-amber-300';
+      } else {
+        status = 'on_pace';
+        statusLabel = 'On Pace';
+        statusColor = 'bg-primary';
+        bgColor = 'bg-primary/5';
+        textColor = 'text-foreground';
+      }
+    }
+
+    // Generate display text
+    let primaryText = '';
+    let secondaryText: string | null = null;
+
+    // IMPORTANT: Increment UI type always uses SUM, regardless of trackingType setting
+    const effectiveTrackingType = selectedActivityType.uiType === 'increment' ? 'sum' : trackingType;
+
+    if (effectiveTrackingType === 'sum') {
+      // Sum tracking (always for increment types)
+      const currentDisplay = formatValueOnly(currentValue, selectedActivityType);
+      const targetDisplay = formatValueOnly(targetValue, selectedActivityType);
+      primaryText = `${currentDisplay} of ${targetDisplay}`;
+      
+      if (!isMet && !isFailed && daysRemaining !== null && daysRemaining > 0) {
+        if (goalType === 'positive') {
+          const remaining = Math.max(0, targetValue - currentValue);
+          if (remaining > 0) {
+            const perDay = remaining / daysRemaining;
+            const remainingDisplay = formatValueOnly(remaining, selectedActivityType);
+            const perDayDisplay = formatValueOnly(perDay, selectedActivityType);
+            secondaryText = `Need ${remainingDisplay} over ${daysRemaining} day${daysRemaining > 1 ? 's' : ''} (~${perDayDisplay}/day)`;
+          }
+        } else if (goalType === 'negative') {
+          // For negative goals, show how much "budget" is left
+          const remaining = Math.max(0, targetValue - currentValue);
+          if (remaining >= 0) {
+            const remainingDisplay = formatValueOnly(remaining, selectedActivityType);
+            secondaryText = `${remainingDisplay} remaining over ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}`;
+          }
+        }
+      }
+    } else if (effectiveTrackingType === 'average') {
+      // Average tracking
+      if (isDiscreteType) {
+        // Discrete average: show "X of Y days were [label]"
+        const totalDays = progressData.dayCount;
+        const matchingDays = progressData.daysMetTarget;
+        const percentage = totalDays > 0 ? Math.round((matchingDays / totalDays) * 100) : 0;
+        
+        const targetLabel = selectedActivityType.uiType === 'toggle'
+          ? (targetValue === 1 ? 'Yes' : 'No')
+          : selectedActivityType.buttonOptions?.find(o => o.value === targetValue)?.label || String(targetValue);
+        
+        // Add context about the period
+        let periodContext = '';
+        if (goal.dateType === 'monthly') {
+          periodContext = ' this month';
+        } else if (goal.dateType === 'weekly') {
+          periodContext = ' this week';
+        }
+        
+        primaryText = `${matchingDays} of ${totalDays} day${totalDays !== 1 ? 's' : ''}${periodContext} were ${targetLabel} (${percentage}%)`;
+        secondaryText = null;
+      } else {
+        // Continuous average (slider)
+        const avgDisplay = formatValueOnly(currentValue, selectedActivityType);
+        const targetDisplay = formatValueOnly(targetValue, selectedActivityType);
+        primaryText = `Avg ${avgDisplay} (target: ${targetDisplay})`;
+        if (progressData.dayCount > 0) {
+          secondaryText = null;
+        }
+      }
+    } else if (effectiveTrackingType === 'absolute') {
+      // Absolute tracking (only for discrete types)
+      if (isDiscreteType) {
+        const totalDays = progressData.dayCount;
+        const matchingDays = progressData.daysMetTarget;
+        
+        const targetLabel = selectedActivityType.uiType === 'toggle'
+          ? (targetValue === 1 ? 'Yes' : 'No')
+          : selectedActivityType.buttonOptions?.find(o => o.value === targetValue)?.label || String(targetValue);
+        
+        primaryText = `${matchingDays} of ${totalDays} day${totalDays !== 1 ? 's' : ''} were ${targetLabel}`;
+        if (matchingDays === totalDays && totalDays > 0) {
+          primaryText += ' ✓';
+        }
+        secondaryText = `Target: Every day ${targetLabel}`;
+      } else {
+        // Absolute for continuous types (shouldn't really happen, but handle it)
+        primaryText = `${progressData.daysMetTarget} of ${progressData.dayCount} days met`;
+        const targetDisplay = formatValueOnly(targetValue, selectedActivityType);
+        if (goalType === 'positive') {
+          secondaryText = `Target: Every day \u2265 ${targetDisplay}`;
+        } else if (goalType === 'negative') {
+          secondaryText = `Target: Every day \u2264 ${targetDisplay}`;
+        } else {
+          secondaryText = `Target: Every day = ${targetDisplay}`;
+        }
+      }
+    }
+
+    return {
+      status,
+      statusLabel,
+      primaryText,
+      secondaryText,
+      statusColor,
+      bgColor,
+      textColor,
+    };
+  };
+
+  const timeProgress = calculateTimeProgress();
+  const displayInfo = getGoalDisplayInfo();
 
   const getScheduleText = () => {
     switch (goal.dateType) {
@@ -281,8 +575,8 @@ function GoalSummaryView({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6">
-        {/* Goal Preview Card */}
-        <div className="rounded-xl border bg-card p-5 space-y-4">
+        {/* Goal Details */}
+        <div className="space-y-4">
           {/* Icon and Name */}
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -290,12 +584,11 @@ function GoalSummaryView({
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="font-semibold text-lg truncate">{goal.name || 'Untitled Goal'}</h4>
-              <p className="text-sm text-muted-foreground">{GOAL_ICON_LABELS[goal.icon]}</p>
             </div>
           </div>
 
-          {/* Details - full bleed border */}
-          <div className="-mx-5 px-5 space-y-2 pt-4 border-t">
+          {/* Details */}
+          <div className="space-y-2 pt-4">
             <div className="flex items-center justify-between py-1">
               <span className="text-sm text-muted-foreground">Activity</span>
               <span className="text-sm font-medium">
@@ -326,6 +619,34 @@ function GoalSummaryView({
               </div>
             )}
           </div>
+
+          {/* Progress Section - only for non-daily goals */}
+          {goal.dateType !== 'daily' && progressData && selectedActivityType && (
+            <div className={cn("mt-4 p-4 rounded-lg space-y-3", displayInfo.bgColor)}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-muted-foreground">Status</span>
+                {daysRemaining !== null && daysRemaining >= 0 && (
+                  <span className={cn("text-xs", displayInfo.textColor)}>
+                    {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div 
+                    className={cn("h-full transition-all", displayInfo.statusColor)}
+                    style={{ width: `${Math.min(100, Math.max(0, timeProgress))}%` }}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-sm font-medium">{displayInfo.primaryText}</div>
+                {displayInfo.secondaryText && (
+                  <div className="text-xs text-muted-foreground">{displayInfo.secondaryText}</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

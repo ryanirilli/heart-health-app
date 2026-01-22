@@ -498,17 +498,22 @@ export function getValuesForPeriod(
   daysMetTarget: number;
   allDaysMet: boolean;
 } {
+  // Calculate total days in period (including days without entries)
+  const start = new Date(startDate + 'T12:00:00');
+  const end = new Date(endDate + 'T12:00:00');
+  const totalDaysInPeriod = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
   if (!allActivities)
     return {
       sum: 0,
-      count: 0,
+      count: totalDaysInPeriod,
       average: 0,
       daysMetTarget: 0,
       allDaysMet: false,
     };
 
   let sum = 0;
-  let count = 0;
+  let loggedDayCount = 0;
   let daysMetTarget = 0;
 
   for (const [dateStr, activity] of Object.entries(allActivities)) {
@@ -516,7 +521,7 @@ export function getValuesForPeriod(
       const value = activity.entries?.[goal.activityTypeId]?.value;
       if (value !== undefined) {
         sum += value;
-        count++;
+        loggedDayCount++;
 
         // For discrete options (buttonGroup/toggle), "day met" means EXACT MATCH
         let dayMet = false;
@@ -540,10 +545,10 @@ export function getValuesForPeriod(
 
   return {
     sum,
-    count,
-    average: count > 0 ? sum / count : 0,
+    count: totalDaysInPeriod,  // Return total days in period, not just logged days
+    average: loggedDayCount > 0 ? sum / loggedDayCount : 0,  // Average based on logged days only
     daysMetTarget,
-    allDaysMet: count > 0 && daysMetTarget === count,
+    allDaysMet: totalDaysInPeriod > 0 && daysMetTarget === totalDaysInPeriod,  // All days (including missing) must be met
   };
 }
 

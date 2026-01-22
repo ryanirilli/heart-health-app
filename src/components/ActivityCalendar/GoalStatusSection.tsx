@@ -166,7 +166,22 @@ export function GoalStatusSection({
           dateStr
         );
 
-        if (isDiscreteType || usesAbsoluteTracking || usesAverageTracking) {
+        // DEBUG: Log for Dry Jan goal
+        if (goal.name === "Dry Jan") {
+          console.log("=== DRY JAN GOAL DEBUG ===");
+          console.log("Goal Type:", goalType);
+          console.log("Activity UI Type:", activityType.uiType);
+          console.log("Tracking Type:", goal.trackingType);
+          console.log("Value Result:", valueResult);
+          console.log("Is Discrete Type:", isDiscreteType);
+          console.log("Uses Absolute:", usesAbsoluteTracking);
+          console.log("Uses Average:", usesAverageTracking);
+        }
+
+        // IMPORTANT: Increment types always use sum-based logic, never discrete/absolute/average
+        const isIncrementType = activityType.uiType === "increment";
+
+        if (!isIncrementType && (isDiscreteType || usesAbsoluteTracking || usesAverageTracking)) {
           // For discrete types (buttonGroup/toggle):
           // - Absolute tracking: "Every day must match target" (allDaysMet)
           // - Average tracking: "Most days match target" (>50% of days)
@@ -199,10 +214,27 @@ export function GoalStatusSection({
         } else if (goalType === "negative") {
           // For negative goals (less is better) with continuous values
           if (activityType.uiType === "increment") {
-            // For increment types (sum-based), fail immediately if value exceeds target
-            if (valueResult.effectiveValue > goal.targetValue) {
-              isFailed = true;
+            // For increment types (sum-based)
+            
+            // DEBUG for Dry Jan
+            if (goal.name === "Dry Jan") {
+              console.log("Dry Jan Debug:", {
+                effectiveValue: valueResult.effectiveValue,
+                targetValue: goal.targetValue,
+                expired: expired,
+                isEvaluationDay: isEvaluationDay,
+                comparison: valueResult.effectiveValue <= goal.targetValue,
+              });
             }
+            
+            if (valueResult.effectiveValue > goal.targetValue) {
+              // Exceeded budget - goal is failed
+              isFailed = true;
+            } else if (expired) {
+              // Period ended - check if met
+              isMet = valueResult.effectiveValue <= goal.targetValue;
+            }
+            // While in progress and under budget, stay in progress (don't set isMet)
           } else if (isEvaluationDay || expired) {
             // On evaluation day or after, check if goal is met (for average-based goals like slider)
             isMet = valueResult.effectiveValue <= goal.targetValue;
@@ -239,7 +271,7 @@ export function GoalStatusSection({
       let displayStatus: GoalDisplayStatus;
       if (isMet) {
         displayStatus = "met";
-      } else if (isFailed || expired) {
+      } else if (isFailed) {
         displayStatus = "missed";
       } else if (isActualEvaluationDay && goal.dateType !== "daily") {
         // Daily goals don't get special "evaluation day" treatment -
