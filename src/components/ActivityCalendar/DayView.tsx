@@ -501,7 +501,7 @@ export function DayView({
       onOpenSettings={openSettingsToAdd}
       onNoteClick={handleOpenNoteMode}
       onVoiceNoteClick={voiceNotesEnabled ? handleOpenVoiceNoteMode : undefined}
-      hasVoiceNote={!!existingVoiceNote}
+      voiceNoteUrl={existingVoiceNote?.signedUrl}
       voiceNoteDuration={existingVoiceNote?.durationSeconds}
     />
   );

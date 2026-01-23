@@ -10,6 +10,7 @@ import { GoalStatusSection } from './GoalStatusSection';
 import { useGoals } from '@/components/Goals';
 import { cn } from '@/lib/utils';
 import { Settings, Target, MessageSquareMore, Mic } from 'lucide-react';
+import { VoiceNoteInlinePlayer } from './VoiceNoteInlinePlayer';
 
 interface DayContentViewProps {
   dateStr: string;
@@ -152,8 +153,8 @@ interface DayContentEditProps {
   onNoteClick?: () => void;
   /** Handler for voice note click - only shown when feature flag enabled */
   onVoiceNoteClick?: () => void;
-  /** Whether a voice note exists for this date */
-  hasVoiceNote?: boolean;
+  /** Voice note URL for inline player */
+  voiceNoteUrl?: string;
   /** Duration of existing voice note in seconds */
   voiceNoteDuration?: number;
 }
@@ -173,7 +174,7 @@ export function DayContentEdit({
   onOpenSettings,
   onNoteClick,
   onVoiceNoteClick,
-  hasVoiceNote,
+  voiceNoteUrl,
   voiceNoteDuration,
 }: DayContentEditProps) {
   // Get all types that have entries (including deleted types for viewing)
@@ -254,21 +255,24 @@ export function DayContentEdit({
         </button>
       )}
 
-      {/* Voice Note Section - clickable row (only shown when feature flag enabled) */}
+      {/* Voice Note Section - inline player when exists, clickable button when not */}
       {onVoiceNoteClick && (
-        <button
-          onClick={onVoiceNoteClick}
-          className="mt-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-center gap-3"
-        >
-          <Mic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          {hasVoiceNote ? (
-            <span className="text-sm text-foreground flex-1">
-              Voice note ({Math.floor((voiceNoteDuration || 0) / 60)}:{((voiceNoteDuration || 0) % 60).toString().padStart(2, '0')})
-            </span>
-          ) : (
+        voiceNoteUrl ? (
+          <div className="mt-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50">
+            <VoiceNoteInlinePlayer
+              audioUrl={voiceNoteUrl}
+              duration={voiceNoteDuration || 0}
+            />
+          </div>
+        ) : (
+          <button
+            onClick={onVoiceNoteClick}
+            className="mt-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-center gap-3"
+          >
+            <Mic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span className="text-sm text-muted-foreground">Add voice note</span>
-          )}
-        </button>
+          </button>
+        )
       )}
     </>
   );

@@ -42,6 +42,8 @@ export function VoiceNoteEditorContent({
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [previewDuration, setPreviewDuration] = useState(0);
   const [playbackProgress, setPlaybackProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Refs
@@ -49,6 +51,7 @@ export function VoiceNoteEditorContent({
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const progressBarRef = useRef<HTMLDivElement | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   // Ref to track current recording time (avoids stale closure in onstop callback)
   const recordingTimeRef = useRef(0);
@@ -60,6 +63,35 @@ export function VoiceNoteEditorContent({
   const isIOSNonSafari = typeof navigator !== 'undefined' && 
     /iPad|iPhone|iPod/.test(navigator.userAgent) && 
     !(/Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(navigator.userAgent));
+
+  // Format time as M:SS
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Update progress during playback
+  const updateProgress = useCallback(() => {
+    if (audioRef.current && !audioRef.current.paused) {
+      const actualDuration = audioRef.current.duration;
+      if (actualDuration && actualDuration > 0 && !isNaN(actualDuration)) {
+        const progress = audioRef.current.currentTime / actualDuration;
+        const currentTimeValue = audioRef.current.currentTime;
+
+        // Update progress bar using transform (GPU accelerated)
+        if (progressBarRef.current) {
+          const scaleX = progress;
+          progressBarRef.current.style.transform = `scaleX(${scaleX})`;
+        }
+
+        // Update state for time display
+        setPlaybackProgress(progress);
+        setCurrentTime(currentTimeValue);
+      }
+      animationFrameRef.current = requestAnimationFrame(updateProgress);
+    }
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -73,12 +105,40 @@ export function VoiceNoteEditorContent({
     };
   }, [previewUrl]);
 
-  // Format time as M:SS
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  // Handle audio events
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleCanPlay = () => {
+      setIsLoadingAudio(false);
+      // If we're waiting to play and haven't started progress tracking yet, start it
+      if (!audio.paused && !animationFrameRef.current) {
+        updateProgress();
+      }
+    };
+
+    const handleWaiting = () => {
+      setIsLoadingAudio(true);
+    };
+
+    const handlePlaying = () => {
+      setIsLoadingAudio(false);
+      if (!animationFrameRef.current) {
+        updateProgress();
+      }
+    };
+
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('waiting', handleWaiting);
+    audio.addEventListener('playing', handlePlaying);
+
+    return () => {
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('waiting', handleWaiting);
+      audio.removeEventListener('playing', handlePlaying);
+    };
+  }, [updateProgress]);
 
   // Start recording
   const startRecording = useCallback(async () => {
@@ -180,63 +240,88 @@ export function VoiceNoteEditorContent({
   }, [previewUrl, onPreviewChange]);
 
   // Play/pause preview
-  const togglePlayPreview = useCallback(() => {
+  const togglePlayPreview = useCallback(async () => {
     if (!audioRef.current) return;
 
     if (state === 'playing') {
       audioRef.current.pause();
       setState('preview');
+      setIsLoadingAudio(false);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     } else {
-      audioRef.current.play();
+      // Reset to beginning like the existing player does
+      audioRef.current.currentTime = 0;
+      setPlaybackProgress(0);
+      setCurrentTime(0);
+      // Reset progress bar directly
+      if (progressBarRef.current) {
+        progressBarRef.current.style.transform = 'scaleX(0)';
+      }
       setState('playing');
-      
-      // Update progress
-      const updateProgress = () => {
-        if (audioRef.current) {
-          setPlaybackProgress(audioRef.current.currentTime / audioRef.current.duration);
-          if (!audioRef.current.paused) {
-            animationFrameRef.current = requestAnimationFrame(updateProgress);
-          }
-        }
-      };
-      updateProgress();
+      setIsLoadingAudio(true);
+
+      try {
+        await audioRef.current.play();
+        // Force start progress tracking immediately after play starts
+        setIsLoadingAudio(false);
+        updateProgress();
+      } catch (error) {
+        console.error('Failed to play audio:', error);
+        setState('preview');
+        setIsLoadingAudio(false);
+      }
     }
-  }, [state]);
+  }, [state, updateProgress]);
 
   // Play/pause existing audio
-  const togglePlayExisting = useCallback(() => {
+  const togglePlayExisting = useCallback(async () => {
     if (!audioRef.current) return;
 
     if (state === 'playing') {
       audioRef.current.pause();
       setState('idle');
+      setIsLoadingAudio(false);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
       }
     } else {
       audioRef.current.currentTime = 0;
-      audioRef.current.play();
+      setPlaybackProgress(0);
+      setCurrentTime(0);
+      // Reset progress bar directly
+      if (progressBarRef.current) {
+        progressBarRef.current.style.transform = 'scaleX(0)';
+      }
       setState('playing');
-      
-      const updateProgress = () => {
-        if (audioRef.current) {
-          setPlaybackProgress(audioRef.current.currentTime / audioRef.current.duration);
-          if (!audioRef.current.paused) {
-            animationFrameRef.current = requestAnimationFrame(updateProgress);
-          }
-        }
-      };
-      updateProgress();
+      setIsLoadingAudio(true);
+
+      try {
+        await audioRef.current.play();
+        // Force start progress tracking immediately after play starts
+        setIsLoadingAudio(false);
+        updateProgress();
+      } catch (error) {
+        console.error('Failed to play audio:', error);
+        setState('idle');
+        setIsLoadingAudio(false);
+      }
     }
-  }, [state]);
+  }, [state, updateProgress]);
 
   // Handle audio end
   const handleAudioEnded = useCallback(() => {
     setState(previewUrl ? 'preview' : 'idle');
     setPlaybackProgress(0);
+    setCurrentTime(0);
+    setIsLoadingAudio(false);
+    // Reset progress bar directly
+    if (progressBarRef.current) {
+      progressBarRef.current.style.transform = 'scaleX(0)';
+    }
   }, [previewUrl]);
 
   // Save voice note
@@ -253,13 +338,14 @@ export function VoiceNoteEditorContent({
         <audio
           ref={audioRef}
           src={existingAudioUrl}
+          preload="metadata"
           onEnded={handleAudioEnded}
         />
         
         <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50">
           <button
             onClick={togglePlayExisting}
-            disabled={isPending}
+            disabled={isPending || isLoadingAudio}
             className={cn(
               "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
               "bg-primary text-primary-foreground",
@@ -267,7 +353,9 @@ export function VoiceNoteEditorContent({
               "disabled:opacity-50"
             )}
           >
-            {state === 'playing' ? (
+            {isLoadingAudio ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : state === 'playing' ? (
               <Pause className="h-5 w-5" />
             ) : (
               <Play className="h-5 w-5 ml-0.5" />
@@ -276,13 +364,18 @@ export function VoiceNoteEditorContent({
           
           <div className="flex-1">
             <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary transition-all duration-100"
-                style={{ width: `${playbackProgress * 100}%` }}
+              <div
+                ref={progressBarRef}
+                className="h-full w-full bg-primary origin-left"
+                style={{
+                  transform: `scaleX(${playbackProgress})`,
+                  willChange: 'transform'
+                }}
               />
             </div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {existingDuration ? formatTime(existingDuration) : '0:00'}
+            <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+              <span>{formatTime(currentTime)}</span>
+              <span>{existingDuration ? formatTime(existingDuration) : '0:00'}</span>
             </div>
           </div>
         </div>
@@ -353,7 +446,6 @@ export function VoiceNoteEditorContent({
                 "hover:bg-destructive/90"
               )}
             >
-              <Square className="h-6 w-6" />
             </button>
           </div>
           
@@ -374,13 +466,14 @@ export function VoiceNoteEditorContent({
           <audio
             ref={audioRef}
             src={previewUrl}
+            preload="metadata"
             onEnded={handleAudioEnded}
           />
           
           <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50">
             <button
               onClick={togglePlayPreview}
-              disabled={isPending}
+              disabled={isPending || isLoadingAudio}
               className={cn(
                 "w-12 h-12 rounded-full flex items-center justify-center transition-colors",
                 "bg-primary text-primary-foreground",
@@ -388,7 +481,9 @@ export function VoiceNoteEditorContent({
                 "disabled:opacity-50"
               )}
             >
-              {state === 'playing' ? (
+              {isLoadingAudio ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : state === 'playing' ? (
                 <Pause className="h-5 w-5" />
               ) : (
                 <Play className="h-5 w-5 ml-0.5" />
@@ -397,13 +492,18 @@ export function VoiceNoteEditorContent({
             
             <div className="flex-1">
               <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary transition-all duration-100"
-                  style={{ width: `${playbackProgress * 100}%` }}
+                <div
+                  ref={progressBarRef}
+                  className="h-full w-full bg-primary origin-left"
+                  style={{
+                    transform: `scaleX(${playbackProgress})`,
+                    willChange: 'transform'
+                  }}
                 />
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                {formatTime(previewDuration)}
+              <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(previewDuration)}</span>
               </div>
             </div>
           </div>
