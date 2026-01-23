@@ -307,17 +307,16 @@ export function DayView({
     // (not just a note). For today/new entries, stay in edit mode.
     const hasActivityEntries = existingActivity?.entries && Object.keys(existingActivity.entries).length > 0;
     
-    // Only set mode if we are not already in a specific mode, or if we switched dates
-    // But since this effect runs on data load, we should be careful.
-    // Ideally we only reset mode on date change.
-    // For simplicity given the bug, let's allow it to reset to view/edit based on data presence,
-    // which effectively handles the "refresh" case correctly.
-    setMode(hasActivityEntries ? "view" : "edit");
+    // Only reset mode if we're not in note/voiceNote mode (to preserve manual mode changes)
+    // This prevents the effect from overriding mode changes when deleting notes/voice notes
+    if (mode !== 'note' && mode !== 'voiceNote') {
+      setMode(hasActivityEntries ? "view" : "edit");
+    }
     
     // Reset other state
     setShowPastDayForm(false);
     setNoteText(existingActivity?.note ?? ""); 
-  }, [selectedDateStr, existingActivity]); // Sync when data changes
+  }, [selectedDateStr, existingActivity, mode]); // Added mode to dependencies
 
   const handleEntryChange = useCallback(
     (typeId: string, value: number | undefined) => {
@@ -448,9 +447,10 @@ export function DayView({
 
   const handleDeleteVoiceNote = useCallback(async () => {
     await deleteVoiceNote();
-    setNoteSlideDirection(-1); // Going back
-    setMode(modeBeforeNote);
-  }, [deleteVoiceNote, modeBeforeNote]);
+    // Don't go back - stay in voice note mode so user can record a new one
+    // Just clear the slide direction since we're not animating
+    setNoteSlideDirection(1);
+  }, [deleteVoiceNote]);
 
   // Callback to track when preview is available (for footer save button)
   const handleVoiceNotePreviewChange = useCallback((blob: Blob | null, duration: number) => {
@@ -599,7 +599,7 @@ export function DayView({
     <VoiceNoteEditorFooter
       onCancel={handleCancelVoiceNote}
       onSave={hasVoiceNotePreview ? handleSaveVoiceNoteFromFooter : undefined}
-      onDelete={existingVoiceNote ? handleDeleteVoiceNote : undefined}
+      onDelete={undefined} // Delete only available in header badge
       hasExistingVoiceNote={!!existingVoiceNote}
       hasPreview={hasVoiceNotePreview}
       isSaving={isVoiceNoteSaving}
@@ -684,12 +684,6 @@ export function DayView({
                 onDelete={handleDeleteNote}
                 disabled={isSaving}
                 isDeleting={isDeleting}
-              />
-            ) : mode === "voiceNote" && existingVoiceNote ? (
-              <ConfirmDeleteButton
-                onDelete={handleDeleteVoiceNote}
-                disabled={isVoiceNoteSaving}
-                isDeleting={isVoiceNoteDeleting}
               />
             ) : isCurrentlyToday && mode !== "note" && mode !== "voiceNote" ? (
               <Badge variant="today">Today</Badge>

@@ -45,6 +45,8 @@ export function VoiceNoteEditorContent({
   const [currentTime, setCurrentTime] = useState(0);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [microphoneAccessDenied, setMicrophoneAccessDenied] = useState(false);
+  const [isCheckingMicAccess, setIsCheckingMicAccess] = useState(false);
 
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -58,11 +60,6 @@ export function VoiceNoteEditorContent({
 
   const isPending = isSaving || isDeleting;
   const hasExisting = !!existingAudioUrl;
-  
-  // Detect iOS non-Safari browsers (which don't support getUserMedia)
-  const isIOSNonSafari = typeof navigator !== 'undefined' && 
-    /iPad|iPhone|iPod/.test(navigator.userAgent) && 
-    !(/Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|OPiOS|EdgiOS/.test(navigator.userAgent));
 
   // Format time as M:SS
   const formatTime = (seconds: number) => {
@@ -92,6 +89,31 @@ export function VoiceNoteEditorContent({
       animationFrameRef.current = requestAnimationFrame(updateProgress);
     }
   }, []);
+
+  // Test microphone access on mount (only if no existing audio)
+  useEffect(() => {
+    if (hasExisting) return; // Skip test if there's existing audio
+
+    const testMicrophoneAccess = async () => {
+      setIsCheckingMicAccess(true);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Access granted - stop the stream immediately
+        stream.getTracks().forEach(track => track.stop());
+        setMicrophoneAccessDenied(false);
+      } catch (err) {
+        console.error('Microphone access test failed:', err);
+        if (err instanceof DOMException &&
+            (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+          setMicrophoneAccessDenied(true);
+        }
+      } finally {
+        setIsCheckingMicAccess(false);
+      }
+    };
+
+    testMicrophoneAccess();
+  }, [hasExisting]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -140,11 +162,34 @@ export function VoiceNoteEditorContent({
     };
   }, [updateProgress]);
 
+  // Retry microphone access test
+  const retryMicrophoneAccess = useCallback(async () => {
+    setIsCheckingMicAccess(true);
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Access granted - stop the stream immediately
+      stream.getTracks().forEach(track => track.stop());
+      setMicrophoneAccessDenied(false);
+    } catch (err) {
+      console.error('Microphone access retry failed:', err);
+      if (err instanceof DOMException &&
+          (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+        setMicrophoneAccessDenied(true);
+        setError('Microphone access is still denied. Please check your browser and system settings.');
+      }
+    } finally {
+      setIsCheckingMicAccess(false);
+    }
+  }, []);
+
   // Start recording
   const startRecording = useCallback(async () => {
     try {
       setError(null);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Clear the access denied flag on successful access
+      setMicrophoneAccessDenied(false);
       
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4',
@@ -199,7 +244,8 @@ export function VoiceNoteEditorContent({
       // Provide specific error messages based on error type
       if (err instanceof DOMException) {
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          setError('Microphone access denied. Please allow microphone access in your browser settings and try again.');
+          setMicrophoneAccessDenied(true);
+          setError('Microphone access denied.');
         } else if (err.name === 'NotFoundError') {
           setError('No microphone found. Please connect a microphone and try again.');
         } else if (err.name === 'NotSupportedError' || err.name === 'SecurityError') {
@@ -342,6 +388,17 @@ export function VoiceNoteEditorContent({
           onEnded={handleAudioEnded}
         />
         
+        {/* Delete button at top right */}
+        {onDelete && (
+          <div className="flex justify-end">
+            <ConfirmDeleteButton
+              onDelete={onDelete}
+              disabled={isSaving}
+              isDeleting={isDeleting}
+            />
+          </div>
+        )}
+        
         <div className="flex items-center gap-4 p-4 rounded-xl bg-muted/50">
           <button
             onClick={togglePlayExisting}
@@ -399,20 +456,51 @@ export function VoiceNoteEditorContent({
       {/* Idle state - record button */}
       {state === 'idle' && !previewUrl && (
         <div className="flex flex-col items-center gap-4 py-8">
-          {isIOSNonSafari ? (
+          {microphoneAccessDenied ? (
             <>
               <div className="w-20 h-20 rounded-full flex items-center justify-center bg-muted">
                 <Mic className="h-8 w-8 text-muted-foreground" />
               </div>
-              <p className="text-sm text-muted-foreground text-center px-4">
-                Voice recording is only supported in Safari on iOS. Please open this app in Safari to record voice notes.
-              </p>
+              <div className="space-y-3 px-4">
+                <p className="text-sm text-muted-foreground text-center">
+                  Microphone access is required to record voice notes.
+                </p>
+                <div className="text-xs text-muted-foreground space-y-2 bg-muted/50 p-3 rounded-lg">
+                  <p className="font-medium">To enable microphone access:</p>
+                  <ol className="list-decimal list-inside space-y-1 pl-2">
+                    <li>Check your browser's site permissions and allow microphone access for this site</li>
+                    <li>Check your device's system settings to ensure microphone access is enabled for your browser</li>
+                    <li>If using iOS, some browsers may require Safari for microphone access</li>
+                  </ol>
+                </div>
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={retryMicrophoneAccess}
+                    disabled={isCheckingMicAccess}
+                    className="gap-2"
+                  >
+                    {isCheckingMicAccess ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="h-4 w-4" />
+                        Retry
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
             </>
           ) : (
             <>
               <button
                 onClick={startRecording}
-                disabled={isPending}
+                disabled={isPending || isCheckingMicAccess}
                 className={cn(
                   "w-20 h-20 rounded-full flex items-center justify-center transition-all",
                   "bg-primary text-primary-foreground",
@@ -420,10 +508,14 @@ export function VoiceNoteEditorContent({
                   "disabled:opacity-50 disabled:hover:scale-100"
                 )}
               >
-                <Mic className="h-8 w-8" />
+                {isCheckingMicAccess ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <Mic className="h-8 w-8" />
+                )}
               </button>
               <p className="text-sm text-muted-foreground">
-                Tap to record (max {MAX_VOICE_NOTE_DURATION}s)
+                {isCheckingMicAccess ? 'Checking microphone access...' : `Tap to record (max ${MAX_VOICE_NOTE_DURATION}s)`}
               </p>
             </>
           )}

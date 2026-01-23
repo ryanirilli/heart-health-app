@@ -258,7 +258,10 @@ export function DayContentEdit({
       {/* Voice Note Section - inline player when exists, clickable button when not */}
       {onVoiceNoteClick && (
         voiceNoteUrl ? (
-          <div className="mt-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50">
+          <div
+            onClick={onVoiceNoteClick}
+            className="mt-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors cursor-pointer"
+          >
             <VoiceNoteInlinePlayer
               audioUrl={voiceNoteUrl}
               duration={voiceNoteDuration || 0}
