@@ -24,6 +24,7 @@ import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { useIsMobile } from "@/lib/hooks/useMediaQuery";
 import { formatDialogDate } from "./ActivityFormContent";
 import { DayContentView, DayContentEdit } from "./DayContent";
+import { CalendarDateHeader } from "./CalendarDateHeader";
 import { NoteEditorContent, NoteEditorFooter } from "./NoteEditor";
 import { Button } from "@/components/ui/button";
 import { Pencil, Loader2 } from "lucide-react";
@@ -319,9 +320,12 @@ export function ActivityEntryDialog({
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[85vh]">
           <div className="relative">
-            <DrawerHeader className="text-left">
-              <DrawerTitle>{title}</DrawerTitle>
-              <DrawerDescription>{formattedDate}</DrawerDescription>
+            <DrawerHeader className="text-left pb-2">
+              <CalendarDateHeader 
+                date={date}
+                title={title}
+              />
+              <DrawerDescription className="sr-only">{formattedDate}</DrawerDescription>
             </DrawerHeader>
             {editIconButton}
           </div>
@@ -339,11 +343,16 @@ export function ActivityEntryDialog({
         className="sm:max-w-md max-h-[85vh] overflow-y-auto"
         hideCloseButton
       >
-        {editIconButton}
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{formattedDate}</DialogDescription>
-        </DialogHeader>
+        <div className="relative">
+          {editIconButton}
+          <DialogHeader className="pb-2">
+            <CalendarDateHeader 
+              date={date}
+              title={title}
+            />
+            <DialogDescription className="sr-only">{formattedDate}</DialogDescription>
+          </DialogHeader>
+        </div>
         {desktopContent}
         {footer && <DialogFooter className="flex-row">{footer}</DialogFooter>}
       </DialogContent>

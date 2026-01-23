@@ -166,18 +166,6 @@ export function GoalStatusSection({
           dateStr
         );
 
-        // DEBUG: Log for Dry Jan goal
-        if (goal.name === "Dry Jan") {
-          console.log("=== DRY JAN GOAL DEBUG ===");
-          console.log("Goal Type:", goalType);
-          console.log("Activity UI Type:", activityType.uiType);
-          console.log("Tracking Type:", goal.trackingType);
-          console.log("Value Result:", valueResult);
-          console.log("Is Discrete Type:", isDiscreteType);
-          console.log("Uses Absolute:", usesAbsoluteTracking);
-          console.log("Uses Average:", usesAverageTracking);
-        }
-
         // IMPORTANT: Increment types always use sum-based logic, never discrete/absolute/average
         const isIncrementType = activityType.uiType === "increment";
 
@@ -215,18 +203,6 @@ export function GoalStatusSection({
           // For negative goals (less is better) with continuous values
           if (activityType.uiType === "increment") {
             // For increment types (sum-based)
-            
-            // DEBUG for Dry Jan
-            if (goal.name === "Dry Jan") {
-              console.log("Dry Jan Debug:", {
-                effectiveValue: valueResult.effectiveValue,
-                targetValue: goal.targetValue,
-                expired: expired,
-                isEvaluationDay: isEvaluationDay,
-                comparison: valueResult.effectiveValue <= goal.targetValue,
-              });
-            }
-            
             if (valueResult.effectiveValue > goal.targetValue) {
               // Exceeded budget - goal is failed
               isFailed = true;

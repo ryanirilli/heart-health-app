@@ -5,6 +5,7 @@ import { formatDate, ActivityEntry, Activity, hasActivityData } from "@/lib/acti
 import { useActivities, useActivityTypes } from "./ActivityProvider";
 import { formatDialogDate, ActivityViewCard } from "./ActivityFormContent";
 import { DayContentView, DayContentEdit } from "./DayContent";
+import { CalendarTile, CalendarDateHeader } from "./CalendarDateHeader";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, PanInfo, useAnimation } from "framer-motion";
@@ -101,7 +102,7 @@ function SkeletonDayCard({ date }: { date: Date }) {
   return (
     <Card className="opacity-25">
       <CardHeader className="p-4 pt-4">
-        <DateTile date={date} />
+        <CalendarDateHeader date={date} />
         <CardTitle className="text-sm font-medium text-muted-foreground mt-2">
           Tomorrow
         </CardTitle>
@@ -134,7 +135,7 @@ function ClickableSkeletonDayCard({
       onClick={onClick}
     >
       <CardHeader className="p-4 pt-4">
-        <DateTile date={date} />
+        <CalendarDateHeader date={date} />
         <CardTitle className="text-sm font-medium text-muted-foreground mt-2">
           Tomorrow
         </CardTitle>
@@ -161,7 +162,7 @@ function EmptyPastDayCard({
   return (
     <Card>
       <CardHeader className="p-4 pt-4">
-        <DateTile date={date} />
+        <CalendarDateHeader date={date} />
       </CardHeader>
       <CardContent className="px-4 py-2 pb-4">
         <div className="flex items-center justify-between mb-3">
@@ -172,67 +173,6 @@ function EmptyPastDayCard({
         <AddButton onClick={onLogActivity} />
       </CardContent>
     </Card>
-  );
-}
-
-// Helper to get short month name
-function getShortMonth(date: Date): string {
-  return date.toLocaleDateString("en-US", { month: "short" }).toUpperCase();
-}
-
-// Helper to get day number
-function getDayNumber(date: Date): number {
-  return date.getDate();
-}
-
-// Helper to get day of week name
-function getDayOfWeek(date: Date): string {
-  return date.toLocaleDateString("en-US", { weekday: "long" });
-}
-
-// Calendar tile component for displaying date
-function CalendarTile({ date }: { date: Date }) {
-  const shortMonth = getShortMonth(date);
-  const dayNumber = getDayNumber(date);
-
-  return (
-    <div
-      className={cn(
-        "w-14 h-14 rounded-xl overflow-hidden shrink-0",
-        "bg-card border border-border",
-        "shadow-sm",
-        "flex flex-col items-center justify-center"
-      )}
-    >
-      {/* Month header */}
-      <div
-        className={cn(
-          "w-full py-0.5 text-center",
-          "bg-muted",
-          "text-[9px] font-bold tracking-wide text-foreground"
-        )}
-      >
-        {shortMonth}
-      </div>
-      {/* Day number */}
-      <div className="flex-1 flex items-center justify-center">
-        <span className="text-xl font-bold text-foreground">{dayNumber}</span>
-      </div>
-    </div>
-  );
-}
-
-// Date header with tile and day of week - left aligned
-function DateTile({ date }: { date: Date }) {
-  const dayOfWeek = getDayOfWeek(date);
-
-  return (
-    <div className="flex items-center gap-3">
-      <CalendarTile date={date} />
-      <h2 className="text-2xl font-bold text-foreground tracking-tight">
-        {dayOfWeek}
-      </h2>
-    </div>
   );
 }
 
@@ -271,7 +211,7 @@ function PreviewDayCard({
     >
       <CardHeader className="p-4 pt-4">
         <div className="flex flex-col items-start gap-2">
-          <DateTile date={date} />
+          <CalendarDateHeader date={date} />
           <div className="flex items-center gap-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {activity ? "Activity Summary" : "No Activity"}
@@ -729,34 +669,36 @@ export function DayView({
         <div className="absolute top-3 right-3 flex gap-1">
           {editButton}
         </div>
-        <DateTile date={selectedDate} />
-      </CardHeader>
-
-      <CardContent className="px-4 py-2 pb-4">
-        <div className="flex items-center justify-between mb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {mode === "note" 
+        <CalendarDateHeader 
+          date={selectedDate}
+          title={
+            mode === "note" 
               ? (existingActivity?.note ? "Edit Note" : "Add Note") 
               : mode === "voiceNote"
               ? (existingVoiceNote ? "Voice Note" : "Record Voice Note")
-              : title}
-          </CardTitle>
-          {mode === "note" && existingActivity?.note ? (
-            <ConfirmDeleteButton
-              onDelete={handleDeleteNote}
-              disabled={isSaving}
-              isDeleting={isDeleting}
-            />
-          ) : mode === "voiceNote" && existingVoiceNote ? (
-            <ConfirmDeleteButton
-              onDelete={handleDeleteVoiceNote}
-              disabled={isVoiceNoteSaving}
-              isDeleting={isVoiceNoteDeleting}
-            />
-          ) : isCurrentlyToday && mode !== "note" && mode !== "voiceNote" ? (
-            <Badge variant="today">Today</Badge>
-          ) : null}
-        </div>
+              : title
+          }
+          badge={
+            mode === "note" && existingActivity?.note ? (
+              <ConfirmDeleteButton
+                onDelete={handleDeleteNote}
+                disabled={isSaving}
+                isDeleting={isDeleting}
+              />
+            ) : mode === "voiceNote" && existingVoiceNote ? (
+              <ConfirmDeleteButton
+                onDelete={handleDeleteVoiceNote}
+                disabled={isVoiceNoteSaving}
+                isDeleting={isVoiceNoteDeleting}
+              />
+            ) : isCurrentlyToday && mode !== "note" && mode !== "voiceNote" ? (
+              <Badge variant="today">Today</Badge>
+            ) : undefined
+          }
+        />
+      </CardHeader>
+
+      <CardContent className="px-4 py-2 pb-4">
         <AnimatePresence mode="popLayout" initial={false} custom={noteSlideDirection}>
           <motion.div
             key={mode === "note" ? "note" : mode === "voiceNote" ? "voiceNote" : "main"}
