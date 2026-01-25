@@ -32,6 +32,7 @@ Analyze the following transcription and extract:
 1. **Matching Existing Activities**:
    - Try to match mentioned activities to the user's existing activity types
    - Use fuzzy matching (e.g., "water", "drank water", "had water" should all match "Water Intake")
+   - **Subjective Statements**: actively look for subjective statements that match categorical activities.  (e.g., "I feel great" -> matches "Mood" or "Energy").
    - If there's a clear match, use the existing activityTypeId
    - Be intelligent about units (e.g., "8 glasses" for Water, "30 minutes" for Exercise)
 
@@ -52,6 +53,7 @@ Analyze the following transcription and extract:
 
   5. **Value Mapping for Discrete Types**:
      - For 'buttonGroup': You MUST output the numeric value corresponding to the selected option label (e.g. if options are "Bad=0, Good=1", and user says "good", output 1).
+     - **Subjective Mapping**: If the user's statement matches the *sentiment* of an option, select it even if the words aren't exact. (e.g. "rough day" -> "Bad", "excellent" -> "Good").
      - For 'toggle': Output 1 for "yes" (happened) and 0 for "no" (didn't happen).
 
   6. **Confidence Scores**:
@@ -60,7 +62,7 @@ Analyze the following transcription and extract:
      - 0.5-0.69: Ambiguous or uncertain match
      - Below 0.5: Don't include
 
-  6. **STRICT RULE - DO NOT GUESS VALUES**:
+  7. **STRICT RULE - DO NOT GUESS VALUES**:
      - If the user mentions an activity but NOT a specific value (e.g., "I played basketball" vs "I played basketball for 30 minutes"):
        - **DO NOT OMIT THE ACTIVITY**. We want to capture it.
        - **DO NOT INVENT A DURATION**. Do not say "60 minutes" or "1 hour".
@@ -70,7 +72,7 @@ Analyze the following transcription and extract:
          - Set the unit to "times", "sessions", or similar generic count.
        - Example: "I played basketball" -> Activity: "Basketball", Value: 1, Unit: "session", Type: increment.
 
-   7. **Negative Assertions (Zero Values)**:
+   8. **Negative Assertions (Zero Values)**:
       - If the user explicitly states they did **NOT** do an activity (e.g., "didn't drink alcohol", "had no sugar", "skipped dessert"):
         - **CAPTURE THIS ACTIVITY**.
         - **Value Assignment Rules**:
@@ -81,7 +83,7 @@ Analyze the following transcription and extract:
         - This is vital for tracking negative goals (things to avoid) or simply logging non-occurrence.
         - If matching an existing activity, use its unit.
 
-   8. **Note Extraction**:
+   9. **Note Extraction**:
      - Include contextual information, feelings, observations
      - Don't duplicate information already captured in activities
      - Preserve the user's voice and important details
@@ -96,23 +98,24 @@ Output:
 - Exercise: 30 minutes (match id: def, confidence: 0.9)
 - Note: (empty)
 
-Example 2 - New Activity:
+Example 2 - Discrete Option & Negative Assertion:
+Transcription: "Today was a really good day. I didn't drink any alcohol."
+User has: [Mood (id: mmm, options: Bad=0, Neutral=1, Good=2), Alcohol (id: aaa)]
+Output:
+- Mood: 2 (mapped "good day" to option "Good")
+- Alcohol: 0 (negative assertion)
+- Note: (empty)
+
+Example 3 - New Activity:
 Transcription: "Did 50 pushups this morning, feeling strong"
 User has: [Water Intake, Sleep]
 Output:
 - New activity "Push-ups": 50 (suggest: increment, unit: reps, positive goal)
 - Note: "Feeling strong"
 
-Example 3 - Negative Assertion:
-Transcription: "I didn't drink any alcohol today"
-User has: [Alcohol (id: xyz, unit: drinks)]
-Output:
-- Alcohol: 0 drinks (match id: xyz)
-- Note: (empty)
-
 Example 4 - Just a Note:
 Transcription: "Had a really stressful day at work, need to relax more"
-User has: [Water Intake, Exercise]
+User has: [Water Intake, Exercise] (No mood/stress tracking configured)
 Output:
 - Activities: (none)
 - Note: "Had a really stressful day at work, need to relax more"
