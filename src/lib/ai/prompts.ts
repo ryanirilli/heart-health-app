@@ -32,7 +32,7 @@ Analyze the following transcription and extract:
 1. **Matching Existing Activities**:
    - Try to match mentioned activities to the user's existing activity types
    - Use fuzzy matching (e.g., "water", "drank water", "had water" should all match "Water Intake")
-   - **Subjective Statements**: actively look for subjective statements that match categorical activities.  (e.g., "I feel great" -> matches "Mood" or "Energy").
+   - **Subjective Statements**: actively look for subjective statements that match categorical activities.  (e.g., "I feel great" -> matches "Mood", "Energy", or other state-tracking activities).
    - If there's a clear match, use the existing activityTypeId
    - Be intelligent about units (e.g., "8 glasses" for Water, "30 minutes" for Exercise)
 
@@ -52,8 +52,11 @@ Analyze the following transcription and extract:
    - fixedValue: Fixed routines (always same amount, just logging that it happened)
 
   5. **Value Mapping for Discrete Types**:
-     - For 'buttonGroup': You MUST output the numeric value corresponding to the selected option label (e.g. if options are "Bad=0, Good=1", and user says "good", output 1).
-     - **Subjective Mapping**: If the user's statement matches the *sentiment* of an option, select it even if the words aren't exact. (e.g. "rough day" -> "Bad", "excellent" -> "Good").
+     - For 'buttonGroup': You MUST output the numeric value corresponding to the selected option label.
+     - **Semantic Option Matching**: Compare the *meaning* and *sentiment* of the user's statement to the available option labels.
+       - If the user says something that isn't an exact match, choose the option that best represents their intent.
+       - *Example*: User says "I'm exhausted" and options are [Low, Medium, High] for Energy -> Select "Low".
+       - *Example*: User says "Great day" and options are [Bad, Neutral, Good] for Mood -> Select "Good".
      - For 'toggle': Output 1 for "yes" (happened) and 0 for "no" (didn't happen).
 
   6. **Confidence Scores**:
