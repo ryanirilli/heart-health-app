@@ -17,6 +17,7 @@
     "db:status": "supabase db diff"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.18",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -37,6 +38,7 @@
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.89.0",
     "@tanstack/react-query": "^5.90.16",
+    "ai": "^6.0.49",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -44,6 +46,7 @@
     "framer-motion": "11",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
+    "openai": "^6.16.0",
     "pluralize-esm": "^9.0.5",
     "posthog-js": "^1.318.2",
     "react": "19.2.3",

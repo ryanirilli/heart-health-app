@@ -25,6 +25,12 @@ interface DayContentViewProps {
   containerPadding?: 4 | 6;
   /** All activities - needed for cumulative goal calculations */
   allActivities?: ActivityMap;
+  /** Voice note URL for inline player */
+  voiceNoteUrl?: string;
+  /** Duration of existing voice note in seconds */
+  voiceNoteDuration?: number;
+  /** Handler for voice note click */
+  onVoiceNoteClick?: () => void;
 }
 
 /**
@@ -41,6 +47,9 @@ export function DayContentView({
   fullBleedBorder = false,
   containerPadding = 4,
   allActivities,
+  voiceNoteUrl,
+  voiceNoteDuration,
+  onVoiceNoteClick,
 }: DayContentViewProps) {
   // Get entries with their types for display
   const entriesWithTypes = useMemo(() => {
@@ -93,6 +102,22 @@ export function DayContentView({
         >
           <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
           <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
+        </div>
+      )}
+
+      {/* Voice Note Section - View Mode */}
+      {voiceNoteUrl && (
+        <div 
+          onClick={onVoiceNoteClick}
+          className={cn(
+            "mt-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 transition-colors",
+            onVoiceNoteClick && "hover:bg-muted/70 cursor-pointer"
+          )}
+        >
+          <VoiceNoteInlinePlayer
+            audioUrl={voiceNoteUrl}
+            duration={voiceNoteDuration || 0}
+          />
         </div>
       )}
 

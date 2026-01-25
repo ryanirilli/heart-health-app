@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { DbVoiceNote } from '@/lib/supabase/types';
+import OpenAI from 'openai';
+import { extractActivities } from '@/lib/ai/extractActivities';
 
 // Maximum voice note duration in seconds
 const MAX_DURATION_SECONDS = 60;
@@ -11,6 +13,9 @@ export interface VoiceNote {
   storagePath: string;
   durationSeconds: number;
   signedUrl?: string;
+  transcription?: string;
+  transcriptionStatus?: 'pending' | 'completed' | 'failed';
+  extractedActivities?: any;
 }
 
 export interface VoiceNoteMap {
@@ -56,6 +61,9 @@ export async function GET() {
         storagePath: note.storage_path,
         durationSeconds: note.duration_seconds,
         signedUrl: signedUrlData?.signedUrl,
+        transcription: note.transcription ?? undefined,
+        transcriptionStatus: note.transcription_status ?? undefined,
+        extractedActivities: note.extracted_activities as any ?? undefined,
       };
     }
 
@@ -113,7 +121,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if voice note already exists for this date
+    // Check if voice note already exists for this date - if so, delete it first (upsert behavior)
     const { data: existing } = await supabase
       .from('voice_notes')
       .select('id, storage_path')
@@ -122,10 +130,16 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existing) {
-      return NextResponse.json(
-        { error: 'A voice note already exists for this date. Delete it first.' },
-        { status: 409 }
-      );
+      // Delete from storage
+      await supabase.storage
+        .from('voice-notes')
+        .remove([existing.storage_path]);
+      
+      // Delete database record
+      await supabase
+        .from('voice_notes')
+        .delete()
+        .eq('id', existing.id);
     }
 
     // Generate unique storage path
@@ -173,6 +187,70 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Transcribe audio with Whisper and extract activities
+    let transcription: string | null = null;
+    let transcriptionStatus: 'pending' | 'completed' | 'failed' = 'pending';
+    let extractedActivities: any = null;
+
+    try {
+      // Check if OpenAI API key is configured
+      if (!process.env.OPENAI_API_KEY) {
+        console.warn('OPENAI_API_KEY not configured - skipping transcription');
+        transcriptionStatus = 'failed';
+      } else {
+        // Download audio from storage for transcription
+        const { data: audioData, error: downloadError } = await supabase.storage
+          .from('voice-notes')
+          .download(storagePath);
+
+        if (downloadError || !audioData) {
+          console.error('Failed to download audio for transcription:', downloadError);
+          transcriptionStatus = 'failed';
+        } else {
+          // Call OpenAI Whisper API
+          const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+          const transcriptionResult = await openai.audio.transcriptions.create({
+            file: new File([audioData], `audio.${fileExtension}`, { type: baseMimeType }),
+            model: 'whisper-1',
+          });
+
+          transcription = transcriptionResult.text;
+          transcriptionStatus = 'completed';
+
+          // Extract activities if transcription succeeded
+          if (transcription) {
+            const extractionResult = await extractActivities(
+              transcription,
+              user.id,
+              supabase
+            );
+            if (extractionResult) {
+              extractedActivities = extractionResult;
+            }
+          }
+        }
+      }
+    } catch (transcriptionError) {
+      console.error('Transcription/extraction failed:', transcriptionError);
+      transcriptionStatus = 'failed';
+      // Don't fail the entire request - voice note is still saved
+    }
+
+    // Update database record with transcription and extraction results
+    const { error: updateError } = await supabase
+      .from('voice_notes')
+      .update({
+        transcription,
+        transcription_status: transcriptionStatus,
+        extracted_activities: extractedActivities,
+      })
+      .eq('id', voiceNote.id);
+
+    if (updateError) {
+      console.error('Failed to update voice note with transcription:', updateError);
+      // Don't fail the request - the voice note was saved successfully
+    }
+
     // Generate signed URL for immediate playback
     const { data: signedUrlData } = await supabase.storage
       .from('voice-notes')
@@ -184,6 +262,9 @@ export async function POST(request: NextRequest) {
       storagePath: voiceNote.storage_path,
       durationSeconds: voiceNote.duration_seconds,
       signedUrl: signedUrlData?.signedUrl,
+      transcription: transcription ?? undefined,
+      transcriptionStatus: transcriptionStatus ?? undefined,
+      extractedActivities: extractedActivities ?? undefined,
     });
   } catch (error) {
     console.error('Failed to save voice note:', error);

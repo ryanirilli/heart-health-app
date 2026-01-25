@@ -14,6 +14,8 @@ type VoiceNoteState = 'idle' | 'recording' | 'preview' | 'playing';
 interface VoiceNoteEditorContentProps {
   existingAudioUrl?: string;
   existingDuration?: number;
+  existingTranscription?: string;
+  existingTranscriptionStatus?: 'pending' | 'completed' | 'failed';
   onSave: (audioBlob: Blob, durationSeconds: number) => Promise<void>;
   onDelete?: () => Promise<void>;
   isSaving?: boolean;
@@ -29,6 +31,8 @@ interface VoiceNoteEditorContentProps {
 export function VoiceNoteEditorContent({
   existingAudioUrl,
   existingDuration,
+  existingTranscription,
+  existingTranscriptionStatus,
   onSave,
   onDelete,
   isSaving = false,
@@ -440,6 +444,27 @@ export function VoiceNoteEditorContent({
         <p className="text-sm text-muted-foreground text-center">
           Delete this voice note to record a new one.
         </p>
+
+        {/* Transcription display */}
+        {existingTranscription && (
+          <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-muted">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Transcription</p>
+            <p className="text-sm leading-relaxed">{existingTranscription}</p>
+          </div>
+        )}
+        {existingTranscriptionStatus === 'failed' && (
+          <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-xs text-destructive">Transcription failed. The voice note was saved but could not be transcribed.</p>
+          </div>
+        )}
+        {existingTranscriptionStatus === 'pending' && (
+          <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-muted">
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Transcribing...
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -626,6 +651,8 @@ interface VoiceNoteEditorFooterProps {
   hasPreview: boolean;
   isSaving?: boolean;
   isDeleting?: boolean;
+  /** Streaming status message to show during save */
+  streamingStatus?: string | null;
 }
 
 /**
@@ -639,6 +666,7 @@ export function VoiceNoteEditorFooter({
   hasPreview,
   isSaving = false,
   isDeleting = false,
+  streamingStatus,
 }: VoiceNoteEditorFooterProps) {
   const isPending = isSaving || isDeleting;
 
@@ -671,7 +699,7 @@ export function VoiceNoteEditorFooter({
             {isSaving ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
+                {streamingStatus || "Saving..."}
               </span>
             ) : (
               "Save"

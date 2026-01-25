@@ -3,12 +3,31 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
 
+export interface ExtractedActivity {
+  activityTypeId: string | null;
+  suggestedName: string;
+  suggestedUnit: string;
+  suggestedUiType: string;
+  suggestedGoalType: 'positive' | 'negative' | 'neutral';
+  value: number;
+  confidence: number;
+  originalMention: string;
+}
+
+export interface ExtractedActivities {
+  activities: ExtractedActivity[];
+  note: string;
+}
+
 export interface VoiceNote {
   id: string;
   date: string;
   storagePath: string;
   durationSeconds: number;
   signedUrl?: string;
+  transcription?: string;
+  transcriptionStatus?: 'pending' | 'completed' | 'failed';
+  extractedActivities?: ExtractedActivities;
 }
 
 export interface VoiceNoteMap {
@@ -31,6 +50,13 @@ interface SaveVoiceNoteParams {
   durationSeconds: number;
 }
 
+export interface StreamingStatus {
+  status: 'parsing' | 'uploading' | 'saving' | 'transcribing' | 'extracting' | 'finalizing' | 'complete' | 'error';
+  message: string;
+  data?: VoiceNote;
+  statusCode?: number;
+}
+
 async function saveVoiceNote({ date, audioBlob, durationSeconds }: SaveVoiceNoteParams): Promise<VoiceNote> {
   const formData = new FormData();
   formData.append("date", date);
@@ -48,6 +74,69 @@ async function saveVoiceNote({ date, audioBlob, durationSeconds }: SaveVoiceNote
   }
 
   return response.json();
+}
+
+/**
+ * Stream-based voice note save that provides real-time status updates
+ */
+async function saveVoiceNoteWithStreaming(
+  { date, audioBlob, durationSeconds }: SaveVoiceNoteParams,
+  onStatusUpdate: (status: StreamingStatus) => void
+): Promise<VoiceNote> {
+  const formData = new FormData();
+  formData.append("date", date);
+  formData.append("audio", audioBlob, `voice-note.${audioBlob.type.split('/')[1] || 'webm'}`);
+  formData.append("duration", durationSeconds.toString());
+
+  const response = await fetch("/api/voice-notes/stream", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to save voice note");
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("No response body");
+  }
+
+  const decoder = new TextDecoder();
+  let finalResult: VoiceNote | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const text = decoder.decode(value, { stream: true });
+    const lines = text.split('\n').filter(line => line.startsWith('data: '));
+
+    for (const line of lines) {
+      try {
+        const jsonStr = line.replace('data: ', '');
+        const status: StreamingStatus = JSON.parse(jsonStr);
+        onStatusUpdate(status);
+
+        if (status.status === 'complete' && status.data) {
+          finalResult = status.data;
+        } else if (status.status === 'error') {
+          throw new Error(status.message);
+        }
+      } catch (e) {
+        // Ignore parse errors for incomplete chunks
+        if (e instanceof Error && e.message !== 'Unexpected end of JSON input') {
+          throw e;
+        }
+      }
+    }
+  }
+
+  if (!finalResult) {
+    throw new Error("No result received from stream");
+  }
+
+  return finalResult;
 }
 
 async function deleteVoiceNote(date: string): Promise<void> {
@@ -122,6 +211,28 @@ export function useVoiceNotes() {
     [saveMutation]
   );
 
+  // Streaming save with status callback
+  const saveWithStreaming = useCallback(
+    async (
+      date: string,
+      audioBlob: Blob,
+      durationSeconds: number,
+      onStatusUpdate: (status: StreamingStatus) => void
+    ) => {
+      const result = await saveVoiceNoteWithStreaming(
+        { date, audioBlob, durationSeconds },
+        onStatusUpdate
+      );
+      // Update cache with new voice note
+      queryClient.setQueryData<VoiceNoteMap>(VOICE_NOTES_QUERY_KEY, (old) => ({
+        ...old,
+        [result.date]: result,
+      }));
+      return result;
+    },
+    [queryClient]
+  );
+
   const remove = useCallback(
     (date: string) => {
       return deleteMutation.mutateAsync(date);
@@ -133,6 +244,7 @@ export function useVoiceNotes() {
     voiceNotes,
     isLoading,
     saveVoiceNote: save,
+    saveVoiceNoteWithStreaming: saveWithStreaming,
     deleteVoiceNote: remove,
     isSaving: saveMutation.isPending,
     isDeleting: deleteMutation.isPending,
@@ -141,12 +253,17 @@ export function useVoiceNotes() {
 
 // Hook to get a single voice note for a specific date
 export function useVoiceNoteForDate(date: string) {
-  const { voiceNotes, isLoading, saveVoiceNote, deleteVoiceNote, isSaving, isDeleting } = useVoiceNotes();
+  const { voiceNotes, isLoading, saveVoiceNote, saveVoiceNoteWithStreaming, deleteVoiceNote, isSaving, isDeleting } = useVoiceNotes();
   
   return {
     voiceNote: voiceNotes[date],
     isLoading,
     saveVoiceNote: (audioBlob: Blob, durationSeconds: number) => saveVoiceNote(date, audioBlob, durationSeconds),
+    saveVoiceNoteWithStreaming: (
+      audioBlob: Blob,
+      durationSeconds: number,
+      onStatusUpdate: (status: StreamingStatus) => void
+    ) => saveVoiceNoteWithStreaming(date, audioBlob, durationSeconds, onStatusUpdate),
     deleteVoiceNote: () => deleteVoiceNote(date),
     isSaving,
     isDeleting,

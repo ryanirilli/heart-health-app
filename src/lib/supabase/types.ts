@@ -71,6 +71,9 @@ export interface DbVoiceNote {
   date: string;
   storage_path: string;
   duration_seconds: number;
+  transcription: string | null;
+  transcription_status: 'pending' | 'completed' | 'failed' | null;
+  extracted_activities: unknown | null; // JSON type from database
   created_at: string;
   updated_at: string;
 }
