@@ -36,7 +36,13 @@ Analyze the following transcription and extract:
    - If there's a clear match, use the existing activityTypeId
    - Be intelligent about units (e.g., "8 glasses" for Water, "30 minutes" for Exercise)
 
-2. **New Activities**:
+2. **Inference & Implicit Activities** (CRITICAL):
+   - Users often imply activities without naming them directly.
+   - **State of Being**: If the user describes a state (e.g., "I'm tired", "Great day", "Feeling stressed"), look for an Activity Type that tracks that state (e.g., "Energy", "Mood", "Stress Level").
+   - **Action Inference**: If the user matches the *action* of an activity (e.g. "went for a run" -> "Exercise"), match it.
+   - **Generic Rule**: ask yourself "Does this statement answer the question posed by one of the Activity Types?" (e.g. Statement: "Good day" answers Activity: "Mood?").
+
+3. **New Activities**:
    - Only suggest new activities if the user explicitly mentions something trackable that doesn't match existing types
    - Don't create new activities for vague mentions or feelings unless they're clearly meant to be tracked
    - For new activities, suggest appropriate:
@@ -44,7 +50,7 @@ Analyze the following transcription and extract:
      - Unit (glasses, minutes, hours, steps, etc.)
      - Goal type (positive=more is better, negative=less is better, neutral=just tracking)
 
-3. **UI Type Selection**:
+4. **UI Type Selection**:
    - increment: Countable items (pushups, glasses, servings)
    - slider: Continuous ranges (hours of sleep 0-12, water intake 0-5 liters)
    - toggle: Binary yes/no (took medication, meditated)
