@@ -28,6 +28,10 @@ const badgeVariants = cva(
         goalProgressOutline: "rounded-full border-transparent bg-muted text-foreground/80",
         goalMissed: "rounded-full border-transparent bg-muted/50 text-muted-foreground",
         goalMissedOutline: "rounded-full border-transparent bg-muted/50 text-muted-foreground",
+        // AI confidence badges - theme-consistent styling
+        confidenceHigh: "rounded-full border-transparent bg-ring/15 text-ring font-medium",
+        confidenceMedium: "rounded-full border-transparent bg-primary/20 text-primary font-medium",
+        confidenceLow: "rounded-full border-transparent bg-muted text-muted-foreground font-medium",
       },
     },
     defaultVariants: {

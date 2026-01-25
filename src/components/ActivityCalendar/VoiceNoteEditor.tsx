@@ -14,6 +14,8 @@ type VoiceNoteState = 'idle' | 'recording' | 'preview' | 'playing';
 interface VoiceNoteEditorContentProps {
   existingAudioUrl?: string;
   existingDuration?: number;
+  existingTranscription?: string;
+  existingTranscriptionStatus?: 'pending' | 'completed' | 'failed';
   onSave: (audioBlob: Blob, durationSeconds: number) => Promise<void>;
   onDelete?: () => Promise<void>;
   isSaving?: boolean;
@@ -29,6 +31,8 @@ interface VoiceNoteEditorContentProps {
 export function VoiceNoteEditorContent({
   existingAudioUrl,
   existingDuration,
+  existingTranscription,
+  existingTranscriptionStatus,
   onSave,
   onDelete,
   isSaving = false,
@@ -440,6 +444,27 @@ export function VoiceNoteEditorContent({
         <p className="text-sm text-muted-foreground text-center">
           Delete this voice note to record a new one.
         </p>
+
+        {/* Transcription display */}
+        {existingTranscription && (
+          <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-muted">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Transcription</p>
+            <p className="text-sm leading-relaxed">{existingTranscription}</p>
+          </div>
+        )}
+        {existingTranscriptionStatus === 'failed' && (
+          <div className="mt-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-xs text-destructive">Transcription failed. The voice note was saved but could not be transcribed.</p>
+          </div>
+        )}
+        {existingTranscriptionStatus === 'pending' && (
+          <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-muted">
+            <p className="text-xs text-muted-foreground flex items-center gap-2">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Transcribing...
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -527,15 +552,15 @@ export function VoiceNoteEditorContent({
         <div className="flex flex-col items-center gap-4 py-8">
           <div className="relative">
             {/* Pulsing rings */}
-            <div className="absolute inset-0 animate-ping rounded-full bg-destructive/30" style={{ animationDuration: '1.5s' }} />
-            <div className="absolute inset-0 animate-ping rounded-full bg-destructive/20" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+            <div className="absolute inset-0 animate-ping rounded-full bg-chart-1/30" style={{ animationDuration: '1.5s' }} />
+            <div className="absolute inset-0 animate-ping rounded-full bg-chart-1/20" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
             
             <button
               onClick={stopRecording}
               className={cn(
                 "relative w-20 h-20 rounded-full flex items-center justify-center transition-all",
-                "bg-destructive text-destructive-foreground",
-                "hover:bg-destructive/90"
+                "bg-chart-1 text-white",
+                "hover:bg-chart-1/90"
               )}
             >
             </button>
@@ -546,7 +571,7 @@ export function VoiceNoteEditorContent({
               {formatTime(recordingTime)}
             </div>
             <div className="text-sm text-muted-foreground">
-              {formatTime(MAX_VOICE_NOTE_DURATION - recordingTime)} remaining
+              1 minute max
             </div>
           </div>
         </div>
@@ -626,6 +651,8 @@ interface VoiceNoteEditorFooterProps {
   hasPreview: boolean;
   isSaving?: boolean;
   isDeleting?: boolean;
+  /** Streaming status message to show during save */
+  streamingStatus?: string | null;
 }
 
 /**
@@ -639,6 +666,7 @@ export function VoiceNoteEditorFooter({
   hasPreview,
   isSaving = false,
   isDeleting = false,
+  streamingStatus,
 }: VoiceNoteEditorFooterProps) {
   const isPending = isSaving || isDeleting;
 
@@ -671,7 +699,7 @@ export function VoiceNoteEditorFooter({
             {isSaving ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
+                {streamingStatus || "Saving..."}
               </span>
             ) : (
               "Save"

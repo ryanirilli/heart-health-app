@@ -60,7 +60,7 @@ export interface ActivityTypeMap {
 }
 
 /** Maximum number of active (non-deleted) activity types allowed */
-export const MAX_ACTIVITY_TYPES = 5;
+export const MAX_ACTIVITY_TYPES = 10;
 
 /** Generate a unique ID for a new activity type */
 export function generateActivityTypeId(): string {
