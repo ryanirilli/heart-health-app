@@ -70,7 +70,18 @@ Analyze the following transcription and extract:
          - Set the unit to "times", "sessions", or similar generic count.
        - Example: "I played basketball" -> Activity: "Basketball", Value: 1, Unit: "session", Type: increment.
 
-  7. **Note Extraction**:
+   7. **Negative Assertions (Zero Values)**:
+      - If the user explicitly states they did **NOT** do an activity (e.g., "didn't drink alcohol", "had no sugar", "skipped dessert"):
+        - **CAPTURE THIS ACTIVITY**.
+        - **Value Assignment Rules**:
+          - **toggle/yes_no**: Set value to **0** (representing "No" or "Did not occur").
+          - **increment/slider/count**: Set value to **0**.
+          - **fixedValue**: Set value to **0** (explicitly recording it didn't happen).
+          - **buttonGroup**: Check if there's an option for "None", "Zero", "Bad", or "Low" that corresponds to value 0. If yes, use it. If not, use **0**.
+        - This is vital for tracking negative goals (things to avoid) or simply logging non-occurrence.
+        - If matching an existing activity, use its unit.
+
+   8. **Note Extraction**:
      - Include contextual information, feelings, observations
      - Don't duplicate information already captured in activities
      - Preserve the user's voice and important details
@@ -92,7 +103,14 @@ Output:
 - New activity "Push-ups": 50 (suggest: increment, unit: reps, positive goal)
 - Note: "Feeling strong"
 
-Example 3 - Just a Note:
+Example 3 - Negative Assertion:
+Transcription: "I didn't drink any alcohol today"
+User has: [Alcohol (id: xyz, unit: drinks)]
+Output:
+- Alcohol: 0 drinks (match id: xyz)
+- Note: (empty)
+
+Example 4 - Just a Note:
 Transcription: "Had a really stressful day at work, need to relax more"
 User has: [Water Intake, Exercise]
 Output:

@@ -72,6 +72,31 @@ export function DayContentView({
 
   return (
     <>
+      {/* Voice Note Section - View Mode */}
+      {/* Show if either: 1. A voice note exists (voiceNoteUrl is present) OR 2. Voice note recording is enabled (onVoiceNoteClick is present) */}
+      {(voiceNoteUrl || onVoiceNoteClick) && (
+        <div 
+          onClick={onVoiceNoteClick}
+          className={cn(
+            "mb-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 transition-colors flex items-center gap-3",
+            onVoiceNoteClick ? "hover:bg-muted/70 cursor-pointer" : ""
+          )}
+        >
+          {voiceNoteUrl ? (
+            <VoiceNoteInlinePlayer
+              audioUrl={voiceNoteUrl}
+              duration={voiceNoteDuration || 0}
+              className="w-full"
+            />
+          ) : (
+            <>
+              <Mic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="text-sm text-muted-foreground">Record your activities</span>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Activities Section */}
       <div className="space-y-3">
         {entriesWithTypes.length === 0 ? (
@@ -102,22 +127,6 @@ export function DayContentView({
         >
           <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
           <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
-        </div>
-      )}
-
-      {/* Voice Note Section - View Mode */}
-      {voiceNoteUrl && (
-        <div 
-          onClick={onVoiceNoteClick}
-          className={cn(
-            "mt-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 transition-colors",
-            onVoiceNoteClick && "hover:bg-muted/70 cursor-pointer"
-          )}
-        >
-          <VoiceNoteInlinePlayer
-            audioUrl={voiceNoteUrl}
-            duration={voiceNoteDuration || 0}
-          />
         </div>
       )}
 
@@ -251,6 +260,30 @@ export function DayContentEdit({
   // Show all activity types directly with tap to log
   return (
     <>
+      {/* Voice Note Section - inline player when exists, clickable button when not */}
+      {onVoiceNoteClick && (
+        voiceNoteUrl ? (
+          <div
+            onClick={onVoiceNoteClick}
+            className="mb-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors cursor-pointer"
+          >
+            <VoiceNoteInlinePlayer
+              audioUrl={voiceNoteUrl}
+              duration={voiceNoteDuration || 0}
+              className="w-full"
+            />
+          </div>
+        ) : (
+          <button
+            onClick={onVoiceNoteClick}
+            className="mb-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-center gap-3"
+          >
+            <Mic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-muted-foreground">Record your activities</span>
+          </button>
+        )
+      )}
+
       <div className="space-y-3">
         {allRelevantTypes.map((type) => (
           <ActivityTypeCard
@@ -278,29 +311,6 @@ export function DayContentEdit({
             <span className="text-sm text-muted-foreground">Add note</span>
           )}
         </button>
-      )}
-
-      {/* Voice Note Section - inline player when exists, clickable button when not */}
-      {onVoiceNoteClick && (
-        voiceNoteUrl ? (
-          <div
-            onClick={onVoiceNoteClick}
-            className="mt-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors cursor-pointer"
-          >
-            <VoiceNoteInlinePlayer
-              audioUrl={voiceNoteUrl}
-              duration={voiceNoteDuration || 0}
-            />
-          </div>
-        ) : (
-          <button
-            onClick={onVoiceNoteClick}
-            className="mt-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-center gap-3"
-          >
-            <Mic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <span className="text-sm text-muted-foreground">Add voice note</span>
-          </button>
-        )
       )}
     </>
   );

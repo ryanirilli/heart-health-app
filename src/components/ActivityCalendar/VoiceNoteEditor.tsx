@@ -552,15 +552,15 @@ export function VoiceNoteEditorContent({
         <div className="flex flex-col items-center gap-4 py-8">
           <div className="relative">
             {/* Pulsing rings */}
-            <div className="absolute inset-0 animate-ping rounded-full bg-destructive/30" style={{ animationDuration: '1.5s' }} />
-            <div className="absolute inset-0 animate-ping rounded-full bg-destructive/20" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+            <div className="absolute inset-0 animate-ping rounded-full bg-chart-1/30" style={{ animationDuration: '1.5s' }} />
+            <div className="absolute inset-0 animate-ping rounded-full bg-chart-1/20" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
             
             <button
               onClick={stopRecording}
               className={cn(
                 "relative w-20 h-20 rounded-full flex items-center justify-center transition-all",
-                "bg-destructive text-destructive-foreground",
-                "hover:bg-destructive/90"
+                "bg-chart-1 text-white",
+                "hover:bg-chart-1/90"
               )}
             >
             </button>
@@ -571,7 +571,7 @@ export function VoiceNoteEditorContent({
               {formatTime(recordingTime)}
             </div>
             <div className="text-sm text-muted-foreground">
-              {formatTime(MAX_VOICE_NOTE_DURATION - recordingTime)} remaining
+              1 minute max
             </div>
           </div>
         </div>

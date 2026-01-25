@@ -76,7 +76,7 @@ export function ActivitySuggestions({
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-ring" />
         <span className="text-sm font-medium text-muted-foreground">
-          AI detected {extractedActivities.activities.length} {extractedActivities.activities.length === 1 ? 'activity' : 'activities'}
+          Identified {extractedActivities.activities.length} {extractedActivities.activities.length === 1 ? 'activity' : 'activities'} for your day
         </span>
       </div>
 
