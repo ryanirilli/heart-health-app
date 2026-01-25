@@ -115,7 +115,9 @@ export function ActivitySuggestions({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-foreground/90">
-                        {activity.suggestedName}
+                        {isExisting && activity.activityTypeId && existingActivityTypes[activity.activityTypeId] 
+                          ? existingActivityTypes[activity.activityTypeId].name 
+                          : activity.suggestedName}
                       </span>
                       {!isExisting && (
                         <Badge variant="muted" className="text-xs px-1.5 py-0">

@@ -28,6 +28,8 @@ import { useVoiceNoteForDate } from "@/lib/hooks/useVoiceNotesQuery";
 import { useFeatureFlag, FEATURE_FLAGS } from "@/lib/hooks/useFeatureFlag";
 import { ActivitySuggestions } from "./ActivitySuggestions";
 import { ExtractedActivity } from "@/lib/hooks/useVoiceNotesQuery";
+import { useCreateActivityType } from "@/lib/hooks/useActivityTypesQuery";
+import { UIType } from "@/lib/activityTypes";
 
 type FormMode = "view" | "edit" | "note" | "voiceNote" | "activitySuggestions";
 
@@ -632,6 +634,9 @@ export function DayView({
     />
   );
 
+  // Mutation for creating activity types
+  const createActivityTypeMutation = useCreateActivityType();
+
   // Activity suggestions handlers
   const handleAcceptSuggestions = useCallback(async (acceptedActivities: ExtractedActivity[]) => {
     // First, create any new activity types
@@ -639,25 +644,20 @@ export function DayView({
       if (activity.activityTypeId === null) {
         // Create new activity type
         try {
-          const response = await fetch('/api/activity-types', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: crypto.randomUUID(),
-              name: activity.suggestedName,
-              unit: activity.suggestedUnit,
-              pluralize: true,
-              goalType: activity.suggestedGoalType,
-              uiType: activity.suggestedUiType,
-              order: Object.keys(activityTypes).length,
-            }),
+          const newTypeId = crypto.randomUUID();
+          await createActivityTypeMutation.mutateAsync({
+            id: newTypeId,
+            name: activity.suggestedName,
+            unit: activity.suggestedUnit,
+            pluralize: true,
+            goalType: activity.suggestedGoalType,
+            uiType: activity.suggestedUiType as UIType,
+            order: Object.keys(activityTypes).length,
+            // Add required fields with default values
+            deleted: false,
           });
-          if (!response.ok) {
-            console.error('Failed to create new activity type:', activity.suggestedName);
-            continue;
-          }
-          const newType = await response.json();
-          activity.activityTypeId = newType.id; // Update for use below
+          
+          activity.activityTypeId = newTypeId; // Update for use below
         } catch (error) {
           console.error('Error creating activity type:', error);
           continue;
