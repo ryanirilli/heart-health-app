@@ -291,6 +291,7 @@ export function DayView({
   // Voice note preview state (for save button in footer)
   const [hasVoiceNotePreview, setHasVoiceNotePreview] = useState(false);
   const voiceNotePreviewRef = useRef<{ blob: Blob; duration: number } | null>(null);
+  const [streamingStatus, setStreamingStatus] = useState<string | null>(null);
 
   // Reset state when selectedDate changes or activity data loads
   useEffect(() => {
@@ -421,6 +422,7 @@ export function DayView({
   const {
     voiceNote: existingVoiceNote,
     saveVoiceNote,
+    saveVoiceNoteWithStreaming,
     deleteVoiceNote,
     isSaving: isVoiceNoteSaving,
     isDeleting: isVoiceNoteDeleting,
@@ -431,6 +433,7 @@ export function DayView({
     setNoteSlideDirection(1); // Going forward
     setHasVoiceNotePreview(false);
     voiceNotePreviewRef.current = null;
+    setStreamingStatus(null);
     setMode("voiceNote");
   }, [mode]);
 
@@ -443,9 +446,38 @@ export function DayView({
 
   const handleSaveVoiceNote = useCallback(async (audioBlob: Blob, durationSeconds: number) => {
     try {
-      const result = await saveVoiceNote(audioBlob, durationSeconds);
+      setStreamingStatus("Starting...");
+      
+      const result = await saveVoiceNoteWithStreaming(audioBlob, durationSeconds, (status) => {
+        // Map status to user-friendly message
+        switch (status.status) {
+          case 'uploading':
+            setStreamingStatus("Uploading...");
+            break;
+          case 'saving':
+            setStreamingStatus("Saving...");
+            break;
+          case 'transcribing':
+            setStreamingStatus("Transcribing...");
+            break;
+          case 'extracting':
+            setStreamingStatus("Analyzing...");
+            break;
+          case 'finalizing':
+            setStreamingStatus("Finishing...");
+            break;
+          case 'complete':
+            setStreamingStatus("Done!");
+            break;
+          case 'error':
+            setStreamingStatus("Error");
+            break;
+        }
+      });
+      
       setHasVoiceNotePreview(false);
       voiceNotePreviewRef.current = null;
+      setStreamingStatus(null);
 
       // Check if we have extracted activities to show suggestions
       if (result?.extractedActivities && result.extractedActivities.activities.length > 0) {
@@ -462,10 +494,11 @@ export function DayView({
       // Still go back on error
       setHasVoiceNotePreview(false);
       voiceNotePreviewRef.current = null;
+      setStreamingStatus(null);
       setNoteSlideDirection(-1);
       setMode(modeBeforeNote);
     }
-  }, [saveVoiceNote, modeBeforeNote, saveNote, selectedDateStr]);
+  }, [saveVoiceNoteWithStreaming, modeBeforeNote, saveNote, selectedDateStr]);
 
   const handleDeleteVoiceNote = useCallback(async () => {
     await deleteVoiceNote();
@@ -629,8 +662,9 @@ export function DayView({
       onDelete={undefined} // Delete only available in header badge
       hasExistingVoiceNote={!!existingVoiceNote}
       hasPreview={hasVoiceNotePreview}
-      isSaving={isVoiceNoteSaving}
+      isSaving={isVoiceNoteSaving || !!streamingStatus}
       isDeleting={isVoiceNoteDeleting}
+      streamingStatus={streamingStatus}
     />
   );
 

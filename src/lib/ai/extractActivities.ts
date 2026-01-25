@@ -14,8 +14,6 @@ const ExtractedActivitySchema = z.object({
   suggestedUiType: z.enum(['increment', 'slider', 'buttonGroup', 'toggle', 'fixedValue']).describe('UI type for the activity'),
   suggestedGoalType: z.enum(['positive', 'negative', 'neutral']).describe('Whether more is better (positive), less is better (negative), or just tracking (neutral)'),
   value: z.number().describe('The numeric value extracted from the transcription'),
-  confidence: z.number().min(0).max(1).describe('Confidence score for this extraction (0-1)'),
-  originalMention: z.string().describe('The original text from the transcription that mentioned this activity'),
 });
 
 const ExtractionResultSchema = z.object({
@@ -66,19 +64,14 @@ export async function extractActivities(
 
     // Call AI to extract structured data
     const result = await generateObject({
-      model: openai('gpt-5-nano'),
+      model: openai('gpt-4o-mini'),
       schema: ExtractionResultSchema,
       prompt,
-      temperature: 0.3, // Lower temperature for more consistent extraction
+      temperature: 0, // Lower temperature for more consistent extraction
     });
 
-    // Filter out low-confidence activities
-    const filteredActivities = result.object.activities.filter(
-      (activity) => activity.confidence >= 0.5
-    );
-
     return {
-      activities: filteredActivities,
+      activities: result.object.activities,
       note: result.object.note.trim(),
     };
   } catch (error) {

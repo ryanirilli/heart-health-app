@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
+import posthog from "posthog-js";
 
 export interface ExtractedActivity {
   activityTypeId: string | null;
@@ -10,8 +11,6 @@ export interface ExtractedActivity {
   suggestedUiType: string;
   suggestedGoalType: 'positive' | 'negative' | 'neutral';
   value: number;
-  confidence: number;
-  originalMention: string;
 }
 
 export interface ExtractedActivities {
@@ -83,60 +82,102 @@ async function saveVoiceNoteWithStreaming(
   { date, audioBlob, durationSeconds }: SaveVoiceNoteParams,
   onStatusUpdate: (status: StreamingStatus) => void
 ): Promise<VoiceNote> {
-  const formData = new FormData();
-  formData.append("date", date);
-  formData.append("audio", audioBlob, `voice-note.${audioBlob.type.split('/')[1] || 'webm'}`);
-  formData.append("duration", durationSeconds.toString());
+  const fileExtension = audioBlob.type.split('/')[1] || 'webm';
+  const startTime = performance.now();
+  let lastStepTime = startTime;
 
-  const response = await fetch("/api/voice-notes/stream", {
-    method: "POST",
-    body: formData,
+  posthog.capture('voice_note_save_start', {
+    date,
+    duration: durationSeconds,
+    fileSize: audioBlob.size,
+    fileType: audioBlob.type,
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to save voice note");
-  }
+  const formData = new FormData();
+  formData.append("date", date);
+  formData.append("audio", audioBlob, `voice-note.${fileExtension}`);
+  formData.append("duration", durationSeconds.toString());
 
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error("No response body");
-  }
+  try {
+    const response = await fetch("/api/voice-notes/stream", {
+      method: "POST",
+      body: formData,
+    });
 
-  const decoder = new TextDecoder();
-  let finalResult: VoiceNote | null = null;
+    if (!response.ok) {
+      throw new Error("Failed to save voice note");
+    }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error("No response body");
+    }
 
-    const text = decoder.decode(value, { stream: true });
-    const lines = text.split('\n').filter(line => line.startsWith('data: '));
+    const decoder = new TextDecoder();
+    let finalResult: VoiceNote | null = null;
+    let lastStatus = '';
 
-    for (const line of lines) {
-      try {
-        const jsonStr = line.replace('data: ', '');
-        const status: StreamingStatus = JSON.parse(jsonStr);
-        onStatusUpdate(status);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-        if (status.status === 'complete' && status.data) {
-          finalResult = status.data;
-        } else if (status.status === 'error') {
-          throw new Error(status.message);
-        }
-      } catch (e) {
-        // Ignore parse errors for incomplete chunks
-        if (e instanceof Error && e.message !== 'Unexpected end of JSON input') {
-          throw e;
+      const text = decoder.decode(value, { stream: true });
+      const lines = text.split('\n').filter(line => line.startsWith('data: '));
+
+      for (const line of lines) {
+        try {
+          const jsonStr = line.replace('data: ', '');
+          const status: StreamingStatus = JSON.parse(jsonStr);
+          onStatusUpdate(status);
+
+          // Track step duration
+          if (status.status !== lastStatus) {
+            const now = performance.now();
+            const stepDuration = now - lastStepTime;
+            
+            if (lastStatus) {
+                posthog.capture('voice_note_save_step_complete', {
+                    step: lastStatus,
+                    duration_ms: stepDuration,
+                });
+            }
+            
+            lastStatus = status.status;
+            lastStepTime = now;
+          }
+
+          if (status.status === 'complete' && status.data) {
+            finalResult = status.data;
+            const totalDuration = performance.now() - startTime;
+            posthog.capture('voice_note_save_complete', {
+                total_duration_ms: totalDuration,
+                audio_duration: durationSeconds,
+            });
+          } else if (status.status === 'error') {
+            throw new Error(status.message);
+          }
+        } catch (e) {
+          // Ignore parse errors for incomplete chunks
+          if (e instanceof Error && e.message !== 'Unexpected end of JSON input') {
+            throw e;
+          }
         }
       }
     }
-  }
 
-  if (!finalResult) {
-    throw new Error("No result received from stream");
-  }
+    if (!finalResult) {
+      throw new Error("No result received from stream");
+    }
 
-  return finalResult;
+    return finalResult;
+  } catch (error) {
+    const totalDuration = performance.now() - startTime;
+    posthog.capture('voice_note_save_failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        total_duration_ms: totalDuration,
+    });
+    throw error;
+  }
 }
 
 async function deleteVoiceNote(date: string): Promise<void> {

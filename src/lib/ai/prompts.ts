@@ -60,6 +60,16 @@ Analyze the following transcription and extract:
      - 0.5-0.69: Ambiguous or uncertain match
      - Below 0.5: Don't include
 
+  6. **STRICT RULE - DO NOT GUESS VALUES**:
+     - If the user mentions an activity but NOT a specific value (e.g., "I played basketball" vs "I played basketball for 30 minutes"):
+       - **DO NOT OMIT THE ACTIVITY**. We want to capture it.
+       - **DO NOT INVENT A DURATION**. Do not say "60 minutes" or "1 hour".
+       - **DEFAULT BEHAVIOR**:
+         - Suggest a new activity with UI type 'increment' or 'toggle'.
+         - Set the value to **1**.
+         - Set the unit to "times", "sessions", or similar generic count.
+       - Example: "I played basketball" -> Activity: "Basketball", Value: 1, Unit: "session", Type: increment.
+
   7. **Note Extraction**:
      - Include contextual information, feelings, observations
      - Don't duplicate information already captured in activities
