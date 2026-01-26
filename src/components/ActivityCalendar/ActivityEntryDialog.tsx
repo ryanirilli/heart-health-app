@@ -30,7 +30,6 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Loader2 } from "lucide-react";
 import { useDayActivity } from "./useDayActivity";
 import { VoiceNoteEditorContent, VoiceNoteEditorFooter } from "./VoiceNoteEditor";
-import { useFeatureFlag, FEATURE_FLAGS } from "@/lib/hooks/useFeatureFlag";
 import { ActivitySuggestions } from "./ActivitySuggestions";
 import { ExtractedActivity } from "@/lib/hooks/useVoiceNotesQuery";
 import { UIType } from "@/lib/activityTypes";
@@ -84,7 +83,7 @@ function ActivityEntryForm({
   const { activities } = useActivities();
   const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
   const { goals } = useGoals();
-  const voiceNotesEnabled = useFeatureFlag(FEATURE_FLAGS.VOICE_NOTES);
+
   const formattedDate = formatDialogDate(date);
 
   // Hook handles all data/state
@@ -176,7 +175,7 @@ function ActivityEntryForm({
       allActivities={activities}
       voiceNoteUrl={existingVoiceNote?.signedUrl}
       voiceNoteDuration={existingVoiceNote?.durationSeconds}
-      onVoiceNoteClick={voiceNotesEnabled ? handleOpenVoiceNoteMode : undefined}
+      onVoiceNoteClick={handleOpenVoiceNoteMode}
     />
   );
 
@@ -198,7 +197,7 @@ function ActivityEntryForm({
             openSettingsToAdd();
         }}
         onNoteClick={handleOpenNoteMode}
-        onVoiceNoteClick={voiceNotesEnabled ? handleOpenVoiceNoteMode : undefined}
+        onVoiceNoteClick={handleOpenVoiceNoteMode}
         voiceNoteUrl={existingVoiceNote?.signedUrl}
         voiceNoteDuration={existingVoiceNote?.durationSeconds}
       />

@@ -48,6 +48,5 @@ export function useFeatureFlag(flagName: string): boolean {
 
 // Feature flag constants
 export const FEATURE_FLAGS = {
-  VOICE_NOTES: "voice-notes",
 } as const;
 

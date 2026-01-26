@@ -24,7 +24,7 @@ import { ActivityType } from "@/lib/activityTypes";
 import { useGoals } from "@/components/Goals";
 import { NoteEditorContent, NoteEditorFooter } from "./NoteEditor";
 import { VoiceNoteEditorContent, VoiceNoteEditorFooter } from "./VoiceNoteEditor";
-import { useFeatureFlag, FEATURE_FLAGS } from "@/lib/hooks/useFeatureFlag";
+
 import { ActivitySuggestions } from "./ActivitySuggestions";
 import { ExtractedActivity } from "@/lib/hooks/useVoiceNotesQuery";
 import { useDayActivity } from "./useDayActivity";
@@ -259,8 +259,7 @@ export function DayView({
   const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
   const { goals } = useGoals();
   
-  // Feature flag for voice notes
-  const voiceNotesEnabled = useFeatureFlag(FEATURE_FLAGS.VOICE_NOTES);
+
   
   // Use our new custom hook
   const {
@@ -325,7 +324,7 @@ export function DayView({
       allActivities={activities}
       voiceNoteUrl={existingVoiceNote?.signedUrl}
       voiceNoteDuration={existingVoiceNote?.durationSeconds}
-      onVoiceNoteClick={voiceNotesEnabled ? handleOpenVoiceNoteMode : undefined}
+      onVoiceNoteClick={handleOpenVoiceNoteMode}
     />
   );
 
@@ -342,7 +341,7 @@ export function DayView({
       onToggleTracked={handleToggleTracked}
       onOpenSettings={openSettingsToAdd}
       onNoteClick={handleOpenNoteMode}
-      onVoiceNoteClick={voiceNotesEnabled ? handleOpenVoiceNoteMode : undefined}
+      onVoiceNoteClick={handleOpenVoiceNoteMode}
       voiceNoteUrl={existingVoiceNote?.signedUrl}
       voiceNoteDuration={existingVoiceNote?.durationSeconds}
     />
