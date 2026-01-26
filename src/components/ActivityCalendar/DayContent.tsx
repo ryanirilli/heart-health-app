@@ -97,6 +97,16 @@ export function DayContentView({
         </div>
       )}
 
+      {/* Note Section - in view mode, only show if note exists */}
+      {activity?.note && (
+        <div
+          className="mb-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 text-left flex items-start gap-3"
+        >
+          <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+          <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
+        </div>
+      )}
+
       {/* Activities Section */}
       <div className="space-y-3">
         {entriesWithTypes.length === 0 ? (
@@ -120,15 +130,7 @@ export function DayContentView({
         )}
       </div>
 
-      {/* Note Section - in view mode, only show if note exists */}
-      {activity?.note && (
-        <div
-          className="mt-4 w-full p-3 rounded-lg bg-muted/50 border border-border/50 text-left flex items-start gap-3"
-        >
-          <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-          <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
-        </div>
-      )}
+
 
       {/* Goals Section - full bleed with subtle background */}
       {hasRelevantGoals && (
@@ -284,6 +286,21 @@ export function DayContentEdit({
         )
       )}
 
+      {/* Note Section - clickable row */}
+      {onNoteClick && (
+        <button
+          onClick={onNoteClick}
+          className="mb-3 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-start gap-3"
+        >
+          <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+          {activity?.note ? (
+            <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
+          ) : (
+            <span className="text-sm text-muted-foreground">Add note</span>
+          )}
+        </button>
+      )}
+
       <div className="space-y-3">
         {allRelevantTypes.map((type) => (
           <ActivityTypeCard
@@ -298,20 +315,7 @@ export function DayContentEdit({
         ))}
       </div>
 
-      {/* Note Section - clickable row */}
-      {onNoteClick && (
-        <button
-          onClick={onNoteClick}
-          className="mt-4 w-full p-3 rounded-lg bg-muted/50 border border-border/50 hover:bg-muted/70 transition-colors text-left flex items-start gap-3"
-        >
-          <MessageSquareMore className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-          {activity?.note ? (
-            <p className="text-sm text-foreground whitespace-pre-wrap flex-1">{activity.note}</p>
-          ) : (
-            <span className="text-sm text-muted-foreground">Add note</span>
-          )}
-        </button>
-      )}
+
     </>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { Activity, ActivityEntry, formatDate, hasActivityData } from "@/lib/activities";
+import { Activity, ActivityEntry, hasActivityData, formatDate } from "@/lib/activities";
 import { useActivityTypes, useActivities } from "./ActivityProvider";
 import { useGoals } from "@/components/Goals";
 import { ConfirmDeleteButton } from "@/components/ui/confirm-delete-button";
@@ -28,177 +28,162 @@ import { CalendarDateHeader } from "./CalendarDateHeader";
 import { NoteEditorContent, NoteEditorFooter } from "./NoteEditor";
 import { Button } from "@/components/ui/button";
 import { Pencil, Loader2 } from "lucide-react";
-
-type DialogMode = "view" | "edit" | "note";
+import { useDayActivity } from "./useDayActivity";
+import { VoiceNoteEditorContent, VoiceNoteEditorFooter } from "./VoiceNoteEditor";
+import { useFeatureFlag, FEATURE_FLAGS } from "@/lib/hooks/useFeatureFlag";
+import { ActivitySuggestions } from "./ActivitySuggestions";
+import { ExtractedActivity } from "@/lib/hooks/useVoiceNotesQuery";
+import { UIType } from "@/lib/activityTypes";
+import { ActivityContentAnimator } from "./ActivityContentAnimator";
 
 interface ActivityEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   date: Date;
-  existingActivity?: Activity;
-  onSave: (date: string, entries: { [typeId: string]: ActivityEntry }) => void;
-  onDelete?: () => void;
+  existingActivity?: Activity; // Kept for interface compatibility but hook loads it
+  onSave?: (date: string, entries: { [typeId: string]: ActivityEntry }) => void; // Deprecated/Unused
+  onDelete?: () => void; // Deprecated/Unused
   isSaving?: boolean;
   isDeleting?: boolean;
 }
 
-export function ActivityEntryDialog({
-  open,
-  onOpenChange,
-  date,
-  existingActivity,
-  onSave,
-  onDelete,
-  isSaving = false,
-  isDeleting = false,
-}: ActivityEntryDialogProps) {
-  const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
-  const { activities, saveNote } = useActivities();
-  const { goals } = useGoals();
-  const [entries, setEntries] = useState<{
-    [typeId: string]: number | undefined;
-  }>({});
-  const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
-  const [mode, setMode] = useState<DialogMode>("view");
-  const [noteText, setNoteText] = useState("");
-  const [modeBeforeNote, setModeBeforeNote] = useState<"view" | "edit">("view");
+export function ActivityEntryDialog(props: ActivityEntryDialogProps) {
   const isMobile = useIsMobile();
 
-  const dateStr = formatDate(date);
+  // We conditionally render the inner form only when open to prevent
+  // 365 instances of useDayActivity (and its queries) running simultaneously.
+  // The Dialog/Drawer wrapper stays mounted but content is conditional.
 
-  // Reset state when dialog opens with new data
-  useEffect(() => {
-    if (open) {
-      const initialEntries: { [typeId: string]: number | undefined } = {};
-      const initialTracked = new Set<string>();
+  if (isMobile) {
+    return (
+      <Drawer open={props.open} onOpenChange={props.onOpenChange}>
+        <DrawerContent className="max-h-[85vh] flex flex-col">
+           {props.open && <ActivityEntryForm {...props} isMobile={true} />}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
-      // Initialize with existing values
-      if (existingActivity?.entries) {
-        for (const typeId in existingActivity.entries) {
-          initialEntries[typeId] = existingActivity.entries[typeId].value;
-          initialTracked.add(typeId);
-        }
-      }
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent
+        className="sm:max-w-md max-h-[85vh] overflow-y-auto flex flex-col"
+        hideCloseButton
+      >
+        {props.open && <ActivityEntryForm {...props} isMobile={false} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-      setEntries(initialEntries);
-      setTrackedTypes(initialTracked);
-      // Start in view mode if there's existing data, otherwise edit mode for new entries
-      setMode(hasActivityData(existingActivity) ? "view" : "edit");
-      setNoteText(existingActivity?.note ?? "");
-    }
-  }, [open, existingActivity]);
+function ActivityEntryForm({
+  date,
+  onOpenChange,
+  isMobile
+}: ActivityEntryDialogProps & { isMobile: boolean }) {
+  const { activities } = useActivities();
+  const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
+  const { goals } = useGoals();
+  const voiceNotesEnabled = useFeatureFlag(FEATURE_FLAGS.VOICE_NOTES);
+  const formattedDate = formatDialogDate(date);
 
-  const handleEntryChange = (typeId: string, value: number | undefined) => {
-    setEntries((prev) => ({
-      ...prev,
-      [typeId]: value,
-    }));
-  };
+  // Hook handles all data/state
+  const {
+      selectedDateStr,
+      existingActivity,
+      mode,
+      entries,
+      trackedTypes,
+      noteText,
+      setNoteText,
+      setMode,
+      noteSlideDirection,
+      
+      existingVoiceNote,
+      isSaving,
+      isDeleting,
+      isVoiceNoteSaving,
+      isVoiceNoteDeleting,
+      streamingStatus,
+      hasVoiceNotePreview,
+      
+      handleEntryChange,
+      handleToggleTracked,
+      handleSave,
+      handleDelete,
+      handleCancel,
+      
+      handleOpenNoteMode,
+      handleSaveNote,
+      handleCancelNote,
+      handleDeleteNote,
+      
+      handleOpenVoiceNoteMode,
+      handleCancelVoiceNote,
+      handleVoiceNotePreviewChange,
+      handleSaveVoiceNote,
+      handleDeleteVoiceNote,
+      handleSaveVoiceNoteFromFooter,
+      
+      handleAcceptSuggestions,
+      handleSkipSuggestions
+  } = useDayActivity(date);
 
-  const handleToggleTracked = (typeId: string, tracked: boolean) => {
-    setTrackedTypes((prev) => {
-      const next = new Set(prev);
-      if (tracked) {
-        next.add(typeId);
-        // Initialize value to 0 when tracking starts
-        if (entries[typeId] === undefined) {
-          setEntries((prev) => ({ ...prev, [typeId]: 0 }));
-        }
-      } else {
-        next.delete(typeId);
-      }
-      return next;
-    });
-  };
-
-  const handleSave = () => {
-    // Build entries object - only include types that are explicitly tracked
-    const activityEntries: { [typeId: string]: ActivityEntry } = {};
-    for (const typeId of trackedTypes) {
-      const value = entries[typeId] ?? 0;
-      activityEntries[typeId] = { typeId, value };
-    }
-
-    // The onSave callback now handles the mutation via React Query
-    onSave(dateStr, activityEntries);
+  const isPending = isSaving || isDeleting;
+  
+  // Custom wrapper for Save to close dialog on successful save
+  const handleSaveWrapper = async () => {
+    await handleSave();
     onOpenChange(false);
   };
-
-  const handleDelete = () => {
-    if (!onDelete) return;
-    onDelete();
-    onOpenChange(false);
-  };
-
-  const handleCancel = () => {
-    if (existingActivity) {
-      // Reset to original values and go back to view mode
-      const initialEntries: { [typeId: string]: number | undefined } = {};
-      const initialTracked = new Set<string>();
-      for (const typeId in existingActivity.entries) {
-        initialEntries[typeId] = existingActivity.entries[typeId].value;
-        initialTracked.add(typeId);
-      }
-      setEntries(initialEntries);
-      setTrackedTypes(initialTracked);
-      setMode("view");
-    } else {
+  
+  // Custom wrapper for Cancel
+  // If editing an existing activity, cancel resets changes (stays open in view mode or closes?)
+  // DayView behavior: stays in Mode View.
+  // Dialog behavior: Maybe user expects it to close or go to View mode.
+  // Let's mimic DayView: Go to View mode. 
+  // But if it was New Entry, DayView hides form. Dialog should Close.
+  const handleCancelWrapper = () => {
+    handleCancel(); // Hook resets state / sets mode
+    if (!existingActivity) {
       onOpenChange(false);
     }
   };
 
-  // Note mode handlers
-  const handleOpenNoteMode = useCallback(() => {
-    setNoteText(existingActivity?.note ?? "");
-    setModeBeforeNote(mode as "view" | "edit");
-    setMode("note");
-  }, [existingActivity?.note, mode]);
+  const hasData = hasActivityData(existingActivity);
 
-  const handleSaveNote = useCallback(() => {
-    const trimmedNote = noteText.trim();
-    saveNote(dateStr, trimmedNote || undefined);
-    setMode(modeBeforeNote);
-  }, [noteText, saveNote, dateStr, modeBeforeNote]);
-
-  const handleCancelNote = useCallback(() => {
-    setNoteText(existingActivity?.note ?? "");
-    setMode(modeBeforeNote);
-  }, [existingActivity?.note, modeBeforeNote]);
-
-  const handleDeleteNote = useCallback(() => {
-    saveNote(dateStr, "");
-    setNoteText("");
-    setMode(modeBeforeNote);
-  }, [saveNote, dateStr, modeBeforeNote]);
-
-  const formattedDate = formatDialogDate(date);
-  const isPending = isSaving || isDeleting;
+  // Title Logic
   const getTitle = () => {
     if (mode === "note") return existingActivity?.note ? "Edit Note" : "Add Note";
+    if (mode === "voiceNote") return existingVoiceNote ? "Voice Note" : "Record Voice Note";
+    if (mode === "activitySuggestions") return "Review Suggestions";
     return mode === "view" ? "Activity Summary" : "Log Activity";
   };
   const title = getTitle();
 
-  // View mode content using shared component
-  const getViewContent = (containerPadding: 4 | 6) => (
+  // -- Content Components --
+
+  const viewContent = (
     <DayContentView
-      dateStr={dateStr}
+      dateStr={selectedDateStr}
       activity={existingActivity}
       activityTypes={activityTypes}
       goals={goals}
       onEditClick={() => setMode("edit")}
       onNoteClick={handleOpenNoteMode}
       fullBleedBorder={true}
-      containerPadding={containerPadding}
+      containerPadding={isMobile ? 4 : 6}
       allActivities={activities}
+      voiceNoteUrl={existingVoiceNote?.signedUrl}
+      voiceNoteDuration={existingVoiceNote?.durationSeconds}
+      onVoiceNoteClick={voiceNotesEnabled ? handleOpenVoiceNoteMode : undefined}
     />
   );
 
-  // Edit mode content using shared component
   const editContent = (
     <div className="space-y-4 py-4">
       <DayContentEdit
-        dateStr={dateStr}
+        dateStr={selectedDateStr}
         activity={existingActivity}
         activeTypes={activeTypes}
         activityTypes={activityTypes}
@@ -207,15 +192,19 @@ export function ActivityEntryDialog({
         onEntryChange={handleEntryChange}
         onToggleTracked={handleToggleTracked}
         onOpenSettings={() => {
-          onOpenChange(false);
-          openSettingsToAdd();
+            // Close dialog to go to settings? Or just navigate?
+            // openSettingsToAdd navigates to settings page likely.
+            onOpenChange(false);
+            openSettingsToAdd();
         }}
         onNoteClick={handleOpenNoteMode}
+        onVoiceNoteClick={voiceNotesEnabled ? handleOpenVoiceNoteMode : undefined}
+        voiceNoteUrl={existingVoiceNote?.signedUrl}
+        voiceNoteDuration={existingVoiceNote?.durationSeconds}
       />
     </div>
   );
 
-  // Note mode content using shared component
   const noteContent = (
     <div className="space-y-4 py-4">
       <NoteEditorContent
@@ -225,26 +214,34 @@ export function ActivityEntryDialog({
     </div>
   );
 
-  // Edit button icon for view mode header
-  const editIconButton =
-    mode === "view" && existingActivity ? (
-      <Button
-        variant="outline"
-        size="icon-sm"
-        onClick={() => setMode("edit")}
-        className="absolute right-4 top-4"
-        aria-label="Edit activity"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
-    ) : null;
+  const voiceNoteContent = (
+    <VoiceNoteEditorContent
+      existingAudioUrl={existingVoiceNote?.signedUrl}
+      existingDuration={existingVoiceNote?.durationSeconds}
+      existingTranscription={existingVoiceNote?.transcription}
+      existingTranscriptionStatus={existingVoiceNote?.transcriptionStatus}
+      onSave={handleSaveVoiceNote}
+      onDelete={existingVoiceNote ? handleDeleteVoiceNote : undefined}
+      isSaving={isVoiceNoteSaving}
+      isDeleting={isVoiceNoteDeleting}
+      onPreviewChange={handleVoiceNotePreviewChange}
+    />
+  );
 
-  // Edit mode footer
-  // For days with no saved activity, only show Save (no Cancel/Delete)
-  const hasData = hasActivityData(existingActivity);
+  const activitySuggestionsContent = existingVoiceNote?.extractedActivities ? (
+    <ActivitySuggestions
+      extractedActivities={existingVoiceNote.extractedActivities}
+      existingActivityTypes={activityTypes}
+      onAcceptAll={handleAcceptSuggestions}
+      onSkipAll={handleSkipSuggestions}
+    />
+  ) : null;
+
+  // -- Footers --
+
   const editFooter = (
     <div className="flex items-center justify-between gap-2 w-full">
-      {hasData && onDelete && (
+      {hasData && (
         <ConfirmDeleteButton
           onDelete={handleDelete}
           disabled={isSaving}
@@ -256,7 +253,7 @@ export function ActivityEntryDialog({
         <Button
           variant="muted"
           size="sm"
-          onClick={handleCancel}
+          onClick={handleCancelWrapper} // Use Wrapper
           disabled={isPending}
         >
           Cancel
@@ -264,7 +261,7 @@ export function ActivityEntryDialog({
       )}
       <Button
         size="pill"
-        onClick={handleSave}
+        onClick={handleSaveWrapper} // Use Wrapper
         disabled={activeTypes.length === 0 || isPending}
       >
         {isSaving ? (
@@ -279,7 +276,6 @@ export function ActivityEntryDialog({
     </div>
   );
 
-  // Note mode footer using shared component
   const noteFooter = (
     <NoteEditorFooter
       onCancel={handleCancelNote}
@@ -291,71 +287,89 @@ export function ActivityEntryDialog({
     />
   );
 
-  // Determine footer based on mode
-  const getFooter = () => {
-    if (mode === "view") return null;
-    if (mode === "note") return noteFooter;
-    if (activeTypes.length === 0) return null;
-    return editFooter;
-  };
-  const footer = getFooter();
+  const voiceNoteFooter = (
+    <VoiceNoteEditorFooter
+      onCancel={handleCancelVoiceNote}
+      onSave={hasVoiceNotePreview ? handleSaveVoiceNoteFromFooter : undefined}
+      onDelete={undefined}
+      hasExistingVoiceNote={!!existingVoiceNote}
+      hasPreview={hasVoiceNotePreview}
+      isSaving={isVoiceNoteSaving || !!streamingStatus}
+      isDeleting={isVoiceNoteDeleting}
+      streamingStatus={streamingStatus}
+    />
+  );
 
-  // Determine content based on mode
-  const getMobileContent = () => {
-    if (mode === "view") return getViewContent(4);
-    if (mode === "note") return noteContent;
-    return editContent;
-  };
+  // -- Selection Logic --
 
-  const getDesktopContent = () => {
-    if (mode === "view") return getViewContent(6);
-    if (mode === "note") return noteContent;
-    return editContent;
-  };
+  const content =
+    mode === "view" ? viewContent :
+    mode === "note" ? noteContent :
+    mode === "voiceNote" ? voiceNoteContent :
+    mode === "activitySuggestions" ? activitySuggestionsContent :
+    editContent;
 
-  // Use Drawer on mobile, Dialog on desktop
+  const footer =
+    mode === "view" ? null :
+    mode === "note" ? noteFooter :
+    mode === "voiceNote" ? voiceNoteFooter :
+    mode === "activitySuggestions" ? null :
+    activeTypes.length === 0 ? null : editFooter;
+
+  // Header Elements
+  const editIconButton = mode === "view" && hasData ? (
+      <Button
+        variant="outline"
+        size="icon-sm"
+        onClick={() => setMode("edit")}
+        className="absolute right-4 top-4"
+        aria-label="Edit activity"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+    ) : null;
+
+  // Render
+  const headerContent = (
+    <div className="relative">
+      <CalendarDateHeader 
+        date={date}
+        title={title}
+      />
+      <span className="sr-only">{formattedDate}</span>
+      {editIconButton}
+    </div>
+  );
+
   if (isMobile) {
-    const mobileContent = getMobileContent();
-    return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[85vh]">
-          <div className="relative">
+     return (
+        <>
             <DrawerHeader className="text-left pb-2">
-              <CalendarDateHeader 
-                date={date}
-                title={title}
-              />
-              <DrawerDescription className="sr-only">{formattedDate}</DrawerDescription>
+                <DrawerTitle className="sr-only">{title}</DrawerTitle>
+                {headerContent}
             </DrawerHeader>
-            {editIconButton}
-          </div>
-          <div className={`px-4 overflow-y-auto flex-1 ${!footer ? 'pb-4' : ''}`}>{mobileContent}</div>
-          {footer && <DrawerFooter className="flex-row">{footer}</DrawerFooter>}
-        </DrawerContent>
-      </Drawer>
-    );
+            <div className={`px-4 overflow-y-auto flex-1 ${!footer ? 'pb-4' : ''}`}>
+                <ActivityContentAnimator mode={mode} customDirection={noteSlideDirection}>
+                    {content}
+                </ActivityContentAnimator>
+            </div>
+            {footer && <DrawerFooter className="flex-row">{footer}</DrawerFooter>}
+        </>
+     )
   }
 
-  const desktopContent = getDesktopContent();
+  // Desktop
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="sm:max-w-md max-h-[85vh] overflow-y-auto"
-        hideCloseButton
-      >
-        <div className="relative">
-          {editIconButton}
-          <DialogHeader className="pb-2">
-            <CalendarDateHeader 
-              date={date}
-              title={title}
-            />
-            <DialogDescription className="sr-only">{formattedDate}</DialogDescription>
-          </DialogHeader>
-        </div>
-        {desktopContent}
-        {footer && <DialogFooter className="flex-row">{footer}</DialogFooter>}
-      </DialogContent>
-    </Dialog>
+    <>
+        <DialogHeader className="pb-2">
+            <DialogTitle className="sr-only">{title}</DialogTitle>
+            {headerContent}
+        </DialogHeader>
+        <ActivityContentAnimator mode={mode} customDirection={noteSlideDirection}>
+             {content}
+        </ActivityContentAnimator>
+        {footer && <DialogFooter className="flex-row items-center p-0 pt-2">{footer}</DialogFooter>}
+    </>
   );
 }
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useCallback } from "react";
 import { formatDate, ActivityEntry, Activity, hasActivityData } from "@/lib/activities";
 import { useActivities, useActivityTypes } from "./ActivityProvider";
 import { formatDialogDate, ActivityViewCard } from "./ActivityFormContent";
@@ -24,12 +24,11 @@ import { ActivityType } from "@/lib/activityTypes";
 import { useGoals } from "@/components/Goals";
 import { NoteEditorContent, NoteEditorFooter } from "./NoteEditor";
 import { VoiceNoteEditorContent, VoiceNoteEditorFooter } from "./VoiceNoteEditor";
-import { useVoiceNoteForDate } from "@/lib/hooks/useVoiceNotesQuery";
 import { useFeatureFlag, FEATURE_FLAGS } from "@/lib/hooks/useFeatureFlag";
 import { ActivitySuggestions } from "./ActivitySuggestions";
 import { ExtractedActivity } from "@/lib/hooks/useVoiceNotesQuery";
-import { useCreateActivityType } from "@/lib/hooks/useActivityTypesQuery";
-import { UIType } from "@/lib/activityTypes";
+import { useDayActivity } from "./useDayActivity";
+import { ActivityContentAnimator } from "./ActivityContentAnimator";
 
 type FormMode = "view" | "edit" | "note" | "voiceNote" | "activitySuggestions";
 
@@ -256,278 +255,63 @@ export function DayView({
   onNextDay,
   canGoNext,
 }: DayViewProps) {
-  const { activities, updateActivity, saveNote, deleteActivity, isSaving, isDeleting } =
-    useActivities();
+  const { activities } = useActivities();
   const { activeTypes, activityTypes, openSettingsToAdd } = useActivityTypes();
   const { goals } = useGoals();
   
   // Feature flag for voice notes
   const voiceNotesEnabled = useFeatureFlag(FEATURE_FLAGS.VOICE_NOTES);
-
-  const selectedDateStr = useMemo(
-    () => formatDate(selectedDate),
-    [selectedDate]
-  );
-  const existingActivity = activities[selectedDateStr];
+  
+  // Use our new custom hook
+  const {
+      selectedDateStr,
+      existingActivity,
+      mode,
+      entries,
+      trackedTypes,
+      showPastDayForm,
+      noteText,
+      setNoteText,
+      setMode,
+      noteSlideDirection,
+      
+      existingVoiceNote,
+      isSaving,
+      isDeleting,
+      isVoiceNoteSaving,
+      isVoiceNoteDeleting,
+      streamingStatus,
+      hasVoiceNotePreview,
+      
+      handleEntryChange,
+      handleToggleTracked,
+      handleSave,
+      handleDelete,
+      handleCancel,
+      handleLogPastDay,
+      
+      handleOpenNoteMode,
+      handleSaveNote,
+      handleCancelNote,
+      handleDeleteNote,
+      
+      handleOpenVoiceNoteMode,
+      handleCancelVoiceNote,
+      handleVoiceNotePreviewChange,
+      handleSaveVoiceNote,
+      handleDeleteVoiceNote,
+      handleSaveVoiceNoteFromFooter,
+      
+      handleAcceptSuggestions,
+      handleSkipSuggestions
+  } = useDayActivity(selectedDate);
+  
   const formattedDate = formatDialogDate(selectedDate);
-
   const isCurrentlyToday = isToday(selectedDate);
   const isCurrentlyPast = isPast(selectedDate);
-
-  // All hooks must be called unconditionally
-  const [mode, setMode] = useState<FormMode>("edit");
-  const [entries, setEntries] = useState<{
-    [typeId: string]: number | undefined;
-  }>({});
-  const [trackedTypes, setTrackedTypes] = useState<Set<string>>(new Set());
-  // Track if user explicitly wants to log activity for a past day with no existing activity
-  const [showPastDayForm, setShowPastDayForm] = useState(false);
-  // Note text for the note input mode
-  const [noteText, setNoteText] = useState("");
-  // Track animation direction for note mode transitions (1 = forward/right, -1 = back/left)
-  const [noteSlideDirection, setNoteSlideDirection] = useState<1 | -1>(1);
-  // Track the mode we came from when entering note or voice note mode
-  const [modeBeforeNote, setModeBeforeNote] = useState<"view" | "edit">("view");
-  // Voice note preview state (for save button in footer)
-  const [hasVoiceNotePreview, setHasVoiceNotePreview] = useState(false);
-  const voiceNotePreviewRef = useRef<{ blob: Blob; duration: number } | null>(null);
-  const [streamingStatus, setStreamingStatus] = useState<string | null>(null);
-
-  // Reset state when selectedDate changes or activity data loads
-  useEffect(() => {
-    const initialEntries: { [typeId: string]: number | undefined } = {};
-    const initialTracked = new Set<string>();
-
-    if (existingActivity?.entries) {
-      for (const typeId in existingActivity.entries) {
-        initialEntries[typeId] = existingActivity.entries[typeId].value;
-        initialTracked.add(typeId);
-      }
-    }
-
-    setEntries(initialEntries);
-    setTrackedTypes(initialTracked);
-    
-    // Determine initial mode based on whether there are actual activity entries
-    // (not just a note). For today/new entries, stay in edit mode.
-    const hasActivityEntries = existingActivity?.entries && Object.keys(existingActivity.entries).length > 0;
-    
-    // Only reset mode if we're not in note/voiceNote/activitySuggestions mode (to preserve manual mode changes)
-    // This prevents the effect from overriding mode changes when deleting notes/voice notes
-    if (mode !== 'note' && mode !== 'voiceNote' && mode !== 'activitySuggestions') {
-      setMode(hasActivityEntries ? "view" : "edit");
-    }
-    
-    // Reset other state
-    setShowPastDayForm(false);
-    setNoteText(existingActivity?.note ?? "");
-  }, [selectedDateStr, existingActivity]); // Don't add mode to dependencies - it would cause infinite loop
-
-  const handleEntryChange = useCallback(
-    (typeId: string, value: number | undefined) => {
-      setEntries((prev) => ({
-        ...prev,
-        [typeId]: value,
-      }));
-    },
-    []
-  );
-
-  const handleToggleTracked = useCallback(
-    (typeId: string, tracked: boolean) => {
-      setTrackedTypes((prev) => {
-        const next = new Set(prev);
-        if (tracked) {
-          next.add(typeId);
-          setEntries((prevEntries) => {
-            if (prevEntries[typeId] === undefined) {
-              return { ...prevEntries, [typeId]: 0 };
-            }
-            return prevEntries;
-          });
-        } else {
-          next.delete(typeId);
-        }
-        return next;
-      });
-    },
-    []
-  );
-
-  const handleSave = useCallback(() => {
-    const activityEntries: { [typeId: string]: ActivityEntry } = {};
-    for (const typeId of trackedTypes) {
-      const value = entries[typeId] ?? 0;
-      activityEntries[typeId] = { typeId, value };
-    }
-    updateActivity(selectedDateStr, activityEntries);
-    // Switch to view mode after saving
-    setMode("view");
-  }, [trackedTypes, entries, updateActivity, selectedDateStr]);
-
-  const handleDelete = useCallback(() => {
-    deleteActivity(selectedDateStr);
-  }, [deleteActivity, selectedDateStr]);
-
-  const handleCancel = useCallback(() => {
-    if (existingActivity) {
-      const initialEntries: { [typeId: string]: number | undefined } = {};
-      const initialTracked = new Set<string>();
-      for (const typeId in existingActivity.entries) {
-        initialEntries[typeId] = existingActivity.entries[typeId].value;
-        initialTracked.add(typeId);
-      }
-      setEntries(initialEntries);
-      setTrackedTypes(initialTracked);
-      setMode("view");
-    } else {
-      // For new entries on past days, hide the form and show the empty state again
-      setShowPastDayForm(false);
-    }
-  }, [existingActivity]);
-
-  const handleLogPastDay = useCallback(() => {
-    setShowPastDayForm(true);
-  }, []);
-
-  // Note mode handlers
-  const handleOpenNoteMode = useCallback(() => {
-    setNoteText(existingActivity?.note ?? "");
-    setModeBeforeNote(mode as "view" | "edit"); // Remember where we came from
-    setNoteSlideDirection(1); // Going forward (to note)
-    setMode("note");
-  }, [existingActivity?.note, mode]);
-
-  const handleSaveNote = useCallback(() => {
-    const trimmedNote = noteText.trim();
-    saveNote(selectedDateStr, trimmedNote || undefined);
-    setNoteSlideDirection(-1); // Going back
-    setMode(modeBeforeNote); // Return to where we came from
-  }, [noteText, saveNote, selectedDateStr, modeBeforeNote]);
-
-  const handleCancelNote = useCallback(() => {
-    setNoteText(existingActivity?.note ?? "");
-    setNoteSlideDirection(-1); // Going back
-    setMode(modeBeforeNote); // Return to where we came from
-  }, [existingActivity?.note, modeBeforeNote]);
-
-  const handleDeleteNote = useCallback(() => {
-    saveNote(selectedDateStr, ""); // Empty string deletes the note
-    setNoteText("");
-    setNoteSlideDirection(-1); // Going back
-    setMode(modeBeforeNote); // Return to where we came from
-  }, [saveNote, selectedDateStr, modeBeforeNote]);
-
-  // Voice note hook and handlers
-  const {
-    voiceNote: existingVoiceNote,
-    saveVoiceNote,
-    saveVoiceNoteWithStreaming,
-    deleteVoiceNote,
-    isSaving: isVoiceNoteSaving,
-    isDeleting: isVoiceNoteDeleting,
-  } = useVoiceNoteForDate(selectedDateStr);
-
-  const handleOpenVoiceNoteMode = useCallback(() => {
-    setModeBeforeNote(mode as "view" | "edit");
-    setNoteSlideDirection(1); // Going forward
-    setHasVoiceNotePreview(false);
-    voiceNotePreviewRef.current = null;
-    setStreamingStatus(null);
-    setMode("voiceNote");
-  }, [mode]);
-
-  const handleCancelVoiceNote = useCallback(() => {
-    setNoteSlideDirection(-1); // Going back
-    setHasVoiceNotePreview(false);
-    voiceNotePreviewRef.current = null;
-    setMode(modeBeforeNote);
-  }, [modeBeforeNote]);
-
-  const handleSaveVoiceNote = useCallback(async (audioBlob: Blob, durationSeconds: number) => {
-    try {
-      setStreamingStatus("Starting...");
-      
-      const result = await saveVoiceNoteWithStreaming(audioBlob, durationSeconds, (status) => {
-        // Map status to user-friendly message
-        switch (status.status) {
-          case 'uploading':
-            setStreamingStatus("Uploading...");
-            break;
-          case 'saving':
-            setStreamingStatus("Saving...");
-            break;
-          case 'transcribing':
-            setStreamingStatus("Transcribing...");
-            break;
-          case 'extracting':
-            setStreamingStatus("Analyzing...");
-            break;
-          case 'finalizing':
-            setStreamingStatus("Finishing...");
-            break;
-          case 'complete':
-            setStreamingStatus("Done!");
-            break;
-          case 'error':
-            setStreamingStatus("Error");
-            break;
-        }
-      });
-      
-      setHasVoiceNotePreview(false);
-      voiceNotePreviewRef.current = null;
-      setStreamingStatus(null);
-
-      // Check if we have extracted activities to show suggestions
-      if (result?.extractedActivities && result.extractedActivities.activities.length > 0) {
-        // Transition to activity suggestions mode
-        setNoteSlideDirection(1); // Going forward to suggestions
-        setMode("activitySuggestions");
-      } else {
-        // No activities extracted, just go back
-        setNoteSlideDirection(-1); // Going back
-        setMode(modeBeforeNote);
-      }
-    } catch (error) {
-      console.error('Failed to save voice note:', error);
-      // Still go back on error
-      setHasVoiceNotePreview(false);
-      voiceNotePreviewRef.current = null;
-      setStreamingStatus(null);
-      setNoteSlideDirection(-1);
-      setMode(modeBeforeNote);
-    }
-  }, [saveVoiceNoteWithStreaming, modeBeforeNote, saveNote, selectedDateStr]);
-
-  const handleDeleteVoiceNote = useCallback(async () => {
-    await deleteVoiceNote();
-    // Don't go back - stay in voice note mode so user can record a new one
-    // Just clear the slide direction since we're not animating
-    setNoteSlideDirection(1);
-  }, [deleteVoiceNote]);
-
-  // Callback to track when preview is available (for footer save button)
-  const handleVoiceNotePreviewChange = useCallback((blob: Blob | null, duration: number) => {
-    if (blob) {
-      voiceNotePreviewRef.current = { blob, duration };
-      setHasVoiceNotePreview(true);
-    } else {
-      voiceNotePreviewRef.current = null;
-      setHasVoiceNotePreview(false);
-    }
-  }, []);
-
-  const handleSaveVoiceNoteFromFooter = useCallback(async () => {
-    if (voiceNotePreviewRef.current) {
-      await handleSaveVoiceNote(voiceNotePreviewRef.current.blob, voiceNotePreviewRef.current.duration);
-    }
-  }, [handleSaveVoiceNote]);
-
   const isNewEntry = !existingActivity;
   const isPending = isSaving || isDeleting;
-  const title = mode === "view" ? "Activity Summary" : "Log Activity";
-
+  
   // View mode content using shared component
   const viewContent = (
     <DayContentView
@@ -576,8 +360,6 @@ export function DayView({
         <Pencil className="h-3.5 w-3.5" />
       </Button>
     ) : null;
-
-
 
   // Edit mode footer
   // For today with no saved activity, only show Save (no Cancel/Delete)
@@ -632,7 +414,6 @@ export function DayView({
     <NoteEditorFooter
       onCancel={handleCancelNote}
       onSave={handleSaveNote}
-      onDelete={handleDeleteNote}
       hasExistingNote={!!existingActivity?.note}
       isSaving={isSaving}
       isDeleting={isDeleting}
@@ -667,78 +448,6 @@ export function DayView({
       streamingStatus={streamingStatus}
     />
   );
-
-  // Mutation for creating activity types
-  const createActivityTypeMutation = useCreateActivityType();
-
-  // Activity suggestions handlers
-  const handleAcceptSuggestions = useCallback(async (acceptedActivities: ExtractedActivity[]) => {
-    // First, create any new activity types
-    for (const activity of acceptedActivities) {
-      if (activity.activityTypeId === null) {
-        // Create new activity type
-        try {
-          const newTypeId = crypto.randomUUID();
-          await createActivityTypeMutation.mutateAsync({
-            id: newTypeId,
-            name: activity.suggestedName,
-            unit: activity.suggestedUnit,
-            pluralize: true,
-            goalType: activity.suggestedGoalType,
-            uiType: activity.suggestedUiType as UIType,
-            order: Object.keys(activityTypes).length,
-            // Add required fields with default values
-            deleted: false,
-          });
-          
-          activity.activityTypeId = newTypeId; // Update for use below
-        } catch (error) {
-          console.error('Error creating activity type:', error);
-          continue;
-        }
-      }
-    }
-
-    // Apply accepted activities to entries state
-    const newEntries = { ...entries };
-    const newTracked = new Set(trackedTypes);
-
-    for (const activity of acceptedActivities) {
-      if (activity.activityTypeId) {
-        newEntries[activity.activityTypeId] = activity.value;
-        newTracked.add(activity.activityTypeId);
-      }
-    }
-
-    setEntries(newEntries);
-    setTrackedTypes(newTracked);
-
-    // Apply extracted note if present but DO NOT save it as the main note
-    // The user requested we don't overwrite the main note with the transcription
-    if (existingVoiceNote?.extractedActivities?.note) {
-      // We might want to use this localized state for something else, or just ignore it
-      // For now, we won't update noteText or call saveNote
-    }
-
-    // Save the accepted activities to the database
-    const activityEntries: { [typeId: string]: ActivityEntry } = {};
-    for (const typeId of newTracked) {
-      const value = newEntries[typeId] ?? 0;
-      activityEntries[typeId] = { typeId, value };
-    }
-    await updateActivity(selectedDateStr, activityEntries);
-
-    // Transition to view mode since activities are now saved
-    setNoteSlideDirection(-1); // Going back
-    setMode('view');
-  }, [entries, trackedTypes, activityTypes, existingVoiceNote, saveNote, selectedDateStr, updateActivity]);
-
-  const handleSkipSuggestions = useCallback(() => {
-    // Just go back to previous mode
-
-    setNoteSlideDirection(-1);
-    setMode(modeBeforeNote);
-  }, [existingVoiceNote, saveNote, selectedDateStr, modeBeforeNote]);
 
   // Activity suggestions content
   const activitySuggestionsContent = existingVoiceNote?.extractedActivities ? (
@@ -799,13 +508,19 @@ export function DayView({
   // Calculate previous and next dates for desktop preview
   const previousDate = useMemo(() => addDays(selectedDate, -1), [selectedDate]);
   const nextDate = useMemo(() => addDays(selectedDate, 1), [selectedDate]);
+  
+  // Data for previews
   const previousDateStr = formatDate(previousDate);
   const nextDateStr = formatDate(nextDate);
   const previousActivity = activities[previousDateStr];
   const nextActivity = activities[nextDateStr];
   const isNextFuture = isFuture(nextDate);
+  
+  const showNextPreview = canGoNext;
 
-  // Main card content
+  const title = mode === "view" ? "Activity Summary" : mode === "note" ? (existingActivity?.note ? "Edit Note" : "Add Note") : "Log Activity";
+
+  // Main card layout
   const mainCard = shouldShowEmptyPastCard ? (
     <EmptyPastDayCard date={selectedDate} onLogActivity={handleLogPastDay} />
   ) : (
@@ -840,38 +555,17 @@ export function DayView({
       </CardHeader>
 
       <CardContent className="px-4 py-2 pb-4">
-        <AnimatePresence mode="popLayout" initial={false} custom={noteSlideDirection}>
-          <motion.div
-            key={mode === "note" ? "note" : mode === "voiceNote" ? "voiceNote" : mode === "activitySuggestions" ? "activitySuggestions" : "main"}
-            custom={noteSlideDirection}
-            variants={{
-              initial: (direction: number) => ({ x: direction * 100, opacity: 0 }),
-              animate: { x: 0, opacity: 1 },
-              exit: (direction: number) => ({ x: direction * -100, opacity: 0 }),
-            }}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={{ 
-              duration: 0.7, 
-              ease: [0.16, 1, 0.3, 1] // Custom ease-out with long tail
-            }}
-          >
+        <ActivityContentAnimator mode={mode} customDirection={noteSlideDirection}>
             {content}
-          </motion.div>
-        </AnimatePresence>
+        </ActivityContentAnimator>
       </CardContent>
 
       {footer && <CardFooter className="px-4 pt-4 pb-4">{footer}</CardFooter>}
     </Card>
   );
 
-  // Animation config
-  // slideDirection="left" = going forward in time (next day) = content enters from RIGHT
-  // slideDirection="right" = going backward in time (prev day) = content enters from LEFT
+  // Animation layout data
   const slideOffset = 300;
-
-  // Custom variants that respond to slideDirection passed via custom prop
   const variants = {
     enter: (direction: "left" | "right") => ({
       x: direction === "left" ? slideOffset : -slideOffset,
@@ -887,7 +581,6 @@ export function DayView({
     }),
   };
 
-  // Smooth spring animation
   const transition = {
     x: { type: "spring" as const, stiffness: 400, damping: 35 },
     opacity: { duration: 0.2 },
@@ -973,7 +666,6 @@ export function DayView({
         </AnimatePresence>
       </div>
 
-      {/* Mobile: Single card with swipe gesture (flashcard-style animation) */}
       {/* Mobile: Single card with swipe gesture (flashcard-style animation) */}
       <div className="md:hidden overflow-hidden relative">
         <AnimatePresence

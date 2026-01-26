@@ -627,11 +627,11 @@ export function VoiceNoteEditorContent({
 
           <div className="flex items-center justify-center gap-3">
             <Button
-              variant="outline"
-              size="sm"
+              variant="ghost"
+              size="pill-sm"
               onClick={retryRecording}
               disabled={isPending}
-              className="gap-2"
+              className="gap-2 text-xs"
             >
               <RotateCcw className="h-4 w-4" />
               Retry
@@ -674,10 +674,10 @@ export function VoiceNoteEditorFooter({
     <div className="flex items-center justify-between gap-2 w-full">
       <Button
         variant="ghost"
-        size="sm"
+        size="pill-sm"
         onClick={onCancel}
         disabled={isPending}
-        className="gap-2"
+        className="gap-2 text-xs"
       >
         <ArrowLeft className="h-4 w-4" />
         Back
