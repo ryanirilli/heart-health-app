@@ -302,3 +302,16 @@ a {
 .activity-slider::-moz-range-thumb:active {
   transform: scale(1.05);
 }
+
+@keyframes doppler-ping {
+
+  75%,
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+.animate-doppler {
+  animation: doppler-ping 3s cubic-bezier(0, 0, 0.2, 1) infinite;
+}

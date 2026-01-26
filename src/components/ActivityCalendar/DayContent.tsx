@@ -92,6 +92,10 @@ export function DayContentView({
             <>
               <Mic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
               <span className="text-sm text-muted-foreground">Record your activities</span>
+              <span className="relative flex h-2 w-2 ml-auto">
+                <span className="animate-doppler absolute inline-flex h-full w-full rounded-full bg-chart-1 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-chart-1"></span>
+              </span>
             </>
           )}
         </div>
@@ -282,6 +286,10 @@ export function DayContentEdit({
           >
             <Mic className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span className="text-sm text-muted-foreground">Record your activities</span>
+            <span className="relative flex h-2 w-2 ml-auto">
+              <span className="animate-doppler absolute inline-flex h-full w-full rounded-full bg-chart-1 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-chart-1"></span>
+            </span>
           </button>
         )
       )}
