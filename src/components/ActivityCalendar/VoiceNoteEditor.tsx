@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDeleteButton } from '@/components/ui/confirm-delete-button';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Mic, Square, Play, Pause, RotateCcw, Loader2 } from 'lucide-react';
+import { useVoiceNotes } from '@/lib/hooks/useVoiceNotesQuery';
+import { VoiceNoteIntro } from './VoiceNoteIntro';
 
 // Maximum recording duration in seconds
 export const MAX_VOICE_NOTE_DURATION = 60;
@@ -41,6 +43,7 @@ export function VoiceNoteEditorContent({
 }: VoiceNoteEditorContentProps) {
   // State
   const [state, setState] = useState<VoiceNoteState>(existingAudioUrl ? 'idle' : 'idle');
+  const hasExisting = !!existingAudioUrl;
   const [recordingTime, setRecordingTime] = useState(0);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
@@ -51,6 +54,25 @@ export function VoiceNoteEditorContent({
   const [error, setError] = useState<string | null>(null);
   const [microphoneAccessDenied, setMicrophoneAccessDenied] = useState(false);
   const [isCheckingMicAccess, setIsCheckingMicAccess] = useState(false);
+  const [introDismissed, setIntroDismissed] = useState(false);
+  
+  // Check if user has recorded before
+  const { voiceNotes } = useVoiceNotes();
+  // We consider it a "first time" if there are no voice notes in history
+  // AND the user hasn't just dismissed the intro in this session
+  const hasRecordedBefore = Object.keys(voiceNotes).length > 0;
+  
+  // Debug flag check helper for developers to force show the intro.
+  // Usage: Run localStorage.setItem('debug_force_voice_intro', 'true') in console
+  const [forceShowIntro, setForceShowIntro] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage.getItem('debug_force_voice_intro') === 'true') {
+        setForceShowIntro(true);
+    }
+  }, []);
+  
+  const shouldShowIntro = (forceShowIntro || !hasRecordedBefore) && !introDismissed && !hasExisting;
 
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -63,7 +85,6 @@ export function VoiceNoteEditorContent({
   const recordingTimeRef = useRef(0);
 
   const isPending = isSaving || isDeleting;
-  const hasExisting = !!existingAudioUrl;
 
   // Format time as M:SS
   const formatTime = (seconds: number) => {
@@ -478,6 +499,12 @@ export function VoiceNoteEditorContent({
         </div>
       )}
 
+
+      {/* Intro State */}
+      {shouldShowIntro && state === 'idle' ? (
+        <VoiceNoteIntro onContinue={() => setIntroDismissed(true)} />
+      ) : (
+        <>
       {/* Idle state - record button */}
       {state === 'idle' && !previewUrl && (
         <div className="flex flex-col items-center gap-4 py-8">
@@ -639,7 +666,10 @@ export function VoiceNoteEditorContent({
           </div>
         </div>
       )}
+      </>
+      )}
     </div>
+
   );
 }
 
