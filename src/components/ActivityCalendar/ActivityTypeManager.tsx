@@ -936,14 +936,16 @@ export function ActivityTypeManager({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Manage Activity Types</DialogTitle>
-          <DialogDescription>
-            Define what you want to track. You can have up to {maxTypes}{" "}
-            activity types.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-lg" hideCloseButton>
+        {!showAddNew && (
+          <DialogHeader>
+            <DialogTitle>Manage Activity Types</DialogTitle>
+            <DialogDescription>
+              Define what you want to track. You can have up to {maxTypes}{" "}
+              activity types.
+            </DialogDescription>
+          </DialogHeader>
+        )}
 
         {showAddNew ? (
           // Add new activity type with tabs
@@ -999,14 +1001,7 @@ export function ActivityTypeManager({
                         >
                           {preset.name}
                         </div>
-                        <div
-                          className={cn(
-                            "text-xs text-muted-foreground transition-opacity",
-                            isLoading && "opacity-70"
-                          )}
-                        >
-                          {preset.description}
-                        </div>
+
                       </div>
                       {isAlreadyAdded ? (
                         <Check className="h-5 w-5 text-chart-2" />

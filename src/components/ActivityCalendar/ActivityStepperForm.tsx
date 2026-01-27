@@ -470,10 +470,7 @@ function StepBasics({ formData, setFormData }: StepBasicsProps) {
 
   return (
     <div className="space-y-5">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold">Activity Basics</h3>
-        <p className="text-sm text-muted-foreground">What do you want to track?</p>
-      </div>
+
 
       {/* Activity Name */}
       <div className="space-y-2">
@@ -527,10 +524,7 @@ interface StepInputTypeProps {
 function StepInputType({ formData, setFormData }: StepInputTypeProps) {
   return (
     <div className="space-y-5">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold">Input Type</h3>
-        <p className="text-sm text-muted-foreground">How will you log this activity?</p>
-      </div>
+
 
       <div className="space-y-3">
         {UI_TYPE_OPTIONS.map(({ type, label, description, icon }) => (
@@ -702,14 +696,7 @@ function StepConfiguration({ formData, setFormData }: StepConfigurationProps) {
 
   return (
     <div className="space-y-5">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold">Configuration</h3>
-        <p className="text-sm text-muted-foreground">
-          {formData.uiType === 'toggle' 
-            ? 'Your toggle is ready!' 
-            : 'Set up the details for logging'}
-        </p>
-      </div>
+
       {renderConfig()}
     </div>
   );
@@ -758,10 +745,7 @@ function StepSummary({ formData, onSaveWithGoal }: StepSummaryProps) {
 
   return (
     <div className="space-y-5">
-      <div className="text-center mb-6">
-        <h3 className="text-lg font-semibold">Review Your Activity</h3>
-        <p className="text-sm text-muted-foreground">Make sure everything looks right</p>
-      </div>
+
 
       {/* Activity Preview Card */}
       <div className="rounded-xl border bg-card p-5 space-y-4">
