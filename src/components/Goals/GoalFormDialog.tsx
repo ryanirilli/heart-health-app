@@ -174,13 +174,9 @@ export function GoalFormDialog() {
   const isSubmitting = isCreating || isUpdating;
   const isEditing = !!editingGoal;
 
-  // Filter steps based on activity type
-  const steps = useMemo(() => {
-    if (selectedActivityType?.uiType === 'fixedValue') {
-      return STEPS.filter(step => step.id !== 'value');
-    }
-    return STEPS;
-  }, [selectedActivityType?.uiType]);
+  // Steps are the same for all activity types now
+  // fixedValue activities show tracking type choice in the value step
+  const steps = STEPS;
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -331,6 +327,14 @@ function GoalSummaryView({
         // Average tracking for discrete
         isMet = currentValue > 0.5 && progressData.dayCount > 0;
       }
+    } else if (trackingType === 'count') {
+      // Count tracking for fixedValue activities
+      const current = progressData.occurrenceCount ?? 0;
+      isMet = current >= targetValue;
+      // Count tracking can't really fail mid-period, only when expired
+      if (expired && !isMet) {
+        isFailed = true;
+      }
     } else if (goalType === 'negative') {
       // Less is better - CRITICAL: Only mark as "met" if period complete
       // While period is active, they could still fail by going over target
@@ -407,6 +411,12 @@ function GoalSummaryView({
         // Absolute: must meet every day
         const daysSoFar = Math.ceil(progressData.dayCount);
         isBehind = progressData.daysMetTarget < daysSoFar;
+      } else if (effectiveTrackingForPace === 'count') {
+        // Count tracking: compare current occurrences vs required by now
+        const current = progressData.occurrenceCount ?? 0;
+        const requiredNow = targetValue * timeProgress;
+        isAhead = current > requiredNow * 1.1; // 10% ahead
+        isBehind = current < requiredNow * 0.85; // 15% behind
       }
 
       if (isAhead) {
@@ -517,6 +527,19 @@ function GoalSummaryView({
           secondaryText = `Target: Every day \u2264 ${targetDisplay}`;
         } else {
           secondaryText = `Target: Every day = ${targetDisplay}`;
+        }
+      }
+    } else if (effectiveTrackingType === 'count') {
+      // Count tracking (for fixedValue activities)
+      const current = progressData.occurrenceCount ?? 0;
+      primaryText = `${current} of ${targetValue} ${targetValue !== 1 ? 'entries' : 'entry'}`;
+      
+      if (current >= targetValue) {
+        primaryText += ' ✓';
+      } else if (!isFailed && daysRemaining !== null && daysRemaining > 0) {
+        const remaining = Math.max(0, targetValue - current);
+        if (remaining > 0) {
+          secondaryText = `${remaining} more ${remaining !== 1 ? 'entries' : 'entry'} to go`;
         }
       }
     }
@@ -705,15 +728,33 @@ function GoalFormContent({
 }: GoalFormContentProps) {
   const { currentStep, setCanGoNext } = useStepper();
 
-  // Auto-set targetValue for fixedValue activity types
-  // Since we skip the value step, we must ensure it's set correctly here
+  // Auto-set trackingType to 'count' for fixedValue activity types (the most intuitive default)
+  // Also set a reasonable default targetValue of 1 for count tracking
   useEffect(() => {
-    if (selectedActivityType?.uiType === 'fixedValue' && selectedActivityType.fixedValue) {
-      if (formData.targetValue !== selectedActivityType.fixedValue) {
-        setFormData({ ...formData, targetValue: selectedActivityType.fixedValue! });
+    if (selectedActivityType?.uiType === 'fixedValue') {
+      const updates: Partial<Goal> = {};
+      
+      // Default to 'count' tracking for fixedValue activities
+      if (formData.trackingType !== 'count' && formData.trackingType !== 'sum') {
+        updates.trackingType = 'count';
+      }
+      
+      // For sum tracking, auto-set to the fixed value
+      // For count tracking, let user set how many times they want to do it
+      if (formData.trackingType === 'sum' && selectedActivityType.fixedValue) {
+        if (formData.targetValue !== selectedActivityType.fixedValue) {
+          updates.targetValue = selectedActivityType.fixedValue;
+        }
+      } else if (formData.trackingType === 'count' && formData.targetValue === 0) {
+        // Default to 1 time for count tracking if not set
+        updates.targetValue = 1;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        setFormData({ ...formData, ...updates });
       }
     }
-  }, [selectedActivityType?.uiType, selectedActivityType?.fixedValue, formData.targetValue]);
+  }, [selectedActivityType?.uiType, selectedActivityType?.fixedValue, formData.trackingType]);
 
   // Validate current step and update canGoNext
   useEffect(() => {
@@ -778,15 +819,13 @@ function GoalFormContent({
           </StepItem>
 
           {/* Step 3: Value */}
-          {selectedActivityType?.uiType !== 'fixedValue' && (
-            <StepItem>
-              <StepValue
-                formData={formData}
-                setFormData={setFormData}
-                selectedActivityType={selectedActivityType}
-              />
-            </StepItem>
-          )}
+          <StepItem>
+            <StepValue
+              formData={formData}
+              setFormData={setFormData}
+              selectedActivityType={selectedActivityType}
+            />
+          </StepItem>
 
           {/* Step 4: Icon */}
           <StepItem>
@@ -1089,11 +1128,17 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
   const renderTrackingTypeSelector = () => {
     if (!showTrackingType) return null;
     
+    // For fixedValue activities, only show 'count' and 'sum' options
+    const isFixedValue = uiType === 'fixedValue';
+    const availableTypes = isFixedValue 
+      ? (['count', 'sum'] as const)
+      : GOAL_TRACKING_TYPES.filter(t => t !== 'count'); // count is only for fixedValue
+    
     return (
       <div className="space-y-3 mb-6 pb-6 border-b">
         <Label className="text-sm font-medium">How should progress be measured?</Label>
         <div className="grid gap-2">
-          {GOAL_TRACKING_TYPES.map((type) => (
+          {availableTypes.map((type) => (
             <button
               key={type}
               type="button"
@@ -1308,24 +1353,89 @@ function StepValue({ formData, setFormData, selectedActivityType }: StepValuePro
       );
     }
 
-    // For fixedValue UI type - show the fixed value and auto-set
+    // For fixedValue UI type - show different UI based on tracking type
     if (uiType === 'fixedValue') {
       const fixedVal = selectedActivityType?.fixedValue ?? 1;
+      
+      // Sum tracking: show info about accumulating totals
+      if (formData.trackingType === 'sum') {
+        return (
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/50 border border-border p-4 text-center">
+              <p className="text-sm text-muted-foreground mb-2">
+                Each time you log, it adds
+              </p>
+              <p className="text-2xl font-bold text-foreground mb-2">
+                {selectedActivityType
+                  ? formatValueOnly(fixedVal, selectedActivityType)
+                  : fixedVal}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Set a total target below
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-center block">Total Target Value</Label>
+              <div className="flex items-center justify-center gap-4">
+                <Input
+                  type="number"
+                  min={fixedVal}
+                  step={fixedVal}
+                  value={currentValue}
+                  onChange={(e) => handleChange(parseInt(e.target.value) || fixedVal)}
+                  className="w-32 text-center text-lg font-medium"
+                />
+                {selectedActivityType?.unit && (
+                  <span className="text-sm text-muted-foreground">
+                    {selectedActivityType.pluralize && currentValue !== 1
+                      ? plural(selectedActivityType.unit)
+                      : selectedActivityType.unit}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            <p className="text-xs text-muted-foreground text-center">
+              Do this {Math.ceil(currentValue / fixedVal)} time{Math.ceil(currentValue / fixedVal) !== 1 ? 's' : ''} to reach your goal
+            </p>
+          </div>
+        );
+      }
+      
+      // Count tracking (default): show how many entries to log
       return (
         <div className="space-y-4">
           <div className="rounded-lg bg-muted/50 border border-border p-4 text-center">
-            <p className="text-2xl font-bold text-foreground mb-1">
+            <p className="text-sm text-muted-foreground mb-2">
+              Each entry logs
+            </p>
+            <p className="text-2xl font-bold text-foreground">
               {selectedActivityType
                 ? formatValueOnly(fixedVal, selectedActivityType)
                 : fixedVal}
             </p>
-            <p className="text-sm text-muted-foreground">
-              This activity always logs a fixed value
-            </p>
           </div>
-
+          
+          <div className="space-y-2">
+            <Label className="text-center block">How many entries?</Label>
+            <div className="flex items-center justify-center gap-4">
+              <Input
+                type="number"
+                min={1}
+                step={1}
+                value={currentValue}
+                onChange={(e) => handleChange(parseInt(e.target.value) || 1)}
+                className="w-32 text-center text-lg font-medium"
+              />
+              <span className="text-sm text-muted-foreground">
+                {currentValue !== 1 ? 'entries' : 'entry'}
+              </span>
+            </div>
+          </div>
+          
           <p className="text-xs text-muted-foreground text-center">
-            Target: {fixedVal} per {getScheduleLabel()}
+            Log {currentValue} {currentValue !== 1 ? 'entries' : 'entry'} per {getScheduleLabel()}
           </p>
         </div>
       );

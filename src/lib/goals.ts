@@ -104,21 +104,23 @@ export function isValidGoalIcon(icon: string): icon is GoalIcon {
 // =============================================================================
 
 /**
- * Tracking type determines how discrete value goals (buttonGroup/options) are evaluated:
+ * Tracking type determines how goals are evaluated:
  * - 'average': Target is compared against the average value over the period
  * - 'absolute': Target is compared against the sum/total over the period
  * - 'sum': Target is compared against the total sum over the period
-  */
-export type GoalTrackingType = 'average' | 'absolute' | 'sum';
+ * - 'count': Track number of occurrences/sessions (for fixedValue activities)
+ */
+export type GoalTrackingType = 'average' | 'absolute' | 'sum' | 'count';
 
 /** All available tracking types */
-export const GOAL_TRACKING_TYPES: GoalTrackingType[] = ['average', 'sum', 'absolute'];
+export const GOAL_TRACKING_TYPES: GoalTrackingType[] = ['average', 'sum', 'absolute', 'count'];
 
 /** Human-readable labels for tracking types */
 export const GOAL_TRACKING_TYPE_LABELS: Record<GoalTrackingType, string> = {
   average: 'Average Daily Value',
-  sum: 'Sum',
-  absolute: 'Absolute',
+  sum: 'Add Up Totals',
+  absolute: 'Every Day',
+  count: 'Count Entries',
 };
 
 /** Descriptions for tracking types */
@@ -126,6 +128,7 @@ export const GOAL_TRACKING_TYPE_DESCRIPTIONS: Record<GoalTrackingType, string> =
   average: 'Goal is met when your average daily value meets the target',
   sum: 'Goal is met when your total value over the period meets the target',
   absolute: 'Goal is met only when every logged day meets the target',
+  count: 'Track how many times you complete this activity',
 };
 
 // =============================================================================
@@ -497,6 +500,7 @@ export function getValuesForPeriod(
   average: number;
   daysMetTarget: number;
   allDaysMet: boolean;
+  occurrenceCount: number;  // Number of days with logged entries
 } {
   // Calculate total days in period (including days without entries)
   const start = new Date(startDate + 'T12:00:00');
@@ -510,6 +514,7 @@ export function getValuesForPeriod(
       average: 0,
       daysMetTarget: 0,
       allDaysMet: false,
+      occurrenceCount: 0,
     };
 
   let sum = 0;
@@ -549,6 +554,7 @@ export function getValuesForPeriod(
     average: loggedDayCount > 0 ? sum / loggedDayCount : 0,  // Average based on logged days only
     daysMetTarget,
     allDaysMet: totalDaysInPeriod > 0 && daysMetTarget === totalDaysInPeriod,  // All days (including missing) must be met
+    occurrenceCount: loggedDayCount,  // Number of days with logged entries (for count tracking)
   };
 }
 
@@ -556,14 +562,16 @@ export function getValuesForPeriod(
  * Result of goal value calculation for a period.
  */
 export interface GoalValueResult {
-  /** The effective value for display (average, sum, or days met count) */
+  /** The effective value for display (average, sum, count, or days met count) */
   effectiveValue: number;
   /** Whether all logged days met the target (for absolute tracking) */
   allDaysMet: boolean;
   /** Number of days that met the target */
   daysMetTarget: number;
-  /** Total number of days with logged activities */
+  /** Total number of days in the period */
   dayCount: number;
+  /** Number of days with logged entries (for count tracking) */
+  occurrenceCount: number;
 }
 
 /**
@@ -580,6 +588,7 @@ export function getEffectiveValueForGoal(
     allDaysMet: false,
     daysMetTarget: 0,
     dayCount: 0,
+    occurrenceCount: 0,
   };
 
   if (!allActivities || !activityType) return defaultResult;
@@ -615,6 +624,7 @@ export function getEffectiveValueForGoal(
         allDaysMet: dailyMet,
         daysMetTarget: dailyMet ? 1 : 0,
         dayCount: dailyValue !== undefined ? 1 : 0,
+        occurrenceCount: dailyValue !== undefined && dailyValue > 0 ? 1 : 0,
       };
 
     case "weekly":
@@ -651,7 +661,7 @@ export function getEffectiveValueForGoal(
   const isDiscreteType =
     activityType.uiType === "buttonGroup" || activityType.uiType === "toggle";
 
-  const { sum, average, daysMetTarget, allDaysMet, count } = getValuesForPeriod(
+  const { sum, average, daysMetTarget, allDaysMet, count, occurrenceCount } = getValuesForPeriod(
     goal,
     allActivities,
     startDate,
@@ -670,6 +680,18 @@ export function getEffectiveValueForGoal(
       allDaysMet,
       daysMetTarget,
       dayCount: count,
+      occurrenceCount,
+    };
+  }
+
+  // Handle 'count' tracking type (for fixedValue activities)
+  if (goalTrackingType === "count") {
+    return {
+      effectiveValue: occurrenceCount,
+      allDaysMet: occurrenceCount >= goal.targetValue,
+      daysMetTarget: occurrenceCount,
+      dayCount: count,
+      occurrenceCount,
     };
   }
 
@@ -681,6 +703,7 @@ export function getEffectiveValueForGoal(
         allDaysMet,
         daysMetTarget,
         dayCount: count,
+        occurrenceCount,
       };
     }
     const matchRatio = count > 0 ? daysMetTarget / count : 0;
@@ -689,6 +712,7 @@ export function getEffectiveValueForGoal(
       allDaysMet,
       daysMetTarget,
       dayCount: count,
+      occurrenceCount,
     };
   }
 
@@ -700,6 +724,7 @@ export function getEffectiveValueForGoal(
         allDaysMet,
         daysMetTarget,
         dayCount: count,
+        occurrenceCount,
       };
     }
     return {
@@ -707,6 +732,19 @@ export function getEffectiveValueForGoal(
       allDaysMet,
       daysMetTarget,
       dayCount: count,
+      occurrenceCount,
+    };
+  }
+
+  // fixedValue types: default to count tracking if not explicitly set to sum
+  if (activityType.uiType === "fixedValue") {
+    // Default behavior for fixedValue is count (number of occurrences)
+    return {
+      effectiveValue: occurrenceCount,
+      allDaysMet: occurrenceCount >= goal.targetValue,
+      daysMetTarget: occurrenceCount,
+      dayCount: count,
+      occurrenceCount,
     };
   }
 
@@ -716,6 +754,7 @@ export function getEffectiveValueForGoal(
     allDaysMet,
     daysMetTarget,
     dayCount: count,
+    occurrenceCount,
   };
 }
 

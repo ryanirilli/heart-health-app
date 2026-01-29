@@ -82,6 +82,7 @@ interface GoalWithStatus {
   isEvaluationDay: boolean;
   usesAverageValue: boolean;
   usesAbsoluteTracking: boolean;
+  usesCountTracking: boolean;
 }
 
 /**
@@ -147,6 +148,10 @@ export function GoalStatusSection({
         goal.trackingType?.toString().trim().toLowerCase() || "average";
       const usesAbsoluteTracking = goalTrackingType === "absolute";
       const usesAverageTracking = goalTrackingType === "average";
+      const usesCountTracking = goalTrackingType === "count";
+      
+      // Check if this is a fixedValue activity
+      const isFixedValueType = activityType?.uiType === "fixedValue";
 
       if (goal.dateType === "daily") {
         // For daily goals, use single day value (exact match for discrete types)
@@ -168,8 +173,29 @@ export function GoalStatusSection({
 
         // IMPORTANT: Increment types always use sum-based logic, never discrete/absolute/average
         const isIncrementType = activityType.uiType === "increment";
-
-        if (!isIncrementType && (isDiscreteType || usesAbsoluteTracking || usesAverageTracking)) {
+        
+        // Handle fixedValue activities with count tracking
+        if (isFixedValueType && usesCountTracking) {
+          // Count tracking: goal is met when effectiveValue (occurrence count) >= target
+          if (goal.dateType === "weekly" || goal.dateType === "monthly") {
+            // Only show as met on evaluation day for weekly/monthly
+            if (isEvaluationDay) {
+              isMet = valueResult.effectiveValue >= goal.targetValue;
+            }
+          } else {
+            // For by_date and date_range, can turn green early
+            isMet = valueResult.effectiveValue >= goal.targetValue;
+          }
+        } else if (isFixedValueType && goalTrackingType === "sum") {
+          // Sum tracking for fixedValue: treat like positive increment
+          if (goal.dateType === "weekly" || goal.dateType === "monthly") {
+            if (isEvaluationDay) {
+              isMet = valueResult.effectiveValue >= goal.targetValue;
+            }
+          } else {
+            isMet = valueResult.effectiveValue >= goal.targetValue;
+          }
+        } else if (!isIncrementType && (isDiscreteType || usesAbsoluteTracking || usesAverageTracking)) {
           // For discrete types (buttonGroup/toggle):
           // - Absolute tracking: "Every day must match target" (allDaysMet)
           // - Average tracking: "Most days match target" (>50% of days)
@@ -260,6 +286,8 @@ export function GoalStatusSection({
       const usesAverageValueDisplay = goalTrackingType === "average";
 
       const usesAbsoluteTrackingDisplay = goalTrackingType === "absolute";
+      
+      const usesCountTrackingDisplay = goalTrackingType === "count";
 
       // Get the value result for display
       const valueResultForDisplay =
@@ -288,6 +316,7 @@ export function GoalStatusSection({
         isEvaluationDay,
         usesAverageValue: usesAverageValueDisplay,
         usesAbsoluteTracking: usesAbsoluteTrackingDisplay,
+        usesCountTracking: usesCountTrackingDisplay,
       };
     });
   }, [goals, dateStr, activity, activityTypes, allActivities]);
@@ -361,6 +390,7 @@ export function GoalStatusSection({
                 isEvaluationDay,
                 usesAverageValue,
                 usesAbsoluteTracking,
+                usesCountTracking,
               }) => (
                 <GoalStatusItem
                   key={goal.id}
@@ -374,6 +404,7 @@ export function GoalStatusSection({
                   isEvaluationDay={isEvaluationDay}
                   usesAverageValue={usesAverageValue}
                   usesAbsoluteTracking={usesAbsoluteTracking}
+                  usesCountTracking={usesCountTracking}
                   activityType={activityTypes[goal.activityTypeId]}
                 />
               )
@@ -409,6 +440,7 @@ interface GoalStatusItemProps {
   isEvaluationDay: boolean;
   usesAverageValue: boolean;
   usesAbsoluteTracking: boolean;
+  usesCountTracking: boolean;
   activityType?: ActivityTypeMap[string];
 }
 
@@ -423,6 +455,7 @@ function GoalStatusItem({
   isEvaluationDay,
   usesAverageValue,
   usesAbsoluteTracking,
+  usesCountTracking,
   activityType,
 }: GoalStatusItemProps) {
   const { openEditDialog } = useGoals();
@@ -507,7 +540,12 @@ function GoalStatusItem({
       let goalTargetDisplay: string;
 
       if (activityType) {
-        if (
+        // Handle count tracking for fixedValue activities
+        if (usesCountTracking && activityType.uiType === "fixedValue") {
+          const current = effectiveValue ?? 0;
+          progressValue = `${current} of ${goal.targetValue} ${goal.targetValue !== 1 ? 'entries' : 'entry'}`;
+          goalTargetDisplay = `${goal.targetValue} ${goal.targetValue !== 1 ? 'entries' : 'entry'}`;
+        } else if (
           activityType.uiType === "buttonGroup" ||
           activityType.uiType === "toggle"
         ) {
@@ -656,6 +694,15 @@ function GoalStatusItem({
         return {
           text: `Avg: ${avgValue}`,
           goalBadge: `Goal: ${goal.targetValue}`,
+        };
+      }
+
+      // Handle count tracking for fixedValue activities
+      if (usesCountTracking && activityType.uiType === "fixedValue") {
+        const current = effectiveValue ?? 0;
+        return {
+          text: `${current} of ${goal.targetValue} ${goal.targetValue !== 1 ? 'entries' : 'entry'}`,
+          goalBadge: `Goal: ${goal.targetValue} ${goal.targetValue !== 1 ? 'entries' : 'entry'}`,
         };
       }
 
