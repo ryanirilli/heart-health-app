@@ -545,6 +545,32 @@ function GoalSummaryView({
       }
     }
 
+    // Calculate progress percentage for the bar
+    let progressPercentage = 0;
+    
+    if (isDiscreteType) {
+       // For discrete types (Toggle/ButtonGroup), progress is always about frequency of matching the target option
+       if (effectiveTrackingType === 'absolute') {
+         // For absolute discrete, progress is % of days met so far vs total days so far
+         progressPercentage = progressData.dayCount > 0 
+           ? (progressData.daysMetTarget / progressData.dayCount) * 100 
+           : 0;
+       } else {
+         // Average tracking: effectiveValue is already the ratio (0-1)
+         progressPercentage = (currentValue || 0) * 100;
+       }
+    } else if (effectiveTrackingType === 'count') {
+       const current = progressData.occurrenceCount ?? 0;
+       progressPercentage = targetValue > 0 ? (current / targetValue) * 100 : 0;
+    } else {
+       // Default (sum, average) for continuous types
+       progressPercentage = targetValue > 0 ? (currentValue / targetValue) * 100 : 0;
+    }
+    
+    // Cap at 100% for display unless we specifically want to show over-progress
+    // For negative goals, going over 100% is bad, but visual bar usually caps
+    progressPercentage = Math.min(100, Math.max(0, progressPercentage));
+
     return {
       status,
       statusLabel,
@@ -553,6 +579,7 @@ function GoalSummaryView({
       statusColor,
       bgColor,
       textColor,
+      progressPercentage,
     };
   };
 
@@ -658,6 +685,14 @@ function GoalSummaryView({
                     {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
                   </span>
                 )}
+              </div>
+              <div className="relative">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div 
+                    className={cn("h-full transition-all", displayInfo.statusColor)}
+                    style={{ width: `${displayInfo.progressPercentage}%` }}
+                  />
+                </div>
               </div>
               <div className="space-y-1">
                 <div className="text-sm font-medium">{displayInfo.primaryText}</div>
