@@ -1,4 +1,5 @@
 // Goal definitions and utilities
+import { format, subDays, parseISO } from 'date-fns';
 import {
   Target,
   Dumbbell,
@@ -801,3 +802,101 @@ export function validateGoal(goal: Goal): { valid: boolean; errors: string[] } {
   };
 }
 
+
+// =============================================================================
+// DAILY GOAL HISTORY (Rolling Window)
+// =============================================================================
+
+export interface DailyGoalStatus {
+  date: string;
+  isMet: boolean;
+  value: number;
+}
+
+export interface DailyGoalHistoryResult {
+  history: DailyGoalStatus[]; // Last 7 days, ordered oldest to newest
+  streak: number;
+  consistency: number; // Percentage over last 30 days
+  totalMetLast30: number;
+}
+
+/**
+ * Get the history and stats for a daily goal over a rolling window.
+ * Calculates streak and consistency based on the last 30 days.
+ */
+export function getDailyGoalHistory(
+  goal: Goal,
+  activityType: ActivityType | undefined,
+  allActivities: ActivityMap | undefined,
+  todayStr: string
+): DailyGoalHistoryResult {
+  let streak = 0;
+  let metCount30 = 0;
+  let currentStreakBroken = false;
+  
+  const history: DailyGoalStatus[] = [];
+  const today = parseISO(todayStr); 
+
+  // Iterate last 30 days descending (Today -> Past)
+  for (let i = 0; i < 30; i++) {
+    const d = subDays(today, i);
+    const dateStr = format(d, 'yyyy-MM-dd');
+    
+    // Check status for this day
+    const result = getEffectiveValueForGoal(goal, activityType, allActivities, dateStr);
+    
+    // For daily goals, allDaysMet is true if the target was met that day
+    const isMet = result.allDaysMet;
+    
+    // Store history for last 7 days
+    if (i < 7) {
+        history.unshift({ // Add to front so array is ordered oldest -> newest
+           date: dateStr,
+           isMet,
+           value: result.effectiveValue
+        });
+    }
+
+    if (isMet) {
+       metCount30++;
+       if (!currentStreakBroken) {
+          streak++;
+       }
+    } else {
+       // If missed today (i=0), we don't break streak immediately if we want to allow "in progress"
+       // But typically "Current Streak" implies unbroken chain.
+       // If I haven't done it TODAY yet, my streak from yesterday is arguably still "active" until day ends.
+       // However, strictly speaking, streak is number of consecutive COMPLETED days.
+       // If I completed yesterday but not today, streak is ... (YesterdayStreak).
+       // If I complete today, streak becomes (YesterdayStreak + 1).
+       
+       // My logic above:
+       // i=0 Not Met. currentStreakBroken = true? -> Streak = 0.
+       // This effectively means "Streak resets to 0 at midnight".
+       // Most users prefer "Streak of 5" to stay "5" until they break it (i.e. miss today entirely).
+       // But we don't know if day ended.
+       
+       // Standard "Duolingo" style: Streak covers completed days.
+       // If I have 5 day streak (ending yesterday), and today is incomplete.
+       // Display says "5 day streak".
+       // If I complete, says "6 day streak".
+       // So we should NOT Count today as a "break" if it is the MOST RECENT day checked.
+       
+       if (i === 0) {
+          // Verify if yesterday was met to decide if streak is alive?
+          // Don't mark broken. Streak count implies completed days.
+          // If i=1 is met, streak will be incremented then.
+          // Correct.
+       } else {
+          currentStreakBroken = true;
+       }
+    }
+  }
+  
+  return {
+    history,
+    streak,
+    consistency: Math.round((metCount30 / 30) * 100),
+    totalMetLast30: metCount30,
+  };
+}

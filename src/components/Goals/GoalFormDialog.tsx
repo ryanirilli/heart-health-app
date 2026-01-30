@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarIcon, Check, Pencil } from 'lucide-react';
+import { CalendarIcon, Check, Pencil, Flame } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -52,7 +52,7 @@ import {
 } from '@/lib/goals';
 import { ActivityType, ActivityTypeMap, formatValueOnly, getGoalType } from '@/lib/activityTypes';
 import { useActivities } from '@/components/ActivityCalendar/ActivityProvider';
-import { getEffectiveValueForGoal, getTodayDateStr, getDaysUntilGoal, isGoalMet, shouldShowGoalIndicator, isGoalExpired } from '@/lib/goals';
+import { getEffectiveValueForGoal, getTodayDateStr, getDaysUntilGoal, isGoalMet, shouldShowGoalIndicator, isGoalExpired, getDailyGoalHistory, type DailyGoalHistoryResult } from '@/lib/goals';
 import { Progress } from '@/components/ui/progress';
 import pluralizeLib from 'pluralize-esm';
 const { plural } = pluralizeLib;
@@ -247,6 +247,10 @@ function GoalSummaryView({
   const progressData = goal.dateType !== 'daily' 
     ? getEffectiveValueForGoal(goal, selectedActivityType, activities, todayStr)
     : null;
+    
+  const dailyHistory = goal.dateType === 'daily'
+    ? getDailyGoalHistory(goal, selectedActivityType, activities, todayStr)
+    : null;
   
   // Calculate days remaining
   const daysRemaining = goal.dateType !== 'daily' ? getDaysUntilGoal(goal, todayStr) : null;
@@ -296,6 +300,23 @@ function GoalSummaryView({
 
   // Helper: Determine goal status and display info
   const getGoalDisplayInfo = () => {
+    // For Daily Goals: Show streak and consistency
+    if (goal.dateType === 'daily' && dailyHistory) {
+       const { streak, consistency } = dailyHistory;
+       const isStreakActive = streak > 0;
+       
+       return {
+         status: isStreakActive ? 'on_pace' : 'behind',
+         statusLabel: isStreakActive ? `Streak: ${streak} day${streak!==1?'s':''}` : 'Needs Focus',
+         statusColor: isStreakActive ? 'bg-emerald-500' : 'bg-amber-500', 
+         textColor: isStreakActive ? 'text-emerald-700 dark:text-emerald-300' : 'text-amber-700 dark:text-amber-300',
+         bgColor: isStreakActive ? 'bg-emerald-500/5' : 'bg-amber-500/5',
+         primaryText: `${consistency}% consistency (last 30 days)`,
+         secondaryText: `You've met this goal ${dailyHistory.totalMetLast30} times in the last 30 days`,
+         progressPercentage: 0, // Not used for daily (we use segmented bar)
+       };
+    }
+
     if (!progressData || !selectedActivityType) {
       return {
         status: 'on_pace' as const,
@@ -680,8 +701,9 @@ function GoalSummaryView({
           </div>
 
           {/* Progress Section - only for non-daily goals */}
-          {goal.dateType !== 'daily' && progressData && selectedActivityType && (
-            <div className={cn("mt-4 p-4 rounded-lg space-y-3", displayInfo.bgColor)}>
+          {/* Progress Section */}
+          {(goal.dateType === 'daily' ? dailyHistory : (progressData && selectedActivityType)) && (
+            <div className={cn("mt-4 p-4 rounded-lg space-y-3 bg-muted/30 border border-border/50")}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-muted-foreground">Status</span>
@@ -689,20 +711,54 @@ function GoalSummaryView({
                     {displayInfo.statusLabel}
                   </Badge>
                 </div>
-                {daysRemaining !== null && daysRemaining >= 0 && (
+                {(goal.dateType !== 'daily' && daysRemaining !== null && daysRemaining >= 0) && (
                   <span className="text-xs text-muted-foreground">
                     {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
                   </span>
                 )}
+                {goal.dateType === 'daily' && dailyHistory && dailyHistory.streak > 0 && (
+                   <span className="text-xs font-medium text-emerald-600 flex items-center gap-1">
+                     <Flame className="w-3 h-3" /> {dailyHistory.streak} day streak
+                   </span>
+                )}
               </div>
+              
+              {/* Visual Indicator */}
               <div className="relative">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div 
-                    className={cn("h-full transition-all", displayInfo.statusColor)}
-                    style={{ width: `${displayInfo.progressPercentage}%` }}
-                  />
-                </div>
+                {goal.dateType === 'daily' && dailyHistory ? (
+                   /* Daily Goal: Segmented Bar (Last 7 Days) */
+                   <div className="space-y-1">
+                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Last 7 Days</div>
+                     <div className="flex gap-1 h-2 w-full">
+                        {dailyHistory.history.map((day, i) => {
+                          let title = format(parseISO(day.date), 'MMM d');
+                          const isToday = i === dailyHistory.history.length - 1;
+                          if (isToday) {
+                            title += day.isMet ? ': Met' : ': Today';
+                          } else {
+                            title += day.isMet ? ': Met' : ': Missed';
+                          }
+                          
+                          return (
+                            <div key={day.date} className={cn(
+                               "flex-1 rounded-full transition-all",
+                               day.isMet ? "bg-emerald-500" : "bg-muted/40",
+                            )} title={title} />
+                          );
+                        })}
+                     </div>
+                   </div>
+                ) : (
+                   /* Weekly/Monthly Goal: Progress Bar */
+                   <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div 
+                        className={cn("h-full transition-all", displayInfo.statusColor)}
+                        style={{ width: `${displayInfo.progressPercentage}%` }}
+                      />
+                   </div>
+                )}
               </div>
+
               <div className="space-y-1">
                 <div className="text-sm font-medium">{displayInfo.primaryText}</div>
                 {displayInfo.secondaryText && (
