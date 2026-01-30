@@ -12,9 +12,9 @@ interface FloatingNavBarProps {
 
 export function FloatingNavBar({ currentView, onViewChange }: FloatingNavBarProps) {
   const navOptions: { value: AppView; label: string; icon: typeof CalendarDays }[] = [
-    { value: 'activities', label: 'Activities', icon: CalendarDays },
+    { value: 'activities', label: 'Activity', icon: CalendarDays },
     { value: 'goals', label: 'Goals', icon: Target },
-    { value: 'check-in', label: 'Check in', icon: Heart },
+    { value: 'check-in', label: 'Check', icon: Heart },
   ];
 
   return (
