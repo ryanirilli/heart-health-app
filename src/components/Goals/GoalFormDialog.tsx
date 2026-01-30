@@ -208,6 +208,7 @@ export function GoalFormDialog() {
               onSubmit={handleSubmit}
               onDelete={handleDelete}
               onCancel={closeDialog}
+              preFilledGoal={preFilledGoal}
             />
           </Stepper>
         ) : null}
@@ -555,7 +556,6 @@ function GoalSummaryView({
     };
   };
 
-  const timeProgress = calculateTimeProgress();
   const displayInfo = getGoalDisplayInfo();
 
   const getScheduleText = () => {
@@ -647,20 +647,17 @@ function GoalSummaryView({
           {goal.dateType !== 'daily' && progressData && selectedActivityType && (
             <div className={cn("mt-4 p-4 rounded-lg space-y-3", displayInfo.bgColor)}>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-muted-foreground">Status</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-muted-foreground">Status</span>
+                  <Badge variant="secondary" className={cn("text-xs", displayInfo.textColor)}>
+                    {displayInfo.statusLabel}
+                  </Badge>
+                </div>
                 {daysRemaining !== null && daysRemaining >= 0 && (
-                  <span className={cn("text-xs", displayInfo.textColor)}>
+                  <span className="text-xs text-muted-foreground">
                     {daysRemaining === 0 ? 'Due today' : daysRemaining === 1 ? '1 day left' : `${daysRemaining} days left`}
                   </span>
                 )}
-              </div>
-              <div className="relative">
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                  <div 
-                    className={cn("h-full transition-all", displayInfo.statusColor)}
-                    style={{ width: `${Math.min(100, Math.max(0, timeProgress))}%` }}
-                  />
-                </div>
               </div>
               <div className="space-y-1">
                 <div className="text-sm font-medium">{displayInfo.primaryText}</div>
@@ -706,6 +703,7 @@ interface GoalFormContentProps {
   isEditing: boolean;
   isSubmitting: boolean;
   isDeleting: boolean;
+  preFilledGoal?: Partial<Goal> | null;
   onSubmit: (e: React.FormEvent) => void;
   onDelete: () => void;
   onCancel: () => void;
@@ -722,6 +720,7 @@ function GoalFormContent({
   isEditing,
   isSubmitting,
   isDeleting,
+  preFilledGoal,
   onSubmit,
   onDelete,
   onCancel,
@@ -806,7 +805,7 @@ function GoalFormContent({
               activeTypes={activeTypes}
               activityTypes={activityTypes}
               usedActivityTypeIds={usedActivityTypeIds}
-              isLockedActivity={!!formData.activityTypeId && !isEditing}
+              isLockedActivity={isEditing || !!preFilledGoal?.activityTypeId}
             />
           </StepItem>
 

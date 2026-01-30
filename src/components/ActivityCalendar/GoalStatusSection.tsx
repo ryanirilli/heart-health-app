@@ -510,6 +510,10 @@ function GoalStatusItem({
   const styles = getStatusStyles();
 
   const getSubtitle = (): { text: string; goalBadge?: string } => {
+    // Determine if this is a negative goal (limit) or positive goal
+    const goalType = activityType ? getGoalType(activityType) : 'positive';
+    const badgePrefix = goalType === 'negative' ? 'Limit' : 'Goal';
+    
     // For missed goals, show encouraging message based on goal type
     if (displayStatus === "missed") {
       switch (goal.dateType) {
@@ -597,17 +601,17 @@ function GoalStatusItem({
       if (daysRemaining === 0) {
         return {
           text: `${progressValue}${sinceText}`,
-          goalBadge: `Goal: ${goalTargetDisplay} · due today`,
+          goalBadge: `${badgePrefix}: ${goalTargetDisplay} · due today`,
         };
       } else if (daysRemaining === 1) {
         return {
           text: `${progressValue}${sinceText}`,
-          goalBadge: `Goal: ${goalTargetDisplay} · 1 day left`,
+          goalBadge: `${badgePrefix}: ${goalTargetDisplay} · 1 day left`,
         };
       } else if (daysRemaining > 0) {
         return {
           text: `${progressValue}${sinceText}`,
-          goalBadge: `Goal: ${goalTargetDisplay} · ${daysRemaining} days left`,
+          goalBadge: `${badgePrefix}: ${goalTargetDisplay} · ${daysRemaining} days left`,
         };
       }
     }
@@ -619,12 +623,12 @@ function GoalStatusItem({
         const targetLabel = goal.targetValue === 1 ? "Yes" : "No";
         if (goal.dateType === "daily") {
           const currentLabel = activityValue === 1 ? "Yes" : "No";
-          return { text: currentLabel, goalBadge: `Goal: ${targetLabel}` };
+          return { text: currentLabel, goalBadge: `${badgePrefix}: ${targetLabel}` };
         } else if (usesAbsoluteTracking) {
           // For absolute tracking, show days met / total days
           return {
             text: `${daysMetTarget}/${dayCount} days at ${targetLabel}`,
-            goalBadge: `Goal: Every day`,
+            goalBadge: `${badgePrefix}: Every day`,
           };
         } else {
           // For average tracking, show days matching / total days
@@ -633,7 +637,7 @@ function GoalStatusItem({
             effectiveValue !== undefined ? Math.round(effectiveValue * 100) : 0;
           return {
             text: `${daysMetTarget}/${dayCount} days (${percentage}%)`,
-            goalBadge: `Goal: Most days ${targetLabel}`,
+            goalBadge: `${badgePrefix}: Most days ${targetLabel}`,
           };
         }
       }
@@ -653,7 +657,7 @@ function GoalStatusItem({
           const targetLabel = targetOption?.label || String(goal.targetValue);
           return {
             text: `${daysMetTarget}/${dayCount} days at ${targetLabel}`,
-            goalBadge: `Goal: Every day`,
+            goalBadge: `${badgePrefix}: Every day`,
           };
         }
 
@@ -661,7 +665,7 @@ function GoalStatusItem({
         const targetLabel = formatValueOnly(goal.targetValue, activityType);
         return {
           text: `${daysMetTarget}/${dayCount} days met`,
-          goalBadge: `Goal: Every day ${targetLabel}`,
+          goalBadge: `${badgePrefix}: Every day ${targetLabel}`,
         };
       }
 
@@ -679,7 +683,7 @@ function GoalStatusItem({
           const targetLabel = targetOption?.label || String(goal.targetValue);
           return {
             text: `${daysMetTarget}/${dayCount} days (${percentage}%)`,
-            goalBadge: `Goal: Most days ${targetLabel}`,
+            goalBadge: `${badgePrefix}: Most days ${targetLabel}`,
           };
         }
         // For slider types, show decimal average with unit
@@ -693,7 +697,7 @@ function GoalStatusItem({
         // Goal badge shows just the number, unit is already in avgValue
         return {
           text: `Avg: ${avgValue}`,
-          goalBadge: `Goal: ${goal.targetValue}`,
+          goalBadge: `${badgePrefix}: ${goal.targetValue}`,
         };
       }
 
@@ -702,7 +706,7 @@ function GoalStatusItem({
         const current = effectiveValue ?? 0;
         return {
           text: `${current} of ${goal.targetValue} ${goal.targetValue !== 1 ? 'entries' : 'entry'}`,
-          goalBadge: `Goal: ${goal.targetValue} ${goal.targetValue !== 1 ? 'entries' : 'entry'}`,
+          goalBadge: `${badgePrefix}: ${goal.targetValue} ${goal.targetValue !== 1 ? 'entries' : 'entry'}`,
         };
       }
 
@@ -718,7 +722,7 @@ function GoalStatusItem({
         const targetLabel = targetOption?.label || String(goal.targetValue);
         return {
           text: currentLabel,
-          goalBadge: `Goal: ${targetLabel}`,
+          goalBadge: `${badgePrefix}: ${targetLabel}`,
         };
       }
 
@@ -733,13 +737,13 @@ function GoalStatusItem({
       // Goal badge shows the formatted target
       return {
         text: currentValue,
-        goalBadge: `Goal: ${targetValueDisplay}`,
+        goalBadge: `${badgePrefix}: ${targetValueDisplay}`,
       };
     }
 
     return {
       text: String(activityValue ?? 0),
-      goalBadge: `Goal: ${goal.targetValue}`,
+      goalBadge: `${badgePrefix}: ${goal.targetValue}`,
     };
   };
 
