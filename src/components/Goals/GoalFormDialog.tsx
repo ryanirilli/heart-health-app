@@ -391,22 +391,30 @@ function GoalSummaryView({
       if (effectiveTrackingForPace === 'sum') {
         // Sum tracking: compare current vs required by now
         const requiredNow = targetValue * timeProgress;
-        if (goalType === 'positive') {
-          isAhead = currentValue > requiredNow * 1.1; // 10% ahead
-          isBehind = currentValue < requiredNow * 0.85; // 15% behind
-        } else if (goalType === 'negative') {
+        if (goalType === 'negative') {
           // For negative sum, being UNDER budget is good
           isAhead = currentValue < requiredNow * 0.9; // Using <90% of budget
           isBehind = currentValue > requiredNow * 1.1; // Over 110% of budget
+        } else {
+          // Positive or Neutral (default)
+          isAhead = currentValue > requiredNow * 1.1; // 10% ahead
+          isBehind = currentValue < requiredNow * 0.85; // 15% behind
         }
       } else if (effectiveTrackingForPace === 'average') {
         // Average tracking: compare average vs target
-        if (goalType === 'positive') {
-          isAhead = currentValue > targetValue * 1.05;
-          isBehind = currentValue < targetValue * 0.95;
-        } else if (goalType === 'negative') {
-          isAhead = currentValue < targetValue * 0.95;
-          isBehind = currentValue > targetValue * 1.05;
+        // For discrete types, currentValue is ratio (0-1), target is effectively 1.0 (100% consistency)
+        const effectiveTarget = isDiscreteType ? 1.0 : targetValue;
+        
+        if (goalType === 'negative') {
+          isAhead = currentValue < effectiveTarget * 0.95;
+          isBehind = currentValue > effectiveTarget * 1.05;
+        } else {
+          // Positive or Neutral (default)
+          isAhead = currentValue > effectiveTarget * 1.05; // >105% of target
+          // For consistency, being slightly under (e.g. 95%) is ok, but below that is behind
+          // Or should we align with the "Needs Focus" threshold? 
+          // If only 20% consistent (0.2 vs 1.0), definitely behind.
+          isBehind = currentValue < effectiveTarget * 0.9; 
         }
       } else if (effectiveTrackingForPace === 'absolute') {
         // Absolute: must meet every day
@@ -422,19 +430,20 @@ function GoalSummaryView({
 
       if (isAhead) {
         status = 'ahead';
-        statusLabel = 'Ahead of Pace';
+        statusLabel = 'On Track';
         statusColor = 'bg-emerald-500';
         bgColor = 'bg-emerald-500/5';
         textColor = 'text-emerald-700 dark:text-emerald-300';
       } else if (isBehind) {
         status = 'behind';
-        statusLabel = 'Behind Pace';
+        // Use non-judgmental language based on goal type
+        statusLabel = goalType === 'negative' ? 'Over Limit' : 'Needs Focus';
         statusColor = 'bg-amber-500';
         bgColor = 'bg-amber-500/5';
         textColor = 'text-amber-700 dark:text-amber-300';
       } else {
         status = 'on_pace';
-        statusLabel = 'On Pace';
+        statusLabel = 'On Track';
         statusColor = 'bg-primary';
         bgColor = 'bg-primary/5';
         textColor = 'text-foreground';
