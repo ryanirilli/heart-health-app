@@ -80,7 +80,7 @@ export function PillToggle<T extends string>({
     <div
       ref={containerRef}
       className={cn(
-        'relative flex items-center gap-0.5 rounded-full bg-muted p-1 border border-border',
+        'relative flex items-center gap-0.5 rounded-full bg-muted p-0.5 border border-border',
         fullWidth && 'w-full',
         className
       )}
@@ -100,8 +100,8 @@ export function PillToggle<T extends string>({
         }}
         transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
         style={{
-          top: 4,
-          bottom: 4,
+          top: 2,
+          bottom: 2,
         }}
       />
       
