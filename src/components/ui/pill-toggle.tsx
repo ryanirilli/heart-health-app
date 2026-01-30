@@ -115,9 +115,9 @@ export function PillToggle<T extends string>({
             ref={(el) => { buttonRefs.current[index] = el; }}
             onClick={() => handleClick(option.value)}
             className={cn(
-              'relative z-10 flex items-center justify-center gap-1.5 rounded-full font-medium transition-colors',
+              'relative z-10 flex items-center justify-center gap-1 rounded-full font-medium transition-colors',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-              size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm',
+              size === 'sm' ? 'px-2 py-1 text-xs' : 'px-2 py-1.5 text-sm',
               fullWidth && 'flex-1',
               isActive
                 ? 'text-primary-foreground'
