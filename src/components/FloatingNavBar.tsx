@@ -1,9 +1,9 @@
 'use client';
 
-import { CalendarDays, Target } from 'lucide-react';
+import { CalendarDays, Target, Heart } from 'lucide-react';
 import { PillToggle } from '@/components/ui/pill-toggle';
 
-export type AppView = 'activities' | 'goals';
+export type AppView = 'activities' | 'goals' | 'check-in';
 
 interface FloatingNavBarProps {
   currentView: AppView;
@@ -14,6 +14,7 @@ export function FloatingNavBar({ currentView, onViewChange }: FloatingNavBarProp
   const navOptions: { value: AppView; label: string; icon: typeof CalendarDays }[] = [
     { value: 'activities', label: 'Activities', icon: CalendarDays },
     { value: 'goals', label: 'Goals', icon: Target },
+    { value: 'check-in', label: 'Check in', icon: Heart },
   ];
 
   return (

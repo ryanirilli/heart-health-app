@@ -9,12 +9,13 @@ import {
 } from "@/components/ActivityCalendar";
 import { ActivityHeader } from "@/components/ActivityHeader";
 import { GoalsProvider, GoalsView, GoalFormDialog } from "@/components/Goals";
+import { CheckInView } from "@/components/CheckIn";
 import { FloatingNavBar, AppView } from "@/components/FloatingNavBar";
 import { ActivityTypeMap } from "@/lib/activityTypes";
 import { ActivityMap } from "@/lib/activities";
 import { GoalMap } from "@/lib/goals";
 import { toast, Toaster } from "sonner";
-const VALID_VIEWS: AppView[] = ["activities", "goals"];
+const VALID_VIEWS: AppView[] = ["activities", "goals", "check-in"];
 
 interface DashboardContentProps {
   types: ActivityTypeMap;
@@ -148,8 +149,12 @@ export function DashboardContent({
                     <ActivityHeader />
                     <ActivityCalendar />
                   </>
-                ) : (
+                ) : currentView === "goals" ? (
                   <GoalsView />
+                ) : (
+                  <CheckInView
+                    onNavigateToActivities={() => handleViewChange("activities")}
+                  />
                 )}
               </motion.div>
             </AnimatePresence>
