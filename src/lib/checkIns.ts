@@ -160,14 +160,30 @@ export type CheckInStreamingStatusType =
   | 'analyzing'
   | 'searching'
   | 'generating'
+  | 'streaming_content'
   | 'saving'
   | 'complete'
   | 'error';
+
+/**
+ * Partial check-in analysis for streaming updates.
+ * All fields are optional since they stream in progressively.
+ */
+export interface PartialCheckInAnalysis {
+  overallSummary?: string;
+  celebrations?: string[];
+  insights?: string[];
+  recommendations?: string[];
+  resources?: CheckInResource[];
+  weeklyFocus?: string;
+  motivation?: string;
+}
 
 export interface CheckInStreamingStatus {
   status: CheckInStreamingStatusType;
   message: string;
   data?: CheckIn;
+  partialAnalysis?: PartialCheckInAnalysis;
   statusCode?: number;
 }
 
@@ -301,6 +317,7 @@ export const STREAMING_STATUS_MESSAGES: Record<CheckInStreamingStatusType, strin
   analyzing: 'Analyzing your progress...',
   searching: 'Finding personalized resources...',
   generating: 'Creating your check-in...',
+  streaming_content: 'Writing your check-in...',
   saving: 'Saving your check-in...',
   complete: 'Done!',
   error: 'Something went wrong',

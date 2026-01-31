@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useCheckIns } from "@/lib/hooks/useCheckInsQuery";
 import { CheckIn } from "@/lib/checkIns";
 import { ContentNavigator } from "@/components/ui/content-navigator";
 import { CheckInCard } from "./CheckInCard";
 import { CheckInPreviewCard } from "./CheckInPreviewCard";
 import { GenerateCheckInCard } from "./GenerateCheckInCard";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 
@@ -26,6 +26,7 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
     isGenerating,
     streamingStatus,
     streamingMessage,
+    streamingContent,
     generationError,
     generateCheckIn,
   } = useCheckIns();
@@ -33,6 +34,9 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
   // Navigation state
   const [currentIndex, setCurrentIndex] = useState(0);
   const [slideDirection, setSlideDirection] = useState<"left" | "right">("left");
+
+  // Track the newly generated check-in ID to show it without animation after generation
+  const newlyGeneratedIdRef = useRef<string | null>(null);
 
   // Create items array: generation card first (if applicable), then check-ins
   const items = useMemo(() => {
@@ -78,12 +82,28 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
   const handleGenerate = useCallback(async () => {
     const result = await generateCheckIn();
     if (result) {
-      // The new check-in will be at index 1 (after the generate card which is now hidden)
-      // But since canGenerateNew becomes false, generate card might be removed
-      // So let's navigate to index 0 which will be the new check-in
+      // Store the new check-in ID so we can show it without animation
+      newlyGeneratedIdRef.current = result.id;
+      // The new check-in will be at index 0 since canGenerateNew becomes false
       setCurrentIndex(0);
+      // Clear the ref after a short delay so future navigations animate normally
+      setTimeout(() => {
+        newlyGeneratedIdRef.current = null;
+      }, 100);
     }
   }, [generateCheckIn]);
+
+  // Get current item key - must be before any conditional returns
+  const currentItem = items[currentIndex];
+  const itemKey = useMemo(() => {
+    if (currentItem?.type === "generate") {
+      return "generate";
+    }
+    if (currentItem?.type === "checkIn") {
+      return currentItem.data.id;
+    }
+    return "empty";
+  }, [currentItem]);
 
   // Loading state
   if (isLoading) {
@@ -93,15 +113,6 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
       </div>
     );
   }
-
-  // Get current item key
-  const currentItem = items[currentIndex];
-  const itemKey =
-    currentItem?.type === "generate"
-      ? "generate"
-      : currentItem?.type === "checkIn"
-        ? currentItem.data.id
-        : "empty";
 
   // Render item
   const renderItem = (
@@ -117,6 +128,7 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
           isGenerating={isGenerating}
           streamingStatus={streamingStatus}
           streamingMessage={streamingMessage}
+          streamingContent={streamingContent}
           generationError={generationError}
           onGenerate={handleGenerate}
           onNavigateToActivities={onNavigateToActivities}
@@ -147,6 +159,7 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
             isGenerating={false}
             streamingStatus={null}
             streamingMessage={null}
+            streamingContent={null}
             generationError={null}
             onGenerate={() => {}}
           />
@@ -183,8 +196,29 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
         )}
       </div>
 
-      {/* Content Navigator */}
-      {items.length > 0 ? (
+      {/* During generation, render directly without ContentNavigator to avoid animation issues */}
+      {isGenerating ? (
+        <div className="max-w-2xl mx-auto">
+          <GenerateCheckInCard
+            dataState={dataState}
+            dataStateDetails={dataStateDetails}
+            canGenerateNew={canGenerateNew}
+            nextAvailableDate={nextAvailableDate}
+            isGenerating={isGenerating}
+            streamingStatus={streamingStatus}
+            streamingMessage={streamingMessage}
+            streamingContent={streamingContent}
+            generationError={generationError}
+            onGenerate={handleGenerate}
+            onNavigateToActivities={onNavigateToActivities}
+          />
+        </div>
+      ) : /* Show newly generated check-in directly without animation */
+      newlyGeneratedIdRef.current && checkIns[0]?.id === newlyGeneratedIdRef.current ? (
+        <div className="max-w-2xl mx-auto">
+          <CheckInCard checkIn={checkIns[0]} />
+        </div>
+      ) : items.length > 0 ? (
         <ContentNavigator
           items={items}
           currentIndex={currentIndex}
@@ -211,6 +245,7 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
           isGenerating={isGenerating}
           streamingStatus={streamingStatus}
           streamingMessage={streamingMessage}
+          streamingContent={streamingContent}
           generationError={generationError}
           onGenerate={handleGenerate}
           onNavigateToActivities={onNavigateToActivities}

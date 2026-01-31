@@ -23,8 +23,10 @@ import {
 import {
   DataState,
   CheckInStreamingStatusType,
+  PartialCheckInAnalysis,
   STREAMING_STATUS_MESSAGES,
 } from "@/lib/checkIns";
+import { StreamingCheckInCard } from "./StreamingCheckInCard";
 
 interface GenerateCheckInCardProps {
   dataState: DataState;
@@ -38,6 +40,7 @@ interface GenerateCheckInCardProps {
   isGenerating: boolean;
   streamingStatus: CheckInStreamingStatusType | null;
   streamingMessage: string | null;
+  streamingContent: PartialCheckInAnalysis | null;
   generationError: string | null;
   onGenerate: () => void;
   onNavigateToActivities?: () => void;
@@ -50,6 +53,7 @@ const STATUS_ICONS: Record<CheckInStreamingStatusType, typeof Clock> = {
   analyzing: Brain,
   searching: Search,
   generating: Sparkles,
+  streaming_content: Sparkles,
   saving: Save,
   complete: Sparkles,
   error: Clock,
@@ -63,6 +67,7 @@ export function GenerateCheckInCard({
   isGenerating,
   streamingStatus,
   streamingMessage,
+  streamingContent,
   generationError,
   onGenerate,
   onNavigateToActivities,
@@ -99,8 +104,15 @@ export function GenerateCheckInCard({
     );
   }
 
-  // State 2: Generating - show streaming status
+  // State 2: Generating - show streaming content or status interstitial
   if (isGenerating && streamingStatus) {
+    // If we have streaming content, keep showing it even during "saving" phase
+    // to avoid a flash back to the interstitial
+    if (streamingContent && (streamingStatus === "streaming_content" || streamingStatus === "saving")) {
+      return <StreamingCheckInCard partialAnalysis={streamingContent} />;
+    }
+
+    // Otherwise show the status interstitial for early stages
     const StatusIcon = STATUS_ICONS[streamingStatus] || Sparkles;
 
     return (

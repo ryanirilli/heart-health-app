@@ -4,6 +4,7 @@ import { format, subDays, parseISO } from "date-fns";
 import {
   CheckIn,
   CheckInStreamingStatus,
+  PartialCheckInAnalysis,
   dbCheckInToCheckIn,
 } from "@/lib/checkIns";
 import {
@@ -16,7 +17,7 @@ import {
   DbGoal,
   DbAchievement,
 } from "@/lib/checkInDataProcessor";
-import { generateCheckInAnalysis } from "@/lib/ai/generateCheckIn";
+import { streamCheckInAnalysis, searchForResources } from "@/lib/ai/generateCheckIn";
 
 export async function POST(request: NextRequest) {
   // Create a TransformStream to write status updates to
@@ -176,15 +177,55 @@ export async function POST(request: NextRequest) {
         message: "Finding personalized resources...",
       });
 
-      // Generate check-in analysis
+      // Search for resources first (this happens in parallel conceptually)
+      let resources: Awaited<ReturnType<typeof searchForResources>> = [];
+      try {
+        resources = await searchForResources(context);
+      } catch (searchError) {
+        console.error("Resource search failed:", searchError);
+        resources = []; // Continue without resources
+      }
+
+      // Stream the check-in analysis content
       await sendStatus({
-        status: "generating",
-        message: "Creating your check-in...",
+        status: "streaming_content",
+        message: "Writing your check-in...",
       });
 
       let analysis;
       try {
-        analysis = await generateCheckInAnalysis(context);
+        let lastPartial: PartialCheckInAnalysis = {};
+
+        analysis = await streamCheckInAnalysis(context, resources, (partial) => {
+          // Only send updates when content has meaningfully changed
+          const partialAnalysis: PartialCheckInAnalysis = {
+            overallSummary: partial.overallSummary,
+            celebrations: partial.celebrations as string[] | undefined,
+            insights: partial.insights as string[] | undefined,
+            recommendations: partial.recommendations as string[] | undefined,
+            weeklyFocus: partial.weeklyFocus,
+            motivation: partial.motivation,
+          };
+
+          // Check if there's meaningful new content to send
+          const hasNewContent =
+            (partialAnalysis.overallSummary && partialAnalysis.overallSummary !== lastPartial.overallSummary) ||
+            (partialAnalysis.celebrations?.length !== lastPartial.celebrations?.length) ||
+            (partialAnalysis.insights?.length !== lastPartial.insights?.length) ||
+            (partialAnalysis.recommendations?.length !== lastPartial.recommendations?.length) ||
+            (partialAnalysis.weeklyFocus && partialAnalysis.weeklyFocus !== lastPartial.weeklyFocus) ||
+            (partialAnalysis.motivation && partialAnalysis.motivation !== lastPartial.motivation);
+
+          if (hasNewContent) {
+            // Fire and forget - we can't await in a sync callback
+            sendStatus({
+              status: "streaming_content",
+              message: "Writing your check-in...",
+              partialAnalysis,
+            });
+            lastPartial = partialAnalysis;
+          }
+        });
       } catch (aiError) {
         console.error("AI generation failed:", aiError);
         await sendStatus({

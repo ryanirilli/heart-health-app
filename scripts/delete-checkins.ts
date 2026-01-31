@@ -119,20 +119,21 @@ async function main() {
     );
   });
 
-  // 3. Delete all check-ins
-  console.log(`\n🗑️  Deleting ${checkIns.length} check-in(s)...`);
+  // 3. Delete only the latest check-in (first in the list since sorted by created_at desc)
+  const latestCheckIn = checkIns[0];
+  console.log(`\n🗑️  Deleting latest check-in (${latestCheckIn.created_at})...`);
 
   const { error: deleteError } = await supabase
     .from("check_ins")
     .delete()
-    .eq("user_id", userId);
+    .eq("id", latestCheckIn.id);
 
   if (deleteError) {
-    console.error("❌ Failed to delete check-ins:", deleteError);
+    console.error("❌ Failed to delete check-in:", deleteError);
     process.exit(1);
   }
 
-  console.log(`\n✅ Successfully deleted ${checkIns.length} check-in(s)!`);
+  console.log(`\n✅ Successfully deleted latest check-in!`);
   console.log("   You can now generate a new check-in.\n");
 }
 

@@ -8,6 +8,7 @@ import {
   CheckInsResponse,
   CheckInStreamingStatus,
   CheckInStreamingStatusType,
+  PartialCheckInAnalysis,
   DataState,
 } from "@/lib/checkIns";
 
@@ -23,9 +24,11 @@ async function fetchCheckIns(): Promise<CheckInsResponse> {
 
 /**
  * Stream-based check-in generation that provides real-time status updates
+ * and streams partial content as it generates
  */
 async function generateCheckInWithStreaming(
-  onStatusUpdate: (status: CheckInStreamingStatus) => void
+  onStatusUpdate: (status: CheckInStreamingStatus) => void,
+  onPartialContent?: (partial: PartialCheckInAnalysis) => void
 ): Promise<CheckIn> {
   const startTime = performance.now();
   let lastStepTime = startTime;
@@ -86,6 +89,9 @@ async function generateCheckInWithStreaming(
             posthog.capture("check_in_generate_complete", {
               total_duration_ms: totalDuration,
             });
+          } else if (status.status === "streaming_content" && status.partialAnalysis) {
+            // Forward partial content to the callback
+            onPartialContent?.(status.partialAnalysis);
           } else if (status.status === "error") {
             throw new Error(status.message);
           }
@@ -141,6 +147,8 @@ export interface UseCheckInsResult {
   streamingStatus: CheckInStreamingStatusType | null;
   /** Current streaming message */
   streamingMessage: string | null;
+  /** Partial analysis content streamed during generation */
+  streamingContent: PartialCheckInAnalysis | null;
   /** Error during generation */
   generationError: string | null;
   /** Generate a new check-in */
@@ -153,6 +161,7 @@ export function useCheckIns(): UseCheckInsResult {
   const [streamingStatus, setStreamingStatus] =
     useState<CheckInStreamingStatusType | null>(null);
   const [streamingMessage, setStreamingMessage] = useState<string | null>(null);
+  const [streamingContent, setStreamingContent] = useState<PartialCheckInAnalysis | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
 
   // Query for fetching check-ins and metadata
@@ -165,14 +174,20 @@ export function useCheckIns(): UseCheckInsResult {
   const generateCheckIn = useCallback(async (): Promise<CheckIn | null> => {
     setIsGenerating(true);
     setGenerationError(null);
+    setStreamingContent(null);
     setStreamingStatus("checking_rate_limit");
     setStreamingMessage("Starting...");
 
     try {
-      const result = await generateCheckInWithStreaming((status) => {
-        setStreamingStatus(status.status);
-        setStreamingMessage(status.message);
-      });
+      const result = await generateCheckInWithStreaming(
+        (status) => {
+          setStreamingStatus(status.status);
+          setStreamingMessage(status.message);
+        },
+        (partial) => {
+          setStreamingContent(partial);
+        }
+      );
 
       // Update cache with new check-in
       queryClient.setQueryData<CheckInsResponse>(CHECK_INS_QUERY_KEY, (old) => {
@@ -199,6 +214,7 @@ export function useCheckIns(): UseCheckInsResult {
       setIsGenerating(false);
       setStreamingStatus(null);
       setStreamingMessage(null);
+      setStreamingContent(null);
     }
   }, [queryClient]);
 
@@ -217,6 +233,7 @@ export function useCheckIns(): UseCheckInsResult {
     isGenerating,
     streamingStatus,
     streamingMessage,
+    streamingContent,
     generationError,
     generateCheckIn,
   };

@@ -1,9 +1,10 @@
-import { generateObject, generateText } from 'ai';
+import { generateObject, generateText, streamObject } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { CheckInAnalysisSchema } from './checkInSchema';
 import { buildCheckInPrompt, getCheckInSystemPrompt } from './checkInPrompt';
 import { CheckInContext } from '@/lib/checkInDataProcessor';
 import { CheckInAnalysis, CheckInResource } from '@/lib/checkIns';
+import { DeepPartial } from 'ai';
 
 /**
  * Search for personalized resources using OpenAI web search.
@@ -142,3 +143,43 @@ export async function generateCheckInWithProgress(
 
   return analysis;
 }
+
+/**
+ * Generate check-in analysis with content streaming.
+ *
+ * This streams partial content as it's generated, allowing the UI to
+ * progressively display the check-in sections as they come in.
+ *
+ * @param onPartial - Callback for each partial object update
+ * @returns The final complete analysis
+ */
+export async function streamCheckInAnalysis(
+  context: CheckInContext,
+  resources: CheckInResource[],
+  onPartial: (partial: DeepPartial<CheckInAnalysis>) => void
+): Promise<CheckInAnalysis> {
+  const { partialObjectStream, object } = streamObject({
+    model: openai('gpt-4o'),
+    schema: CheckInAnalysisSchema,
+    system: getCheckInSystemPrompt(),
+    prompt: buildCheckInPrompt(context),
+    temperature: 0.7,
+  });
+
+  // Stream partial objects as they come in
+  for await (const partialObject of partialObjectStream) {
+    onPartial(partialObject);
+  }
+
+  // Get the final complete object
+  const analysis = await object as CheckInAnalysis;
+
+  // Override with real resources from web search
+  if (resources.length > 0) {
+    analysis.resources = resources;
+  }
+
+  return analysis;
+}
+
+export { searchForResources };
