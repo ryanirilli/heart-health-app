@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import Link from "next/link";
 
 // Password requirements
 const passwordSchema = z
@@ -27,10 +29,13 @@ const signInSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// Schema for sign up (strict password requirements)
+// Schema for sign up (strict password requirements + terms agreement)
 const signUpSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   password: passwordSchema,
+  agreeToTerms: z.boolean().refine((val) => val === true, {
+    message: "You must agree to the Terms of Service and Privacy Policy",
+  }),
 });
 
 // Schema for forgot password
@@ -63,7 +68,9 @@ function LoginContent() {
   // Auth form with dynamic schema based on isSignUp
   const authForm = useForm<SignInFormData | SignUpFormData>({
     resolver: zodResolver(isSignUp ? signUpSchema : signInSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: isSignUp 
+      ? { email: "", password: "", agreeToTerms: false as unknown as true } 
+      : { email: "", password: "" },
     mode: "onBlur",
   });
 
@@ -93,7 +100,11 @@ function LoginContent() {
 
   // Reset form when switching between sign in and sign up
   useEffect(() => {
-    authForm.reset({ email: "", password: "" });
+    if (isSignUp) {
+      authForm.reset({ email: "", password: "", agreeToTerms: false as unknown as true });
+    } else {
+      authForm.reset({ email: "", password: "" });
+    }
     setServerError(null);
   }, [isSignUp, authForm]);
 
@@ -591,6 +602,52 @@ function LoginContent() {
               {serverError && (
                 <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
                   {serverError}
+                </div>
+              )}
+
+              {/* Terms Agreement - only shown during signup */}
+              {isSignUp && (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      id="terms"
+                      checked={(authForm.watch as (name: "agreeToTerms") => boolean | undefined)("agreeToTerms") || false}
+                      onCheckedChange={(checked) => {
+                        (authForm.setValue as (name: "agreeToTerms", value: boolean) => void)("agreeToTerms", checked === true);
+                        // Clear error when checked
+                        if (checked) {
+                          authForm.clearErrors("agreeToTerms" as keyof (SignInFormData | SignUpFormData));
+                        }
+                      }}
+                      className="mt-0.5"
+                    />
+                    <label
+                      htmlFor="terms"
+                      className="text-sm text-muted-foreground leading-relaxed cursor-pointer"
+                    >
+                      I agree to the{" "}
+                      <Link
+                        href="/terms"
+                        target="_blank"
+                        className="text-foreground underline underline-offset-4 hover:text-chart-1"
+                      >
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link
+                        href="/privacy"
+                        target="_blank"
+                        className="text-foreground underline underline-offset-4 hover:text-chart-1"
+                      >
+                        Privacy Policy
+                      </Link>
+                    </label>
+                  </div>
+                  {isSignUp && 'agreeToTerms' in authForm.formState.errors && authForm.formState.errors.agreeToTerms && (
+                    <p className="text-sm text-destructive">
+                      {(authForm.formState.errors.agreeToTerms as { message?: string })?.message}
+                    </p>
+                  )}
                 </div>
               )}
 

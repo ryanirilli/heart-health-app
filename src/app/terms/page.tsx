@@ -73,21 +73,21 @@ export default function TermsPage() {
               </h2>
               <ul className="space-y-3 text-muted-foreground">
                 <li className="flex gap-3">
-                  <span className="text-chart-1 mt-1.5">•</span>
+                  <span className="text-chart-1 mt-0.5">•</span>
                   <span>
                     You need an account to use Rhythm. You can sign up with
                     email or Google.
                   </span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="text-chart-1 mt-1.5">•</span>
+                  <span className="text-chart-1 mt-0.5">•</span>
                   <span>
                     Keep your login credentials secure. You are responsible for
                     activity on your account.
                   </span>
                 </li>
                 <li className="flex gap-3">
-                  <span className="text-chart-1 mt-1.5">•</span>
+                  <span className="text-chart-1 mt-0.5">•</span>
                   <span>
                     You must be at least 13 years old to use Rhythm.
                   </span>
@@ -108,6 +108,154 @@ export default function TermsPage() {
               </p>
             </section>
 
+            {/* AI Features */}
+            <section className="space-y-4">
+              <h2 className="text-xl font-medium text-foreground">
+                AI-Powered Features
+              </h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Rhythm uses artificial intelligence to enhance your experience, including
+                voice note transcription and personalized weekly check-in insights. Here is
+                what you should know about these features.
+              </p>
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <h3 className="text-base font-medium text-foreground/90">
+                    Important Disclaimer
+                  </h3>
+                  <div className="space-y-3">
+                    <p className="text-muted-foreground leading-relaxed font-medium bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+                      <strong className="text-foreground">Rhythm is NOT a medical device and does NOT provide medical advice.</strong>{" "}
+                      AI-generated insights, suggestions, and check-in content are for informational 
+                      and motivational purposes only. They are not intended to diagnose, treat, cure, 
+                      or prevent any disease or health condition.
+                    </p>
+                    <ul className="space-y-2 text-muted-foreground">
+                      <li className="flex gap-3">
+                        <span className="text-destructive mt-0.5">⚠</span>
+                        <span>
+                          <strong className="text-foreground/80">AI can make mistakes.</strong> AI-generated 
+                          content may be inaccurate, incomplete, or inappropriate for your situation.
+                        </span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="text-destructive mt-0.5">⚠</span>
+                        <span>
+                          <strong className="text-foreground/80">Not a substitute for professional advice.</strong> Always 
+                          consult qualified healthcare professionals for medical decisions.
+                        </span>
+                      </li>
+                      <li className="flex gap-3">
+                        <span className="text-destructive mt-0.5">⚠</span>
+                        <span>
+                          <strong className="text-foreground/80">You make the final decisions.</strong> Any 
+                          AI suggestions should be reviewed and validated by you before acting on them.
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-base font-medium text-foreground/90">
+                    What Our AI Does
+                  </h3>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li className="flex gap-3">
+                      <span className="text-chart-1 mt-0.5">•</span>
+                      <span>
+                        <strong className="text-foreground/80">Voice transcription:</strong> Converts 
+                        your spoken notes to text and extracts activity information
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-chart-1 mt-0.5">•</span>
+                      <span>
+                        <strong className="text-foreground/80">Weekly check-ins:</strong> Analyzes your 
+                        activity patterns to generate personalized insights and encouragement
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-chart-1 mt-0.5">•</span>
+                      <span>
+                        <strong className="text-foreground/80">Resource suggestions:</strong> Searches 
+                        for relevant articles and content based on your tracked activities
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-base font-medium text-foreground/90">
+                    Your Responsibilities
+                  </h3>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li className="flex gap-3">
+                      <span className="text-chart-1 mt-0.5">•</span>
+                      <span>
+                        <strong className="text-foreground/80">Review AI output.</strong> You are responsible 
+                        for reviewing and verifying any AI-generated content before relying on it.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-chart-1 mt-0.5">•</span>
+                      <span>
+                        <strong className="text-foreground/80">Use your judgment.</strong> AI suggestions 
+                        are meant to complement, not replace, your own decision-making.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-chart-1 mt-0.5">•</span>
+                      <span>
+                        <strong className="text-foreground/80">Seek professional help when needed.</strong> For 
+                        health concerns, consult licensed healthcare providers.
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-chart-1 mt-0.5">•</span>
+                      <span>
+                        <strong className="text-foreground/80">Provide accurate information.</strong> The 
+                        quality of AI insights depends on the accuracy of the data you provide.
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-base font-medium text-foreground/90">
+                    Limitations of AI
+                  </h3>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li className="flex gap-3">
+                      <span className="text-chart-2 mt-0.5">•</span>
+                      <span>
+                        AI features are provided &quot;as is&quot; without warranties of accuracy or fitness 
+                        for any particular purpose
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-chart-2 mt-0.5">•</span>
+                      <span>
+                        We are not liable for any decisions you make based on AI-generated content
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-chart-2 mt-0.5">•</span>
+                      <span>
+                        AI features may be unavailable, delayed, or produce unexpected results at times
+                      </span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="text-chart-2 mt-0.5">•</span>
+                      <span>
+                        We may modify, improve, or discontinue AI features as the technology evolves
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
             {/* Acceptable Use */}
             <section className="space-y-4">
               <h2 className="text-xl font-medium text-foreground">
@@ -118,6 +266,50 @@ export default function TermsPage() {
                 habits and activities. Do not attempt to access other users
                 data, reverse engineer the app, or use it for anything illegal.
               </p>
+              <div className="space-y-3 pt-2">
+                <h3 className="text-base font-medium text-foreground/90">
+                  AI Feature Acceptable Use
+                </h3>
+                <p className="text-muted-foreground leading-relaxed">
+                  When using AI-powered features, you agree not to:
+                </p>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li className="flex gap-3">
+                    <span className="text-destructive mt-0.5">✗</span>
+                    <span>
+                      Use voice notes to process content that is illegal, harmful, or violates 
+                      others&apos; rights
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="text-destructive mt-0.5">✗</span>
+                    <span>
+                      Attempt to manipulate AI systems to generate harmful, misleading, or 
+                      inappropriate content
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="text-destructive mt-0.5">✗</span>
+                    <span>
+                      Use AI features to process information about other individuals without 
+                      their consent
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="text-destructive mt-0.5">✗</span>
+                    <span>
+                      Rely on AI-generated content as professional medical, legal, or financial advice
+                    </span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="text-destructive mt-0.5">✗</span>
+                    <span>
+                      Use AI features in ways that exceed normal personal use or attempt to abuse 
+                      the service
+                    </span>
+                  </li>
+                </ul>
+              </div>
             </section>
 
             {/* Service Availability */}
