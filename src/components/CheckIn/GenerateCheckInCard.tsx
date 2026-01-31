@@ -116,7 +116,7 @@ export function GenerateCheckInCard({
     const StatusIcon = STATUS_ICONS[streamingStatus] || Sparkles;
 
     return (
-      <Card className="border-2 border-primary/30">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -126,9 +126,9 @@ export function GenerateCheckInCard({
         <CardContent>
           <div className="flex flex-col items-center gap-4 py-8">
             <div className="relative">
-              <div className="absolute inset-0 animate-ping rounded-full bg-primary/30" />
+              <div className="absolute inset-0 rounded-full bg-primary/20 animate-[pulse_3s_ease-in-out_infinite]" />
               <div className="relative w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <StatusIcon className="h-8 w-8 text-primary animate-pulse" />
+                <StatusIcon className="h-8 w-8 text-primary" />
               </div>
             </div>
             <div className="text-center">
