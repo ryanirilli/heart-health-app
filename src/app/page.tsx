@@ -42,7 +42,7 @@ export default async function LandingPage() {
           </div>
           <Link
             href="/login"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-sm px-4 py-2 rounded-full bg-foreground/10 text-foreground hover:bg-foreground/20 transition-colors font-medium"
           >
             Sign In
           </Link>
