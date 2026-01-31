@@ -30,7 +30,7 @@ export function StreamingCheckInCard({ partialAnalysis }: StreamingCheckInCardPr
   const today = new Date();
 
   return (
-    <Card className="overflow-hidden border-2 border-primary/30">
+    <Card className="overflow-hidden">
       {/* Header */}
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">

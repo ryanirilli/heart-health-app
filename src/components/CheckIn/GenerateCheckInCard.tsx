@@ -126,7 +126,7 @@ export function GenerateCheckInCard({
         <CardContent>
           <div className="flex flex-col items-center gap-4 py-8">
             <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-primary/20 animate-[pulse_3s_ease-in-out_infinite]" />
+              <div className="absolute inset-0 rounded-full bg-primary/30 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" />
               <div className="relative w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <StatusIcon className="h-8 w-8 text-primary" />
               </div>
