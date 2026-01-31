@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useCheckIns } from "@/lib/hooks/useCheckInsQuery";
 import { CheckIn } from "@/lib/checkIns";
 import { ContentNavigator } from "@/components/ui/content-navigator";
@@ -36,7 +36,7 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
   const [slideDirection, setSlideDirection] = useState<"left" | "right">("left");
 
   // Track the newly generated check-in ID to show it without animation after generation
-  const newlyGeneratedIdRef = useRef<string | null>(null);
+  const [newlyGeneratedId, setNewlyGeneratedId] = useState<string | null>(null);
 
   // Create items array: generation card first (if applicable), then check-ins
   const items = useMemo(() => {
@@ -83,12 +83,12 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
     const result = await generateCheckIn();
     if (result) {
       // Store the new check-in ID so we can show it without animation
-      newlyGeneratedIdRef.current = result.id;
+      setNewlyGeneratedId(result.id);
       // The new check-in will be at index 0 since canGenerateNew becomes false
       setCurrentIndex(0);
-      // Clear the ref after a short delay so future navigations animate normally
+      // Clear the state after a short delay so future navigations animate normally
       setTimeout(() => {
-        newlyGeneratedIdRef.current = null;
+        setNewlyGeneratedId(null);
       }, 100);
     }
   }, [generateCheckIn]);
@@ -214,7 +214,7 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
           />
         </div>
       ) : /* Show newly generated check-in directly without animation */
-      newlyGeneratedIdRef.current && checkIns[0]?.id === newlyGeneratedIdRef.current ? (
+      newlyGeneratedId && checkIns[0]?.id === newlyGeneratedId ? (
         <div className="max-w-2xl mx-auto">
           <CheckInCard checkIn={checkIns[0]} />
         </div>
