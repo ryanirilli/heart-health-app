@@ -184,6 +184,7 @@ Create a "Getting Started" check-in that:
    - Pick ONE activity (research shows focus beats spreading thin)
    - Use implementation intentions ("I will [behavior] at [time] in [place]" - research shows this doubles success rates)
    - Start small (cite research on tiny habits)
+   - ⚠️ CRITICAL: Recommendations MUST be directly related to the activity types they have set up (${activityTypes.map(t => t.name).join(', ')}). Do NOT suggest random activities like "walking" or "stretching" if they are not tracking them.
 
 5. **resources**: Search for beginner-friendly content related to their activity types.
 
@@ -245,6 +246,7 @@ Create a "Building Momentum" check-in that:
    - Habit stacking (connect to existing routines - BJ Fogg's research)
    - Environment design (reduce friction - research shows environment beats willpower)
    - Focus on identity ("I am someone who...") over outcomes
+   - ⚠️ CRITICAL: Recommendations MUST be directly related to their tracked activities (${Object.keys(context.activityAnalysis.byType).map(id => context.activityAnalysis.byType[id].name).join(', ')}). Do NOT suggest random activities like "walking" or "stretching" if they are not tracking them.
 
 5. **resources**: Search for habit-building content, behavioral science resources.
 
@@ -318,6 +320,7 @@ GOOD (specific data points):
 4. **recommendations**: Gentle, science-backed suggestions:
    - Use inviting language: "something to think about...", "worth exploring..."
    - Include the WHY with a specific data point
+   - ⚠️ CRITICAL: Recommendations MUST be directly related to their tracked activities (${Object.keys(context.activityAnalysis.byType).map(id => context.activityAnalysis.byType[id].name).join(', ')}). Do NOT suggest random activities like "walking" or "stretching" if they are not tracking them.
 
 5. **weeklyFocus**: One goal with a specific scientific reason.
 
