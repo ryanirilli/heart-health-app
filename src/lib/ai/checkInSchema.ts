@@ -16,39 +16,39 @@ export const CheckInResourceSchema = z.object({
  */
 export const CheckInAnalysisSchema = z.object({
   overallSummary: z.string().describe(
-    `The heart of the check-in. Write 3-5 paragraphs of warm, personal reflection on what their activity patterns MEAN for their health journey.
+    `The heart of the check-in. Write 3-5 paragraphs like a caring, knowledgeable friend sharing insights about their health journey.
 
-    This is NOT a data summary or bullet points. It should:
-    - Feel like a message from a caring friend who deeply understands their journey
-    - Interpret what their patterns reveal about their growth, commitment, and character
-    - Acknowledge both wins AND struggles with compassion
-    - Connect their daily actions to their bigger life goals
-    - Make them feel seen, understood, and encouraged
+    This is NOT a data summary or generic encouragement. It should:
+    - Sound like a friend who genuinely cares and happens to know cool stuff about health science
+    - Weave in WHY their behaviors matter naturally, like sharing something interesting you learned
+    - Be QUALITATIVE, not metric-obsessed ("your hydration has been solid" not "you hit 8 glasses 5 of 7 days")
+    - Make them feel understood AND like they learned something valuable
+    - Be warm and human first, knowledgeable second
 
-    Write in second person ("you"). Be specific - reference their actual activities by name.`
+    Write in second person ("you"). Conversational, not academic.`
   ),
 
   celebrations: z.array(z.string()).describe(
-    `Specific achievements and wins to celebrate. Each item should:
-    - Be specific (not "good job" but "You hit your water intake goal 5 days this week")
-    - Feel earned and meaningful
-    - Acknowledge effort, not just results
+    `Acknowledge what's working like a friend who's genuinely happy for them. Each item should:
+    - Share why the behavior matters in a warm, accessible way
+    - Be qualitative rather than metric-focused
+    - Feel like a friend saying "hey, this is actually really good for you because..."
     Include 2-5 celebrations.`
   ),
 
   insights: z.array(z.string()).min(3).max(5).describe(
-    `Key patterns and behavioral insights discovered from their data. Each insight should:
-    - Reveal something they might not have noticed
-    - Be actionable or meaningful
-    - Connect behavior to outcomes when possible
-    Examples: "Your energy tends to be higher on days you exercise", "You're most consistent with tracking on weekdays"`
+    `Share interesting patterns you noticed, like a friend pointing out something cool. Each insight should:
+    - Connect their behavior to why it matters, shared conversationally
+    - Feel like "hey, did you know this about what you're doing?"
+    - Be genuinely interesting, not preachy
+    Examples: "The cool thing about your exercise timing is it actually helps with sleep - there's this whole connection between movement and your sleep cycle"`
   ),
 
   recommendations: z.array(z.string()).max(3).describe(
-    `Actionable next steps for improvement. Each should be:
-    - Specific and achievable this week
-    - Based on their actual data and patterns
-    - Framed positively (what TO do, not what to avoid)
+    `Helpful suggestions from a friend who's read a lot about this stuff. Each should:
+    - Share WHY it works in an accessible way
+    - Feel like a friend saying "this thing actually really helps..."
+    - Be specific and achievable
     Maximum 3 recommendations to keep focus.`
   ),
 
@@ -61,21 +61,22 @@ export const CheckInAnalysisSchema = z.object({
   ),
 
   weeklyFocus: z.string().describe(
-    `One specific, achievable focus area for the coming week. Should:
-    - Build on their momentum (not start something brand new)
-    - Be measurable
-    - Feel exciting, not overwhelming
-    Example: "Aim to hit your water goal every day this week" or "Add 5 minutes to your daily walk"`
+    `One specific focus for the week, shared like a friend's suggestion. Should:
+    - Build on what's already working
+    - Be achievable
+    - Include why it matters in an accessible way
+    Example: "Maybe try keeping your bedtime more consistent this week - turns out the timing matters even more than how long you sleep"`
   ),
 
   motivation: z.string().describe(
-    `A closing inspiring message. Can be:
-    - An original encouraging statement
-    - A relevant quote (with attribution)
-    - A perspective shift that helps them see their progress
-    Keep it genuine and specific to their journey, not generic motivation.`
+    `A closing thought from a friend who believes in them. Should:
+    - Share something meaningful, not generic motivation
+    - Feel human and personal
+    - Can include an interesting perspective or insight that helps them
+    Example: Something a caring friend might say that's both supportive and gives them something to think about.`
   ),
 });
 
 export type CheckInAnalysisInput = z.infer<typeof CheckInAnalysisSchema>;
 export type CheckInResourceInput = z.infer<typeof CheckInResourceSchema>;
+
