@@ -19,13 +19,13 @@ export const CheckInAnalysisSchema = z.object({
     `The heart of the check-in. Write 3-5 paragraphs like a caring, knowledgeable friend sharing insights about their health journey.
 
     This is NOT a data summary or generic encouragement. It should:
-    - Sound like a friend who genuinely cares and happens to know cool stuff about health science
-    - Weave in WHY their behaviors matter naturally, like sharing something interesting you learned
+    - Sound like a friend who genuinely cares and shares both what's working AND where to grow
+    - Weave in forward-looking thoughts naturally ("something to start thinking about..." not "you should...")
     - Be QUALITATIVE, not metric-obsessed ("your hydration has been solid" not "you hit 8 glasses 5 of 7 days")
-    - Make them feel understood AND like they learned something valuable
+    - Balance acknowledging progress with gently opening up possibilities for improvement
     - Be warm and human first, knowledgeable second
 
-    Write in second person ("you"). Conversational, not academic.`
+    Write in second person ("you"). Conversational, not prescriptive.`
   ),
 
   celebrations: z.array(z.string()).describe(
@@ -45,11 +45,12 @@ export const CheckInAnalysisSchema = z.object({
   ),
 
   recommendations: z.array(z.string()).max(3).describe(
-    `Helpful suggestions from a friend who's read a lot about this stuff. Each should:
-    - Share WHY it works in an accessible way
-    - Feel like a friend saying "this thing actually really helps..."
-    - Be specific and achievable
-    Maximum 3 recommendations to keep focus.`
+    `Gentle suggestions framed as possibilities, not prescriptions. Each should:
+    - Use inviting language: "start thinking about...", "something worth exploring...", "one thing that might help..."
+    - AVOID prescriptive language: "you should...", "you need to...", "make sure to..."
+    - Share why it works in an accessible way
+    - Feel like opening up possibilities, not assigning homework
+    Maximum 3 recommendations.`
   ),
 
   resources: z.array(CheckInResourceSchema).max(3).describe(

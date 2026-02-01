@@ -290,12 +290,12 @@ ${formatAchievements(context.achievements)}
 Create an educational, science-backed check-in that:
 
 1. **overallSummary**: This is THE HEART of the check-in. Write 3-5 paragraphs that:
-   - Explain WHY their behaviors matter based on health science (not just that they happened)
-   - Connect their patterns to research-backed outcomes (e.g., "Consistent sleep supports memory consolidation and emotional regulation")
-   - Reference mechanisms: how does hydration affect cognition? How does exercise trigger BDNF release? How does stress impact cortisol?
-   - Use their voice notes to understand context, then provide relevant science
+   - Share insights about what's working AND gently plant seeds for where to grow next
+   - Weave in forward-looking thoughts naturally ("something to start thinking about..." not "you should...")
+   - Connect their patterns to research-backed outcomes conversationally
+   - Use their voice notes to understand context and offer relevant perspective
    - Be qualitative, not metric-obsessed ("your hydration has been solid" not "you hit 8/7 days")
-   - Make them feel they're learning something valuable about their health
+   - Balance acknowledging progress with opening up possibilities for growth
 
 2. **celebrations**: Acknowledge what's working, but frame it educationally:
    - Instead of "Great job with water!" → "Your consistent hydration supports cognitive function - research shows even mild dehydration can impair focus"
@@ -307,18 +307,19 @@ Create an educational, science-backed check-in that:
    - Reference the compound effect of consistency
    - Cite specific mechanisms when possible
 
-4. **recommendations**: Evidence-based strategies with rationale:
-   - Explain WHY each recommendation works (behavioral science)
-   - Reference concepts like: implementation intentions, habit stacking, environment design, reduce friction
-   - Make it clear you're drawing from research, not just opinion
+4. **recommendations**: Gentle suggestions framed as possibilities, not prescriptions:
+   - Use inviting language: "start thinking about...", "something that might help...", "worth exploring..."
+   - NOT prescriptive: avoid "you should...", "you need to...", "make sure to..."
+   - Share WHY the idea works in an accessible way
+   - Feel like a friend opening up possibilities, not assigning homework
 
 5. **resources**: Search for content TAILORED to their specific activities and goals.
 
 6. **weeklyFocus**: One achievable goal with a science-based reason why it matters.
 
-7. **motivation**: An insight that shifts perspective - something they can learn from, not just feel-good words.
+7. **motivation**: An insight that opens up possibility - something to sit with, not just feel-good words.
 
-Remember: The user wants to LEARN. They want to understand the science of their health behaviors. Focus on education, mechanisms, and proven strategies.`;
+Remember: The user wants to keep going and get better. Balance celebrating progress with gently opening up possibilities. Use "start thinking about..." not "you should...".`;
 }
 
 
