@@ -1,17 +1,30 @@
-'use client';
-
+import { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useGoals } from './GoalsProvider';
 import { GoalCard } from './GoalCard';
 import { AchievementsTable } from './AchievementsTable';
 import { useActivityTypes } from '@/components/ActivityCalendar/ActivityProvider';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 const MAX_GOALS = 5;
 
-export function GoalsView() {
+interface GoalsViewProps {
+  onNavigateToActivities: () => void;
+}
+
+export function GoalsView({ onNavigateToActivities }: GoalsViewProps) {
   const { goalsList, isLoading, openCreateDialog, openEditDialog } = useGoals();
-  const { activityTypes } = useActivityTypes();
+  const { activityTypes, openSettingsToAdd } = useActivityTypes();
+  const [showNoActivitiesDialog, setShowNoActivitiesDialog] = useState(false);
 
   if (isLoading) {
     return (
@@ -22,6 +35,23 @@ export function GoalsView() {
   }
 
   const canAddMore = goalsList.length < MAX_GOALS;
+
+  const activeTypes = Object.values(activityTypes).filter(t => !t.deleted);
+  const hasActivities = activeTypes.length > 0;
+
+  const handleCreateClick = () => {
+    if (!hasActivities) {
+      setShowNoActivitiesDialog(true);
+      return;
+    }
+    openCreateDialog();
+  };
+
+  const handleCreateActivityFromDialog = () => {
+    setShowNoActivitiesDialog(false);
+    openSettingsToAdd();
+    onNavigateToActivities();
+  };
 
   return (
     <div className="space-y-8">
@@ -37,12 +67,29 @@ export function GoalsView() {
               onClick={() => openEditDialog(goal)}
             />
           ))}
-          {canAddMore && <AddGoalCard onClick={openCreateDialog} />}
+          {canAddMore && <AddGoalCard onClick={handleCreateClick} />}
         </div>
       </div>
 
       {/* Achievements Section */}
       <AchievementsTable />
+
+      {/* No Activities Dialog */}
+      <Dialog open={showNoActivitiesDialog} onOpenChange={setShowNoActivitiesDialog}>
+        <DialogContent hideCloseButton>
+          <DialogHeader>
+            <DialogTitle className="text-left">Create an Activity First</DialogTitle>
+            <DialogDescription className="text-left">
+              Goals track your progress on specific activities. You need to create an activity (like "Running" or "Meditation") before you can set a goal for it.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center pt-4">
+            <Button size="pill" onClick={handleCreateActivityFromDialog}>
+              Create Activity
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

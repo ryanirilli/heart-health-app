@@ -150,7 +150,7 @@ export function DashboardContent({
                     <ActivityCalendar />
                   </>
                 ) : currentView === "goals" ? (
-                  <GoalsView />
+                  <GoalsView onNavigateToActivities={() => handleViewChange("activities")} />
                 ) : (
                   <CheckInView
                     onNavigateToActivities={() => handleViewChange("activities")}
