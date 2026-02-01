@@ -199,6 +199,7 @@ export async function POST(request: NextRequest) {
         analysis = await streamCheckInAnalysis(context, resources, (partial) => {
           // Only send updates when content has meaningfully changed
           const partialAnalysis: PartialCheckInAnalysis = {
+            title: partial.title,
             overallSummary: partial.overallSummary,
             celebrations: partial.celebrations as string[] | undefined,
             insights: partial.insights as string[] | undefined,
@@ -209,6 +210,7 @@ export async function POST(request: NextRequest) {
 
           // Check if there's meaningful new content to send
           const hasNewContent =
+            (partialAnalysis.title && partialAnalysis.title !== lastPartial.title) ||
             (partialAnalysis.overallSummary && partialAnalysis.overallSummary !== lastPartial.overallSummary) ||
             (partialAnalysis.celebrations?.length !== lastPartial.celebrations?.length) ||
             (partialAnalysis.insights?.length !== lastPartial.insights?.length) ||

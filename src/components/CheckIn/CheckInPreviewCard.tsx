@@ -40,7 +40,7 @@ export function CheckInPreviewCard({ checkIn, onClick }: CheckInPreviewCardProps
       <CardHeader className="p-4 pb-2">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Sparkles className="h-4 w-4 text-primary" />
-          Check-In
+          {checkIn.analysis.title || "Check-In"}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           {format(parseISO(createdAt), "MMMM d, yyyy")}

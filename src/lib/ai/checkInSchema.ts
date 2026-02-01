@@ -15,6 +15,7 @@ export const CheckInResourceSchema = z.object({
  * Order of fields matches the intended display order in the UI.
  */
 export const CheckInAnalysisSchema = z.object({
+  title: z.string().describe('A unique, 2-word title based on the theme of this check-in content. Example: "Steady Progress", "Morning Rhythm". strict rule: EXACTLY TWO WORDS.'),
   overallSummary: z.string().describe(
     `3-5 paragraphs with SPECIFIC data points about their health journey.
 

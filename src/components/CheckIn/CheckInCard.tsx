@@ -39,16 +39,13 @@ export function CheckInCard({ checkIn }: CheckInCardProps) {
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="h-5 w-5 text-primary" />
-              Weekly Check in
+              {checkIn.analysis.title || "Weekly Check in"}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               {format(parseISO(createdAt), "MMMM d, yyyy")}
             </p>
           </div>
-          <Badge variant="secondary" className="text-xs">
-            {format(parseISO(periodStart), "MMM d")} -{" "}
-            {format(parseISO(periodEnd), "MMM d")}
-          </Badge>
+
         </div>
       </CardHeader>
 

@@ -49,6 +49,7 @@ export interface CheckInAnalysis {
    * on what their activity patterns MEAN. Not a data summary, but an encouraging
    * interpretation that makes them feel seen and understood.
    */
+  title: string;
   overallSummary: string;
 
   /** Specific achievements and wins to celebrate */
@@ -170,6 +171,7 @@ export type CheckInStreamingStatusType =
  * All fields are optional since they stream in progressively.
  */
 export interface PartialCheckInAnalysis {
+  title?: string;
   overallSummary?: string;
   celebrations?: string[];
   insights?: string[];

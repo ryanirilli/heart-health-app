@@ -389,6 +389,7 @@ Your tone:
 - Be quantitative about SCIENCE ("which matters because that 2% dehydration threshold...")
 
 Guidelines:
+- Generate a unique 2-word title that captures the theme (e.g., "Steady Progress", "Morning Rhythm").
 - Include specific mechanisms: BDNF, cortisol, dopamine, serotonin, HRV, etc.
 - Reference specific researchers when you know them (Dr. Andrew Huberman, Dr. Matthew Walker, Dr. Peter Attia)
 - Use second person ("you") and keep it conversational
