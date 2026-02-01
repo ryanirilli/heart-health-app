@@ -9,7 +9,7 @@ import { CheckInPreviewCard } from "./CheckInPreviewCard";
 import { GenerateCheckInCard } from "./GenerateCheckInCard";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInCalendarDays } from "date-fns";
 
 interface CheckInViewProps {
   onNavigateToActivities?: () => void;
@@ -191,7 +191,12 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
         </div>
         {!canGenerateNew && nextAvailableDate && (
           <Badge variant="secondary" className="text-xs">
-            Next check in: {format(parseISO(nextAvailableDate), "MMM d")}
+            {differenceInCalendarDays(parseISO(nextAvailableDate), new Date()) > 1
+              ? `${differenceInCalendarDays(
+                  parseISO(nextAvailableDate),
+                  new Date()
+                )} days until next check in`
+              : "1 day until next check in"}
           </Badge>
         )}
       </div>
