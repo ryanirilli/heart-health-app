@@ -87,8 +87,19 @@ export interface ScienceContext {
 }
 
 /**
+ * Helper to add timeout to a promise.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  const timeout = new Promise<T>((resolve) => {
+    setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([promise, timeout]);
+}
+
+/**
  * Search for science-backed research related to user's activities.
  * Returns real studies and findings that can be cited in the check-in content.
+ * Uses a single combined search with timeout to prevent latency issues.
  */
 export async function searchForScienceContext(
   context: CheckInContext
@@ -101,43 +112,46 @@ export async function searchForScienceContext(
     return [];
   }
 
-  const sciencePromises = activityNames.map(async (activityName): Promise<ScienceContext> => {
-    const searchPrompt = `Search for peer-reviewed research and health science about "${activityName}" and its health benefits.
+  // Single combined search for all activities (faster than individual searches)
+  const combinedSearchPrompt = `Search for peer-reviewed research about the health benefits of: ${activityNames.join(', ')}.
 
-Find 2-3 specific studies or research findings. For each, provide:
-- The key finding (what the research shows)
-- Attribution (researcher names, institution, or journal if available)
-- The mechanism (WHY it works, if known)
+For each activity, find 1-2 key research findings with:
+- The main finding
+- Source attribution (researcher, journal, or institution)
+- Why it works (mechanism)
 
-Focus on well-established, reputable research. Be specific with citations.`;
+Be specific with citations. Keep it concise.`;
 
+  const doSearch = async (): Promise<ScienceContext[]> => {
     try {
       const result = await generateText({
         model: openai('gpt-4o'),
-        prompt: searchPrompt,
+        prompt: combinedSearchPrompt,
         tools: {
           web_search: openai.tools.webSearch({
-            searchContextSize: 'medium',
+            searchContextSize: 'low', // Faster search
           }),
         },
       });
 
-      return {
-        activityName,
-        findings: result.text || `Research on ${activityName} and health outcomes.`,
-      };
+      // Return as single combined context
+      if (result.text) {
+        return [{
+          activityName: activityNames.join(', '),
+          findings: result.text,
+        }];
+      }
+      return [];
     } catch (error) {
-      console.error(`Science search for ${activityName} failed:`, error);
-      return {
-        activityName,
-        findings: '',
-      };
+      console.error('Science search failed:', error);
+      return [];
     }
-  });
+  };
 
-  const results = await Promise.all(sciencePromises);
-  return results.filter(r => r.findings.length > 0);
+  // 15 second timeout to prevent hanging
+  return withTimeout(doSearch(), 15000, []);
 }
+
 
 
 /**
