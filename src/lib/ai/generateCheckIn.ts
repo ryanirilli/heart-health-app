@@ -7,86 +7,6 @@ import { CheckInAnalysis, CheckInResource } from '@/lib/checkIns';
 import { DeepPartial } from 'ai';
 
 /**
- * Search for personalized resources using OpenAI web search.
- * Returns real URLs from the web based on user's tracked activities.
- */
-async function searchForResources(
-  context: CheckInContext
-): Promise<CheckInResource[]> {
-  // Build a search query based on user's activities
-  const activityNames = Object.values(context.activityAnalysis.byType)
-    .map(t => t.name)
-    .slice(0, 3); // Focus on top 3 activities
-
-  if (activityNames.length === 0) {
-    return [];
-  }
-
-  const searchPrompt = `Find 2-3 helpful web resources (articles, Reddit communities, or videos) for someone who is tracking these health activities: ${activityNames.join(', ')}.
-
-For each resource, provide:
-- A clear title
-- Why it's relevant to their health journey
-- The type (article, subreddit, video, or other)
-
-Focus on actionable, beginner-friendly content that would help someone improve at these activities.`;
-
-  try {
-    const result = await generateText({
-      model: openai('gpt-4o'),
-      prompt: searchPrompt,
-      tools: {
-        web_search: openai.tools.webSearch({
-          searchContextSize: 'medium',
-        }),
-      },
-    });
-
-    // Extract sources from the web search results
-    const resources: CheckInResource[] = [];
-
-    if (result.sources && result.sources.length > 0) {
-      // Filter for URL sources and parse into our resource format
-      for (const source of result.sources.slice(0, 3)) {
-        // Check if this is a URL source (has sourceType 'url')
-        if (source.sourceType === 'url' && 'url' in source) {
-          const urlSource = source as { sourceType: 'url'; url: string; title?: string };
-          const url = urlSource.url;
-          
-          // Determine resource type from URL
-          let type: CheckInResource['type'] = 'article';
-          if (url.includes('reddit.com')) {
-            type = 'subreddit';
-          } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-            type = 'video';
-          }
-
-          resources.push({
-            title: urlSource.title || 'Helpful Resource',
-            url: url,
-            description: `Relevant resource for ${activityNames[0]} and related health activities.`,
-            type,
-          });
-        }
-      }
-    }
-
-    return resources;
-  } catch (error) {
-    console.error('Web search for resources failed:', error);
-    return []; // Graceful fallback to empty resources
-  }
-}
-
-/**
- * Research findings from web search for an activity.
- */
-export interface ScienceContext {
-  activityName: string;
-  findings: string; // Summary of research findings with citations
-}
-
-/**
  * Helper to add timeout to a promise.
  */
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
@@ -97,36 +17,53 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 }
 
 /**
- * Search for science-backed research related to user's activities.
- * Returns real studies and findings that can be cited in the check-in content.
- * Uses a single combined search with timeout to prevent latency issues.
+ * Structured logger for check-in generation.
  */
-export async function searchForScienceContext(
+function logCheckIn(
+  event: string,
+  data: Record<string, unknown>
+): void {
+  console.log(JSON.stringify({
+    timestamp: new Date().toISOString(),
+    service: 'check-in-generation',
+    event,
+    ...data,
+  }));
+}
+
+/**
+ * Search for personalized resources using OpenAI web search.
+ * Returns real URLs from the web based on user's tracked activities.
+ */
+async function searchForResources(
   context: CheckInContext
-): Promise<ScienceContext[]> {
+): Promise<CheckInResource[]> {
+  const startTime = Date.now();
   const activityNames = Object.values(context.activityAnalysis.byType)
     .map(t => t.name)
-    .slice(0, 3); // Focus on top 3 activities
+    .slice(0, 3);
 
   if (activityNames.length === 0) {
+    logCheckIn('resources_search_skipped', { reason: 'no_activities' });
     return [];
   }
 
-  // Single combined search for all activities (faster than individual searches)
-  const combinedSearchPrompt = `Search for peer-reviewed research about the health benefits of: ${activityNames.join(', ')}.
+  logCheckIn('resources_search_start', { activities: activityNames });
 
-For each activity, find 1-2 key research findings with:
-- The main finding
-- Source attribution (researcher, journal, or institution)
-- Why it works (mechanism)
+  const searchPrompt = `Find 2-3 helpful web resources (articles, Reddit communities, or videos) for someone who is tracking these health activities: ${activityNames.join(', ')}.
 
-Be specific with citations. Keep it concise.`;
+For each resource, provide:
+- A clear title
+- Why it's relevant to their health journey
+- The type (article, subreddit, video, or other)
 
-  const doSearch = async (): Promise<ScienceContext[]> => {
+Focus on actionable, beginner-friendly content that would help someone improve at these activities.`;
+
+  const doSearch = async (): Promise<CheckInResource[]> => {
     try {
       const result = await generateText({
         model: openai('gpt-4o'),
-        prompt: combinedSearchPrompt,
+        prompt: searchPrompt,
         tools: {
           web_search: openai.tools.webSearch({
             searchContextSize: 'low', // Faster search
@@ -134,46 +71,91 @@ Be specific with citations. Keep it concise.`;
         },
       });
 
-      // Return as single combined context
-      if (result.text) {
-        return [{
-          activityName: activityNames.join(', '),
-          findings: result.text,
-        }];
+      const resources: CheckInResource[] = [];
+
+      if (result.sources && result.sources.length > 0) {
+        for (const source of result.sources.slice(0, 3)) {
+          if (source.sourceType === 'url' && 'url' in source) {
+            const urlSource = source as { sourceType: 'url'; url: string; title?: string };
+            const url = urlSource.url;
+            
+            let type: CheckInResource['type'] = 'article';
+            if (url.includes('reddit.com')) {
+              type = 'subreddit';
+            } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+              type = 'video';
+            }
+
+            resources.push({
+              title: urlSource.title || 'Helpful Resource',
+              url: url,
+              description: `Relevant resource for ${activityNames[0]} and related health activities.`,
+              type,
+            });
+          }
+        }
       }
-      return [];
+
+      logCheckIn('resources_search_complete', {
+        durationMs: Date.now() - startTime,
+        resourceCount: resources.length,
+        activities: activityNames,
+      });
+
+      return resources;
     } catch (error) {
-      console.error('Science search failed:', error);
+      logCheckIn('resources_search_error', {
+        durationMs: Date.now() - startTime,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        activities: activityNames,
+      });
       return [];
     }
   };
 
   // 15 second timeout to prevent hanging
-  return withTimeout(doSearch(), 15000, []);
+  const resources = await withTimeout(doSearch(), 15000, []);
+  
+  if (resources.length === 0 && Date.now() - startTime >= 15000) {
+    logCheckIn('resources_search_timeout', {
+      durationMs: Date.now() - startTime,
+      activities: activityNames,
+    });
+  }
+  
+  return resources;
 }
 
-
+/**
+ * Research findings from web search for an activity.
+ * @deprecated No longer used - using GPT-4's built-in knowledge instead
+ */
+export interface ScienceContext {
+  activityName: string;
+  findings: string;
+}
 
 /**
  * Generate a check-in analysis using OpenAI.
  *
- * Uses gpt-4o for best quality. Now includes web search for science context and resources.
+ * Uses gpt-4o for best quality. Includes web search for personalized resources.
+ * Science citations come from GPT-4's built-in knowledge.
  */
 export async function generateCheckInAnalysis(
   context: CheckInContext
 ): Promise<CheckInAnalysis> {
-  // Run science search and resources search in parallel
-  const [scienceContext, resources] = await Promise.all([
-    searchForScienceContext(context),
-    searchForResources(context),
-  ]);
+  const startTime = Date.now();
+  logCheckIn('generation_start', { dataState: context.dataState });
 
-  // Generate content with science context included in prompt
+  // Search for resources
+  const resources = await searchForResources(context);
+
+  // Generate content - GPT-4 will cite research from its training data
   const structuredResult = await generateObject({
     model: openai('gpt-4o'),
     schema: CheckInAnalysisSchema,
     system: getCheckInSystemPrompt(),
-    prompt: buildCheckInPrompt(context, scienceContext),
+    prompt: buildCheckInPrompt(context),
     temperature: 0.7,
   });
 
@@ -183,6 +165,11 @@ export async function generateCheckInAnalysis(
   if (resources.length > 0) {
     analysis.resources = resources;
   }
+
+  logCheckIn('generation_complete', {
+    durationMs: Date.now() - startTime,
+    dataState: context.dataState,
+  });
 
   return analysis;
 }
@@ -198,21 +185,18 @@ export async function generateCheckInWithProgress(
 ): Promise<CheckInAnalysis> {
   onProgress('analyzing');
 
-  // Search for science context and resources in parallel
+  // Search for resources
   onProgress('searching');
-  const [scienceContext, resources] = await Promise.all([
-    searchForScienceContext(context),
-    searchForResources(context),
-  ]);
+  const resources = await searchForResources(context);
 
-  // Then generate the structured content with science context
+  // Generate the structured content
   onProgress('generating');
 
   const result = await generateObject({
     model: openai('gpt-4o'),
     schema: CheckInAnalysisSchema,
     system: getCheckInSystemPrompt(),
-    prompt: buildCheckInPrompt(context, scienceContext),
+    prompt: buildCheckInPrompt(context),
     temperature: 0.7,
   });
 
@@ -233,20 +217,18 @@ export async function generateCheckInWithProgress(
  * progressively display the check-in sections as they come in.
  *
  * @param onPartial - Callback for each partial object update
- * @param scienceContext - Pre-fetched science context from web search
  * @returns The final complete analysis
  */
 export async function streamCheckInAnalysis(
   context: CheckInContext,
   resources: CheckInResource[],
-  onPartial: (partial: DeepPartial<CheckInAnalysis>) => void,
-  scienceContext: ScienceContext[] = []
+  onPartial: (partial: DeepPartial<CheckInAnalysis>) => void
 ): Promise<CheckInAnalysis> {
   const { partialObjectStream, object } = streamObject({
     model: openai('gpt-4o'),
     schema: CheckInAnalysisSchema,
     system: getCheckInSystemPrompt(),
-    prompt: buildCheckInPrompt(context, scienceContext),
+    prompt: buildCheckInPrompt(context),
     temperature: 0.7,
   });
 
@@ -267,4 +249,5 @@ export async function streamCheckInAnalysis(
 }
 
 export { searchForResources };
+
 

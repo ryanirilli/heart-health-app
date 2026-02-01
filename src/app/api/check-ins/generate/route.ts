@@ -17,7 +17,7 @@ import {
   DbGoal,
   DbAchievement,
 } from "@/lib/checkInDataProcessor";
-import { streamCheckInAnalysis, searchForResources, searchForScienceContext, ScienceContext } from "@/lib/ai/generateCheckIn";
+import { streamCheckInAnalysis, searchForResources } from "@/lib/ai/generateCheckIn";
 
 export async function POST(request: NextRequest) {
   // Create a TransformStream to write status updates to
@@ -177,17 +177,13 @@ export async function POST(request: NextRequest) {
         message: "Finding personalized resources...",
       });
 
-      // Search for science context and resources in parallel
+      // Search for resources
       let resources: Awaited<ReturnType<typeof searchForResources>> = [];
-      let scienceContext: ScienceContext[] = [];
       try {
-        [scienceContext, resources] = await Promise.all([
-          searchForScienceContext(context),
-          searchForResources(context),
-        ]);
+        resources = await searchForResources(context);
       } catch (searchError) {
-        console.error("Search failed:", searchError);
-        // Continue without resources/science
+        console.error("Resource search failed:", searchError);
+        // Continue without resources
       }
 
       // Stream the check-in analysis content
@@ -229,7 +225,7 @@ export async function POST(request: NextRequest) {
             });
             lastPartial = partialAnalysis;
           }
-        }, scienceContext);
+        });
       } catch (aiError) {
         console.error("AI generation failed:", aiError);
         await sendStatus({
