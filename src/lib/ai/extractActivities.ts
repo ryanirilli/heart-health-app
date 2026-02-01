@@ -64,7 +64,7 @@ export async function extractActivities(
 
     // Call AI to extract structured data
     const result = await generateObject({
-      model: openai('gpt-4.1-nano'),
+      model: openai('gpt-5-nano'),
       schema: ExtractionResultSchema,
       prompt,
       temperature: 0, // Lower temperature for more consistent extraction
