@@ -45,20 +45,20 @@ export function ScrollToTop() {
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.8, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 10 }}
-          transition={{ duration: 0.2 }}
-          className="fixed bottom-[7rem] left-0 right-0 z-40 mx-auto w-fit md:hidden pointer-events-none"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.3 }}
+          className="fixed bottom-24 left-0 right-0 z-40 mx-auto w-fit md:hidden pointer-events-none"
         >
           <Button
             variant="secondary"
-            size="icon"
-            className="h-10 w-10 rounded-full shadow-lg bg-background/80 backdrop-blur-sm border pointer-events-auto"
+            size="sm"
+            className="rounded-full shadow-lg bg-background/80 backdrop-blur-sm border pointer-events-auto pl-4 pr-3 py-5 gap-2"
             onClick={scrollToTop}
           >
-            <ArrowUp className="h-5 w-5" />
-            <span className="sr-only">Scroll to top</span>
+            <span className="text-sm font-medium">Scroll to top</span>
+            <ArrowUp className="h-4 w-4" />
           </Button>
         </motion.div>
       )}
