@@ -292,20 +292,19 @@ Create an educational, science-backed check-in that:
 1. **overallSummary**: This is THE HEART of the check-in. Write 3-5 paragraphs that:
    - Share insights about what's working AND gently plant seeds for where to grow next
    - Weave in forward-looking thoughts naturally ("something to start thinking about..." not "you should...")
-   - Connect their patterns to research-backed outcomes conversationally
+   - **CITE REAL RESEARCH** from the Research Context section - use phrases like "research from [source]" or "according to [researcher/institution]"
    - Use their voice notes to understand context and offer relevant perspective
    - Be qualitative, not metric-obsessed ("your hydration has been solid" not "you hit 8/7 days")
-   - Balance acknowledging progress with opening up possibilities for growth
+   - Balance warmth with substance - be a friend who shares actual science, not just opinions
 
 2. **celebrations**: Acknowledge what's working, but frame it educationally:
    - Instead of "Great job with water!" → "Your consistent hydration supports cognitive function - research shows even mild dehydration can impair focus"
    - Make celebrations about what the behavior DOES for them
 
-3. **insights**: Connect patterns to research:
-   - What does science say about their observed patterns?
-   - Explain dose-response relationships where relevant
-   - Reference the compound effect of consistency
-   - Cite specific mechanisms when possible
+3. **insights**: Connect patterns to the research provided:
+   - Cite specific studies or findings from the Research Context
+   - Make it feel like sharing fascinating things you learned
+   - Reference specific mechanisms when the research supports it
 
 4. **recommendations**: Gentle suggestions framed as possibilities, not prescriptions:
    - Use inviting language: "start thinking about...", "something that might help...", "worth exploring..."
@@ -317,9 +316,9 @@ Create an educational, science-backed check-in that:
 
 6. **weeklyFocus**: One achievable goal with a science-based reason why it matters.
 
-7. **motivation**: An insight that opens up possibility - something to sit with, not just feel-good words.
+7. **motivation**: An insight from the research that opens up possibility - something to sit with, not just feel-good words.
 
-Remember: The user wants to keep going and get better. Balance celebrating progress with gently opening up possibilities. Use "start thinking about..." not "you should...".`;
+Remember: Be their knowledgeable friend who shares real science. Cite the research naturally ("the cool thing according to [source]...") while keeping a warm tone. Balance celebrating progress with gently opening up possibilities.`;
 }
 
 
@@ -328,21 +327,70 @@ Remember: The user wants to keep going and get better. Balance celebrating progr
 // =============================================================================
 
 /**
- * Build the appropriate prompt based on the user's data state.
+ * Science context from web search for an activity.
  */
-export function buildCheckInPrompt(context: CheckInContext): string {
+export interface ScienceContext {
+  activityName: string;
+  findings: string;
+}
+
+/**
+ * Format science context for inclusion in prompt.
+ */
+function formatScienceContext(scienceContext: ScienceContext[]): string {
+  if (scienceContext.length === 0) {
+    return '';
+  }
+
+  const lines: string[] = ['## Research Context (From Web Search)'];
+  lines.push('Use these real research findings in your response. Cite them naturally.');
+  lines.push('');
+
+  for (const ctx of scienceContext) {
+    lines.push(`### Research on ${ctx.activityName}:`);
+    lines.push(ctx.findings);
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Build the appropriate prompt based on the user's data state.
+ * @param context - The check-in context with user data
+ * @param scienceContext - Optional research findings from web search to include
+ */
+export function buildCheckInPrompt(
+  context: CheckInContext,
+  scienceContext: ScienceContext[] = []
+): string {
   const variant = getPromptVariant(context.dataState);
 
+  let basePrompt: string;
   switch (variant) {
     case 'getting_started':
-      return buildGettingStartedPrompt(context);
+      basePrompt = buildGettingStartedPrompt(context);
+      break;
     case 'building_momentum':
-      return buildBuildingMomentumPrompt(context);
+      basePrompt = buildBuildingMomentumPrompt(context);
+      break;
     case 'full_analysis':
     default:
-      return buildFullAnalysisPrompt(context);
+      basePrompt = buildFullAnalysisPrompt(context);
+      break;
   }
+
+  // Append science context if available
+  if (scienceContext.length > 0) {
+    const scienceSection = formatScienceContext(scienceContext);
+    return `${basePrompt}
+
+${scienceSection}`;
+  }
+
+  return basePrompt;
 }
+
 
 /**
  * Get the system prompt for check-in generation.

@@ -79,24 +79,89 @@ Focus on actionable, beginner-friendly content that would help someone improve a
 }
 
 /**
+ * Research findings from web search for an activity.
+ */
+export interface ScienceContext {
+  activityName: string;
+  findings: string; // Summary of research findings with citations
+}
+
+/**
+ * Search for science-backed research related to user's activities.
+ * Returns real studies and findings that can be cited in the check-in content.
+ */
+export async function searchForScienceContext(
+  context: CheckInContext
+): Promise<ScienceContext[]> {
+  const activityNames = Object.values(context.activityAnalysis.byType)
+    .map(t => t.name)
+    .slice(0, 3); // Focus on top 3 activities
+
+  if (activityNames.length === 0) {
+    return [];
+  }
+
+  const sciencePromises = activityNames.map(async (activityName): Promise<ScienceContext> => {
+    const searchPrompt = `Search for peer-reviewed research and health science about "${activityName}" and its health benefits.
+
+Find 2-3 specific studies or research findings. For each, provide:
+- The key finding (what the research shows)
+- Attribution (researcher names, institution, or journal if available)
+- The mechanism (WHY it works, if known)
+
+Focus on well-established, reputable research. Be specific with citations.`;
+
+    try {
+      const result = await generateText({
+        model: openai('gpt-4o'),
+        prompt: searchPrompt,
+        tools: {
+          web_search: openai.tools.webSearch({
+            searchContextSize: 'medium',
+          }),
+        },
+      });
+
+      return {
+        activityName,
+        findings: result.text || `Research on ${activityName} and health outcomes.`,
+      };
+    } catch (error) {
+      console.error(`Science search for ${activityName} failed:`, error);
+      return {
+        activityName,
+        findings: '',
+      };
+    }
+  });
+
+  const results = await Promise.all(sciencePromises);
+  return results.filter(r => r.findings.length > 0);
+}
+
+
+/**
  * Generate a check-in analysis using OpenAI.
  *
- * Uses gpt-4o for best quality. Now includes web search for personalized resources.
+ * Uses gpt-4o for best quality. Now includes web search for science context and resources.
  */
 export async function generateCheckInAnalysis(
   context: CheckInContext
 ): Promise<CheckInAnalysis> {
-  // Run web search and content generation in parallel
-  const [resources, structuredResult] = await Promise.all([
+  // Run science search and resources search in parallel
+  const [scienceContext, resources] = await Promise.all([
+    searchForScienceContext(context),
     searchForResources(context),
-    generateObject({
-      model: openai('gpt-4o'),
-      schema: CheckInAnalysisSchema,
-      system: getCheckInSystemPrompt(),
-      prompt: buildCheckInPrompt(context),
-      temperature: 0.7,
-    }),
   ]);
+
+  // Generate content with science context included in prompt
+  const structuredResult = await generateObject({
+    model: openai('gpt-4o'),
+    schema: CheckInAnalysisSchema,
+    system: getCheckInSystemPrompt(),
+    prompt: buildCheckInPrompt(context, scienceContext),
+    temperature: 0.7,
+  });
 
   const analysis = structuredResult.object as CheckInAnalysis;
 
@@ -119,18 +184,21 @@ export async function generateCheckInWithProgress(
 ): Promise<CheckInAnalysis> {
   onProgress('analyzing');
 
-  // First, search for resources
+  // Search for science context and resources in parallel
   onProgress('searching');
-  const resources = await searchForResources(context);
+  const [scienceContext, resources] = await Promise.all([
+    searchForScienceContext(context),
+    searchForResources(context),
+  ]);
 
-  // Then generate the structured content
+  // Then generate the structured content with science context
   onProgress('generating');
 
   const result = await generateObject({
     model: openai('gpt-4o'),
     schema: CheckInAnalysisSchema,
     system: getCheckInSystemPrompt(),
-    prompt: buildCheckInPrompt(context),
+    prompt: buildCheckInPrompt(context, scienceContext),
     temperature: 0.7,
   });
 
@@ -151,18 +219,20 @@ export async function generateCheckInWithProgress(
  * progressively display the check-in sections as they come in.
  *
  * @param onPartial - Callback for each partial object update
+ * @param scienceContext - Pre-fetched science context from web search
  * @returns The final complete analysis
  */
 export async function streamCheckInAnalysis(
   context: CheckInContext,
   resources: CheckInResource[],
-  onPartial: (partial: DeepPartial<CheckInAnalysis>) => void
+  onPartial: (partial: DeepPartial<CheckInAnalysis>) => void,
+  scienceContext: ScienceContext[] = []
 ): Promise<CheckInAnalysis> {
   const { partialObjectStream, object } = streamObject({
     model: openai('gpt-4o'),
     schema: CheckInAnalysisSchema,
     system: getCheckInSystemPrompt(),
-    prompt: buildCheckInPrompt(context),
+    prompt: buildCheckInPrompt(context, scienceContext),
     temperature: 0.7,
   });
 
@@ -183,3 +253,4 @@ export async function streamCheckInAnalysis(
 }
 
 export { searchForResources };
+

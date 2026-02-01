@@ -20,12 +20,12 @@ export const CheckInAnalysisSchema = z.object({
 
     This is NOT a data summary or generic encouragement. It should:
     - Sound like a friend who genuinely cares and shares both what's working AND where to grow
+    - **CITE REAL RESEARCH** when provided - use "research from [source]" or "according to [researcher]"
     - Weave in forward-looking thoughts naturally ("something to start thinking about..." not "you should...")
     - Be QUALITATIVE, not metric-obsessed ("your hydration has been solid" not "you hit 8 glasses 5 of 7 days")
-    - Balance acknowledging progress with gently opening up possibilities for improvement
-    - Be warm and human first, knowledgeable second
+    - Balance warmth with substance - be a friend who shares actual science
 
-    Write in second person ("you"). Conversational, not prescriptive.`
+    Write in second person ("you"). Conversational but substantive.`
   ),
 
   celebrations: z.array(z.string()).describe(
@@ -37,11 +37,11 @@ export const CheckInAnalysisSchema = z.object({
   ),
 
   insights: z.array(z.string()).min(3).max(5).describe(
-    `Share interesting patterns you noticed, like a friend pointing out something cool. Each insight should:
-    - Connect their behavior to why it matters, shared conversationally
-    - Feel like "hey, did you know this about what you're doing?"
-    - Be genuinely interesting, not preachy
-    Examples: "The cool thing about your exercise timing is it actually helps with sleep - there's this whole connection between movement and your sleep cycle"`
+    `Share interesting patterns you noticed, citing research when provided. Each insight should:
+    - Connect their behavior to why it matters, with real citations when available
+    - Feel like "hey, did you know this about what you're doing? According to [source]..."
+    - Be genuinely interesting and substantive, not preachy
+    Examples: "The cool thing about your exercise timing - research from Stanford shows it actually helps regulate your circadian rhythm"`
   ),
 
   recommendations: z.array(z.string()).max(3).describe(
