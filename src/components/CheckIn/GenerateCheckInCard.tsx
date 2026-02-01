@@ -1,6 +1,6 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import {
   Sparkles,
   Clock,
@@ -147,7 +147,11 @@ export function GenerateCheckInCard({
 
   // State 3: Rate limited
   if (!canGenerateNew && nextAvailableDate) {
-    const formattedDate = format(parseISO(nextAvailableDate), "MMMM d");
+    const daysRemaining = differenceInCalendarDays(
+      parseISO(nextAvailableDate),
+      new Date()
+    );
+    const dayText = daysRemaining === 1 ? "day" : "days";
 
     return (
       <Card>
@@ -164,7 +168,7 @@ export function GenerateCheckInCard({
             </div>
             <h3 className="font-medium mb-2">Your Next Check-In</h3>
             <p className="text-sm text-muted-foreground">
-              Available on <span className="font-medium">{formattedDate}</span>
+              <span className="font-medium">{daysRemaining} {dayText}</span> until next check in available
             </p>
             <p className="text-xs text-muted-foreground mt-2">
               Keep logging your activities! Your next check-in will have even
