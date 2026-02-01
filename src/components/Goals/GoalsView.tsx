@@ -78,7 +78,10 @@ export function GoalsView({ onNavigateToActivities }: GoalsViewProps) {
       <Dialog open={showNoActivitiesDialog} onOpenChange={setShowNoActivitiesDialog}>
         <DialogContent hideCloseButton>
           <DialogHeader>
-            <DialogTitle className="text-left">Create an Activity First</DialogTitle>
+            <DialogTitle className="sr-only">Create an Activity First</DialogTitle>
+            <div className="text-lg font-semibold leading-none tracking-tight text-left">
+              Create an Activity First
+            </div>
             <DialogDescription className="text-left">
               Goals track your progress on specific activities. You need to create an activity (like "Running" or "Meditation") before you can set a goal for it.
             </DialogDescription>
