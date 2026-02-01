@@ -16,32 +16,33 @@ export const CheckInResourceSchema = z.object({
  */
 export const CheckInAnalysisSchema = z.object({
   overallSummary: z.string().describe(
-    `The heart of the check-in. Write 3-5 paragraphs like a caring, knowledgeable friend sharing insights about their health journey.
+    `3-5 paragraphs with SPECIFIC data points about their health journey.
 
-    This is NOT a data summary or generic encouragement. It should:
-    - Sound like a friend who genuinely cares and shares both what's working AND where to grow
-    - **CITE REAL RESEARCH** when provided - use "research from [source]" or "according to [researcher]"
-    - Weave in forward-looking thoughts naturally ("something to start thinking about..." not "you should...")
-    - Be QUALITATIVE, not metric-obsessed ("your hydration has been solid" not "you hit 8 glasses 5 of 7 days")
-    - Balance warmth with substance - be a friend who shares actual science
+    CRITICAL: Include 2-3 specific facts with numbers or percentages.
+    BAD: "Research shows hydration helps focus"
+    GOOD: "Even 2% dehydration drops cognitive performance by 10-20%"
 
-    Write in second person ("you"). Conversational but substantive.`
+    Should:
+    - Be qualitative about THEIR data ("your hydration has been solid")
+    - Be quantitative about SCIENCE ("which matters because 2% dehydration...")
+    - Name mechanisms (BDNF, cortisol, dopamine) when relevant
+    - Feel like a friend sharing fascinating facts, not lecturing
+
+    Write in second person. Conversational but data-rich.`
   ),
 
   celebrations: z.array(z.string()).describe(
-    `Acknowledge what's working like a friend who's genuinely happy for them. Each item should:
-    - Share why the behavior matters in a warm, accessible way
-    - Be qualitative rather than metric-focused
-    - Feel like a friend saying "hey, this is actually really good for you because..."
-    Include 2-5 celebrations.`
+    `Acknowledge what's working WITH specific science. Each should include a data point.
+    GOOD: "Your hydration consistency matters - even 2% dehydration cuts focus by 10-20%"
+    BAD: "Great job staying hydrated - research shows it helps focus"
+    Include 2-5 celebrations with specific numbers or mechanisms.`
   ),
 
   insights: z.array(z.string()).min(3).max(5).describe(
-    `Share interesting patterns you noticed, citing research when provided. Each insight should:
-    - Connect their behavior to why it matters, with real citations when available
-    - Feel like "hey, did you know this about what you're doing? According to [source]..."
-    - Be genuinely interesting and substantive, not preachy
-    Examples: "The cool thing about your exercise timing - research from Stanford shows it actually helps regulate your circadian rhythm"`
+    `Data-backed observations with SPECIFIC facts. Each insight MUST have a number, percentage, or mechanism.
+    GOOD: "Your morning exercise timing is optimal - cortisol peaks at 8am and exercise then increases fat oxidation by 20%"
+    BAD: "Your exercise timing helps with energy levels"
+    Include 3-5 insights.`
   ),
 
   recommendations: z.array(z.string()).max(3).describe(
@@ -70,11 +71,10 @@ export const CheckInAnalysisSchema = z.object({
   ),
 
   motivation: z.string().describe(
-    `A closing thought from a friend who believes in them. Should:
-    - Share something meaningful, not generic motivation
-    - Feel human and personal
-    - Can include an interesting perspective or insight that helps them
-    Example: Something a caring friend might say that's both supportive and gives them something to think about.`
+    `A specific, fascinating fact about one of their activities that opens up possibility.
+    Should include a concrete data point, not generic encouragement.
+    GOOD: "Here's something cool: just 10 minutes of walking after meals reduces blood sugar spikes by 22%"
+    BAD: "Keep up the great work, you're doing amazing!"`
   ),
 });
 
