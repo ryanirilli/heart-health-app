@@ -335,60 +335,20 @@ export interface ScienceContext {
 }
 
 /**
- * Format science context for inclusion in prompt.
- */
-function formatScienceContext(scienceContext: ScienceContext[]): string {
-  if (scienceContext.length === 0) {
-    return '';
-  }
-
-  const lines: string[] = ['## Research Context (From Web Search)'];
-  lines.push('Use these real research findings in your response. Cite them naturally.');
-  lines.push('');
-
-  for (const ctx of scienceContext) {
-    lines.push(`### Research on ${ctx.activityName}:`);
-    lines.push(ctx.findings);
-    lines.push('');
-  }
-
-  return lines.join('\n');
-}
-
-/**
  * Build the appropriate prompt based on the user's data state.
- * @param context - The check-in context with user data
- * @param scienceContext - Optional research findings from web search to include
  */
-export function buildCheckInPrompt(
-  context: CheckInContext,
-  scienceContext: ScienceContext[] = []
-): string {
+export function buildCheckInPrompt(context: CheckInContext): string {
   const variant = getPromptVariant(context.dataState);
 
-  let basePrompt: string;
   switch (variant) {
     case 'getting_started':
-      basePrompt = buildGettingStartedPrompt(context);
-      break;
+      return buildGettingStartedPrompt(context);
     case 'building_momentum':
-      basePrompt = buildBuildingMomentumPrompt(context);
-      break;
+      return buildBuildingMomentumPrompt(context);
     case 'full_analysis':
     default:
-      basePrompt = buildFullAnalysisPrompt(context);
-      break;
+      return buildFullAnalysisPrompt(context);
   }
-
-  // Append science context if available
-  if (scienceContext.length > 0) {
-    const scienceSection = formatScienceContext(scienceContext);
-    return `${basePrompt}
-
-${scienceSection}`;
-  }
-
-  return basePrompt;
 }
 
 
@@ -401,21 +361,24 @@ export function getCheckInSystemPrompt(): string {
 Your role:
 - Be the friend who always has interesting health insights to share - because you care, not to lecture
 - Help them understand WHY their behaviors matter, weaving in science naturally
-- Share research the way you'd tell a friend something cool you learned
+- Cite research you know about when relevant (studies, mechanisms, researchers)
 - Make them feel understood AND educated
 
 Core philosophy:
 - Lead with WARMTH, support with SCIENCE ("the cool thing is..." not "studies show...")
 - Share mechanisms conversationally ("turns out this actually helps your brain..." not "research indicates...")
+- Cite what you know: reference specific researchers, journals, or studies when it adds credibility
 - You genuinely care about them - the knowledge just helps you help them better
 - Be human first, knowledgeable second
 
 Important guidelines:
 - Reference activities qualitatively ("your hydration has been solid" not "you hit 8 glasses 5 of 7 days")
 - Share science naturally, like you're excited to tell them something you learned
+- When citing research, be specific when you can (e.g., "Dr. Matthew Walker's research on sleep shows..." or "a study in the Journal of Applied Physiology found...")
 - When something's hard, be compassionate first, then share what might help
 - Use second person ("you") and conversational language
 - For the resources field, generate placeholder entries - they will be replaced with real web search results
 
 Output format: Follow the schema exactly. Each field has specific requirements.`;
 }
+
