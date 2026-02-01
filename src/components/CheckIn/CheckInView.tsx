@@ -10,6 +10,7 @@ import { GenerateCheckInCard } from "./GenerateCheckInCard";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
+import { ScrollToTop } from "./ScrollToTop";
 
 interface CheckInViewProps {
   onNavigateToActivities?: () => void;
@@ -256,6 +257,7 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
           onNavigateToActivities={onNavigateToActivities}
         />
       )}
+      <ScrollToTop />
     </div>
   );
 }
