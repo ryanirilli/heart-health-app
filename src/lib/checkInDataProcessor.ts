@@ -99,6 +99,7 @@ export interface ActivityTypeAnalysis {
   trend: 'improving' | 'declining' | 'stable';
   streakDays: number;
   mostActiveDay: string;
+  labelCounts?: Record<string, number>;
 }
 
 export interface ActivityAnalysis {
@@ -326,14 +327,13 @@ export function analyzeActivities(
     dayOfWeekCounts[dayOfWeek]++;
   }
 
-  // Analyze each activity type
+  // Analyze each activity type (iterate over ALL types, not just those with entries)
   const byType: { [typeId: string]: ActivityTypeAnalysis } = {};
   let maxStreak = 0;
   let mostConsistentActivity: string | null = null;
 
-  for (const [typeId, typeActivities] of Object.entries(byTypeMap)) {
-    const activityType = activityTypes[typeId];
-    if (!activityType) continue;
+  for (const [typeId, activityType] of Object.entries(activityTypes)) {
+    const typeActivities = byTypeMap[typeId] || []; // Get activities or empty array
 
     const values = typeActivities.map(a => a.value);
     const sum = values.reduce((acc, v) => acc + v, 0);
@@ -397,6 +397,27 @@ export function analyzeActivities(
     const mostActiveDay = Object.entries(dayOfWeekForType)
       .sort((a, b) => b[1] - a[1])[0]?.[0] || 'Monday';
 
+    // Calculate label counts for discrete options
+    const labelCounts: Record<string, number> = {};
+    if (activityType.buttonOptions && activityType.buttonOptions.length > 0) {
+      // Initialize counts for all options
+      activityType.buttonOptions.forEach(opt => {
+        labelCounts[opt.label] = 0;
+      });
+
+      // Count occurrences
+      values.forEach(val => {
+        const option = activityType.buttonOptions?.find(opt => opt.value === val);
+        if (option) {
+          labelCounts[option.label] = (labelCounts[option.label] || 0) + 1;
+        }
+      });
+    }
+
+    // Safe min/max calculation for empty arrays
+    const min = values.length > 0 ? Math.min(...values) : 0;
+    const max = values.length > 0 ? Math.max(...values) : 0;
+
     byType[typeId] = {
       typeId,
       name: activityType.name,
@@ -405,11 +426,12 @@ export function analyzeActivities(
       totalEntries: typeActivities.length,
       values,
       average,
-      min: Math.min(...values),
-      max: Math.max(...values),
+      min,
+      max,
       trend,
       streakDays: streak,
       mostActiveDay,
+      labelCounts: Object.keys(labelCounts).length > 0 ? labelCounts : undefined,
     };
   }
 

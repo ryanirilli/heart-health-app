@@ -36,8 +36,17 @@ function formatActivitySummary(analysis: CheckInContext['activityAnalysis']): st
 
     lines.push(`### ${typeAnalysis.name}`);
     lines.push(`- Entries: ${typeAnalysis.totalEntries} times logged`);
-    lines.push(`- Average: ${typeAnalysis.average.toFixed(1)} ${typeAnalysis.unit}`);
-    lines.push(`- Range: ${typeAnalysis.min} - ${typeAnalysis.max} ${typeAnalysis.unit}`);
+    
+    if (typeAnalysis.labelCounts) {
+      const breakdown = Object.entries(typeAnalysis.labelCounts)
+        .map(([label, count]) => `${label} (${count})`)
+        .join(', ');
+      lines.push(`- Breakdown: ${breakdown}`);
+    } else {
+      lines.push(`- Average: ${typeAnalysis.average.toFixed(1)} ${typeAnalysis.unit}`);
+      lines.push(`- Range: ${typeAnalysis.min} - ${typeAnalysis.max} ${typeAnalysis.unit}`);
+    }
+
     lines.push(`- Trend: ${trendEmoji} ${typeAnalysis.trend}`);
     lines.push(`- Current streak: ${typeAnalysis.streakDays} days`);
     lines.push(`- Most active on: ${typeAnalysis.mostActiveDay}s`);

@@ -1039,15 +1039,26 @@ export function ActivityTypeManager({
                   );
                 })}
               </div>
-              <DialogFooter className="pt-4 sm:justify-start">
-                <button
-                  type="button"
-                  onClick={() => setShowAddNew(false)}
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors px-3 py-1.5 rounded-full"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back
-                </button>
+              <DialogFooter
+                className={cn(
+                  "pt-4",
+                  startInAddMode ? "sm:justify-end" : "sm:justify-start"
+                )}
+              >
+                {startInAddMode ? (
+                  <Button size="pill" onClick={() => onOpenChange(false)}>
+                    Done
+                  </Button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddNew(false)}
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors px-3 py-1.5 rounded-full"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </button>
+                )}
               </DialogFooter>
             </TabsContent>
             <TabsContent value="custom" className="min-h-[400px]">
@@ -1388,14 +1399,7 @@ export function ActivityTypeManager({
         ) : (
           // Type list
           <div className="space-y-3 py-2">
-            {activeTypes.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No activity types defined yet.</p>
-                <p className="text-sm">
-                  Add your first activity type to start tracking.
-                </p>
-              </div>
-            ) : (
+            {activeTypes.length === 0 ? null : (
               <div className="space-y-2">
                 {activeTypes.map((type) => {
                   const goalType = getGoalType(type);
@@ -1455,11 +1459,13 @@ export function ActivityTypeManager({
                 more.
               </p>
             )}
-            <DialogFooter className="pt-4">
-              <Button size="pill" onClick={() => onOpenChange(false)}>
-                Done
-              </Button>
-            </DialogFooter>
+            {activeTypes.length > 0 && (
+              <DialogFooter className="pt-4">
+                <Button size="pill" onClick={() => onOpenChange(false)}>
+                  Done
+                </Button>
+              </DialogFooter>
+            )}
           </div>
         )}
       </DialogContent>

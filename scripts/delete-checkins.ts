@@ -48,7 +48,7 @@ const SERVICE_ROLE_KEY = isProd
   : envVars.DEV_SERVICE_ROLE_KEY || process.env.DEV_SERVICE_ROLE_KEY;
 
 const TARGET_EMAIL =
-  envVars.TARGET_EMAIL || process.env.TARGET_EMAIL || "ryanirilli@gmail.com";
+  process.env.TARGET_EMAIL || envVars.TARGET_EMAIL || "ryanirilli@gmail.com";
 
 console.log(`\n🗄️  Environment: ${isProd ? "PRODUCTION" : "DEVELOPMENT"}`);
 console.log(`👤 Target user: ${TARGET_EMAIL}\n`);
