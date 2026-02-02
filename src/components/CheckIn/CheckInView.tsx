@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO, differenceInCalendarDays } from "date-fns";
 import { ScrollToTop } from "./ScrollToTop";
+import { useActivityTypes } from "@/components/ActivityCalendar/ActivityProvider";
 
 interface CheckInViewProps {
   onNavigateToActivities?: () => void;
@@ -31,6 +32,8 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
     generationError,
     generateCheckIn,
   } = useCheckIns();
+
+  const { openSettingsToAdd } = useActivityTypes();
 
   // Navigation state
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -132,7 +135,10 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
           streamingContent={streamingContent}
           generationError={generationError}
           onGenerate={handleGenerate}
-          onNavigateToActivities={onNavigateToActivities}
+          onNavigateToActivities={() => {
+            openSettingsToAdd();
+            onNavigateToActivities?.();
+          }}
         />
       );
     }
@@ -216,7 +222,10 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
             streamingContent={streamingContent}
             generationError={generationError}
             onGenerate={handleGenerate}
-            onNavigateToActivities={onNavigateToActivities}
+            onNavigateToActivities={() => {
+              openSettingsToAdd();
+              onNavigateToActivities?.();
+            }}
           />
         </div>
       ) : /* Show newly generated check-in directly without animation */
@@ -254,7 +263,10 @@ export function CheckInView({ onNavigateToActivities }: CheckInViewProps) {
           streamingContent={streamingContent}
           generationError={generationError}
           onGenerate={handleGenerate}
-          onNavigateToActivities={onNavigateToActivities}
+          onNavigateToActivities={() => {
+            openSettingsToAdd();
+            onNavigateToActivities?.();
+          }}
         />
       )}
       <ScrollToTop />

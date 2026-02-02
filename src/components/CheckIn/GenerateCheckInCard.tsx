@@ -77,25 +77,18 @@ export function GenerateCheckInCard({
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Weekly Check in
-          </CardTitle>
+          <div className="text-lg font-semibold leading-none tracking-tight text-left">
+            Create an Activity First
+          </div>
+          <p className="text-sm text-muted-foreground text-left mt-1.5">
+            Check-ins provide insights on your activities. You need to create an activity (like "Running" or "Meditation") before you can generate a check-in.
+          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center py-4">
-            <div className="w-16 h-16 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-              <Plus className="h-8 w-8 text-muted-foreground" />
-            </div>
-            <h3 className="font-medium mb-2">Let&apos;s Get Started</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Before we can create your first check-in, set up some activities to
-              track. What would you like to start monitoring?
-            </p>
+        <CardContent>
+          <div className="flex justify-center pt-4">
             {onNavigateToActivities && (
-              <Button onClick={onNavigateToActivities} className="rounded-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Create First Activity
+              <Button onClick={onNavigateToActivities} size="pill">
+                Create Activity
               </Button>
             )}
           </div>

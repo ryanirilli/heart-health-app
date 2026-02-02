@@ -947,6 +947,12 @@ export function ActivityTypeManager({
           </DialogHeader>
         )}
 
+
+
+        {showAddNew && (
+          <DialogTitle className="sr-only">Add New Activity Type</DialogTitle>
+        )}
+
         {showAddNew ? (
           // Add new activity type with tabs
           <Tabs defaultValue="presets" className="w-full">
