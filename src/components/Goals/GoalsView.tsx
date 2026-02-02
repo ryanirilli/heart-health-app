@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { isGoalExpired } from '@/lib/goals';
 import { useGoals } from './GoalsProvider';
 import { GoalCard } from './GoalCard';
 import { AchievementsTable } from './AchievementsTable';
@@ -34,7 +35,10 @@ export function GoalsView({ onNavigateToActivities }: GoalsViewProps) {
     );
   }
 
-  const canAddMore = goalsList.length < MAX_GOALS;
+  const activeGoals = goalsList.filter(goal => !isGoalExpired(goal));
+  const pastGoals = goalsList.filter(goal => isGoalExpired(goal));
+
+  const canAddMore = activeGoals.length < MAX_GOALS;
 
   const activeTypes = Object.values(activityTypes).filter(t => !t.deleted);
   const hasActivities = activeTypes.length > 0;
@@ -59,7 +63,7 @@ export function GoalsView({ onNavigateToActivities }: GoalsViewProps) {
       <div className="space-y-4">
         <h2 className="text-2xl font-semibold tracking-tight">Goals</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {goalsList.map((goal) => (
+          {activeGoals.map((goal) => (
             <GoalCard
               key={goal.id}
               goal={goal}
@@ -70,6 +74,23 @@ export function GoalsView({ onNavigateToActivities }: GoalsViewProps) {
           {canAddMore && <AddGoalCard onClick={handleCreateClick} />}
         </div>
       </div>
+
+      {/* Past Goals Section */}
+      {pastGoals.length > 0 && (
+        <div className="space-y-4 pt-4 border-t">
+          <h2 className="text-xl font-semibold tracking-tight text-muted-foreground">Past Goals</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-75">
+            {pastGoals.map((goal) => (
+              <GoalCard
+                key={goal.id}
+                goal={goal}
+                activityType={activityTypes[goal.activityTypeId]}
+                onClick={() => openEditDialog(goal)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Achievements Section */}
       <AchievementsTable />

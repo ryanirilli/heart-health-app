@@ -320,10 +320,7 @@ export function isGoalRelevantForDate(goal: Goal, dateStr: string): boolean {
     case 'by_date':
       if (!goal.targetDate) return false;
       // Relevant from creation until target date (inclusive)
-      const beforeOrOnTarget = dateStr <= goal.targetDate;
-      // Also show on today if the goal has expired (so user can update it)
-      const isMissedAndToday = dateStr === todayStr && dateStr > goal.targetDate;
-      return beforeOrOnTarget || isMissedAndToday;
+      return dateStr <= goal.targetDate;
     default:
       return false;
   }
