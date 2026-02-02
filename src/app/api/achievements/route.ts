@@ -41,7 +41,11 @@ export async function GET(request: NextRequest) {
         id,
         name,
         icon,
-        activity_type_id
+        activity_type_id,
+        activity_types (
+          goal_type,
+          is_negative
+        )
       )
     `)
     .eq("user_id", user.id)

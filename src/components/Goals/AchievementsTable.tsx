@@ -34,6 +34,23 @@ function AchievementRow({ achievement }: { achievement: Achievement }) {
     ? format(periodStart, 'MMM d, yyyy')
     : `${format(periodStart, 'MMM d')} - ${format(periodEnd, 'MMM d, yyyy')}`;
 
+  // Determine effective goal type (positive/negative/neutral)
+  const activityInfo = goal.activity_types;
+  let isPositiveGoal = true; // Default behavior
+
+  if (activityInfo) {
+    if (activityInfo.goal_type) {
+      isPositiveGoal = activityInfo.goal_type === 'positive';
+    } else if (activityInfo.is_negative !== null && activityInfo.is_negative !== undefined) {
+      isPositiveGoal = !activityInfo.is_negative;
+    }
+  }
+
+  // For non-positive goals (negative/neutral) that span a period (not same day),
+  // the 'achievement' is effectively maintaining status until the end.
+  // So we show the period end date to avoid confusion (e.g. "Jan 23" for a "Dry Jan" goal).
+  const displayDate = (!isPositiveGoal && !isSameDay) ? periodEnd : achievedAt;
+
   return (
     <div className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
       <div className="flex items-center gap-3 min-w-0">
@@ -52,7 +69,7 @@ function AchievementRow({ achievement }: { achievement: Achievement }) {
       {/* Achieved indicator & Date */}
       <div className="flex items-center gap-3 flex-shrink-0">
         <span className="text-xs text-muted-foreground">
-          {format(achievedAt, 'MMM d')}
+          {format(displayDate, 'MMM d')}
         </span>
       </div>
     </div>

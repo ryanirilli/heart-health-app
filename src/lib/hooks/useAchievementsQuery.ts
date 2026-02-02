@@ -7,6 +7,10 @@ export interface AchievementGoal {
   name: string;
   icon: string;
   activity_type_id: string;
+  activity_types?: {
+    goal_type: 'positive' | 'negative' | 'neutral' | null;
+    is_negative: boolean | null;
+  };
 }
 
 export interface Achievement {
