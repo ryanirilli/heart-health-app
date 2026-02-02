@@ -75,25 +75,25 @@ export function GoalsView({ onNavigateToActivities }: GoalsViewProps) {
         </div>
       </div>
 
+      {/* Achievements Section */}
+      <AchievementsTable />
+
       {/* Past Goals Section */}
       {pastGoals.length > 0 && (
-        <div className="space-y-4 pt-4 border-t">
-          <h2 className="text-xl font-semibold tracking-tight text-muted-foreground">Past Goals</h2>
+        <div className="space-y-4 pt-8 border-t">
+          <h2 className="text-2xl font-semibold tracking-tight">Past Goals</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-75">
             {pastGoals.map((goal) => (
               <GoalCard
                 key={goal.id}
                 goal={goal}
                 activityType={activityTypes[goal.activityTypeId]}
-                onClick={() => openEditDialog(goal)}
+                // No onClick handler means the card is not clickable/editable
               />
             ))}
           </div>
         </div>
       )}
-
-      {/* Achievements Section */}
-      <AchievementsTable />
 
       {/* No Activities Dialog */}
       <Dialog open={showNoActivitiesDialog} onOpenChange={setShowNoActivitiesDialog}>
