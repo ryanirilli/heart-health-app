@@ -26,6 +26,12 @@ interface ActivityDayProps {
   compact?: boolean;
   isDiscreteFilter?: boolean;
   excludedValues?: Set<number>;
+  weekIndex?: number;
+  dayIndex?: number;
+  totalWeeks?: number;
+  isLastDayOfMonth?: boolean;
+  hasCellAbove?: boolean;
+  hasCellBelow?: boolean;
 }
 
 /**
@@ -70,6 +76,12 @@ export function ActivityDay({
   compact = false,
   isDiscreteFilter = false,
   excludedValues,
+  weekIndex,
+  dayIndex,
+  totalWeeks,
+  isLastDayOfMonth,
+  hasCellAbove,
+  hasCellBelow,
 }: ActivityDayProps) {
   const { activityTypes } = useActivityTypes();
   const { updateActivity, deleteActivity, isSaving, isDeleting, activities } =
@@ -78,7 +90,8 @@ export function ActivityDay({
   const [dialogOpen, setDialogOpen] = useState(false);
 
   if (!date) {
-    return <div className="size-3 aspect-square" />;
+    // Pad days should not be rendered in the non-rectangular layout
+    return <div />;
   }
 
   const hasData = hasActivityData(activity);
@@ -206,22 +219,22 @@ export function ActivityDay({
   // Static lookup for numeric intensity opacity (Stepped transparency)
   // Using chart-3 (neutral blue) with opacity.
   const NUMERIC_BG_CLASSES: Record<number, string> = {
-    1: "bg-chart-3/20", // 20% opacity
-    2: "bg-chart-3/40", // 40% opacity
-    3: "bg-chart-3/60", // 60% opacity
-    4: "bg-chart-3/80", // 80% opacity
-    5: "bg-chart-3",    // 100% opacity
+    1: "bg-chart-3/15", // 15% opacity
+    2: "bg-chart-3/30", // 30% opacity
+    3: "bg-chart-3/50", // 50% opacity
+    4: "bg-chart-3/70", // 50% opacity
+    5: "bg-chart-3/90", // 90% opacity
   };
 
   const getColorClass = () => {
-    if (!hasData) return "bg-muted/50";
+    if (!hasData) return "bg-card";
     
     if (discreteInfo) {
-        return DISCRETE_BG_CLASSES[discreteInfo.colorIndex] || "bg-chart-3";
+        return DISCRETE_BG_CLASSES[discreteInfo.colorIndex] || "bg-chart-3/80";
     }
 
     if (numericInfo) {
-        return NUMERIC_BG_CLASSES[numericInfo.intensity] || "bg-chart-3";
+        return NUMERIC_BG_CLASSES[numericInfo.intensity] || "bg-chart-3/80";
     }
 
     // If we are strictly filtering (discrete mode), and didn't match above (e.g. excluded),
@@ -231,7 +244,7 @@ export function ActivityDay({
     }
 
     // For other logged activities (numeric, multiple, OR "All Activities" view), use the "neutral blue" 
-    return "bg-chart-3";
+    return "bg-chart-3/80";
   };
   
   const cellColor = getColorClass();
@@ -330,7 +343,7 @@ export function ActivityDay({
     <>
       <span
         className={cn(
-          "font-medium transition-all",
+          "font-medium transition-all pointer-events-none",
           compact 
             ? "text-xs sm:text-sm" // Original compact behavior (though compact usually hides text via parent check)
             : discreteInfo 
@@ -344,7 +357,7 @@ export function ActivityDay({
       
       {!compact && discreteInfo && (
           <span className={cn(
-            "text-[10px] sm:text-xs font-bold px-0.5 leading-tight text-center break-words line-clamp-2",
+            "text-[10px] sm:text-xs font-bold px-0.5 leading-tight text-center break-words line-clamp-2 pointer-events-none",
             textColorClass
           )}>
               {discreteInfo.label}
@@ -353,16 +366,71 @@ export function ActivityDay({
     </>
   );
 
+  // Grid styling logic (for Month View only, not Compact)
+  const isStartOfMonth = date.getDate() === 1;
+  const isEndOfMonth = isLastDayOfMonth;
+  
+  // Top Left: 
+  // 1. Start of Month (classic)
+  // 2. Start of a row (col 0 / Sunday) AND nothing above it (step down)
+  // Logic: Day 1 covers case 1. For case 2: dayIndex === 0 && !hasCellAbove.
+  // Wait, if dayIndex is 0, hasCellAbove would be true unless it's the very first week? 
+  // If it's the first week, hasCellAbove is false. So dayIndex===0 in week 0 is top left.
+  // But also if we have a gap? No, grid is solid except for start/end of month.
+  // So "nothing above it" implies logic for irregular shapes.
+  // In a standard calendar month, only the FIRST week has empty slots at the start.
+  // Subsequent weeks always start at dayIndex 0 and always have a cell above them.
+  // EXCEPT if we are simply matching the user requirement: "if row does not have a bordered day above it".
+  // This logic works generally.
+  const isTopLeft = isStartOfMonth || (dayIndex === 0 && !hasCellAbove);
+
+  // Top Right:
+  // 1. Last day of first week (col 6 / Saturday) -> covers standard corner
+  // 2. Generally: If it's the last col (6) and no cell above? (Usually always has cell above except week 0)
+  // Actually, standard Top Right is just week 0, day 6.
+  const isTopRight = (weekIndex === 0 && dayIndex === 6);
+
+  // Bottom Left:
+  // 1. First day of last week (col 0 / Sunday) -> covers standard corner
+  const isBottomLeft = (weekIndex !== undefined && totalWeeks !== undefined) && (weekIndex === totalWeeks - 1 && dayIndex === 0);
+
+  // Bottom Right:
+  // 1. End of Month (classic)
+  // 2. End of a row (col 6 / Saturday) AND nothing below it.
+  const isBottomRight = isEndOfMonth || (dayIndex === 6 && !hasCellBelow);
+
+  const getBorderRadiusClass = () => {
+    if (compact) return "rounded"; // Keep year view simple
+    
+    // We can have multiple corners on one cell (e.g. 1st day is also top right if on Saturday)
+    const distinctCorners = [
+        isTopLeft && "rounded-tl-2xl",
+        isTopRight && "rounded-tr-2xl",
+        isBottomLeft && "rounded-bl-2xl",
+        isBottomRight && "rounded-br-2xl",
+    ].filter(Boolean).join(" ");
+    
+    return distinctCorners;
+  };
+
+  const borderRadiusClass = getBorderRadiusClass();
+
   const cell = (
     <div
       onClick={handleCellClick}
       className={cn(
         "aspect-square transition-all duration-200 flex items-center justify-center relative",
-        compact ? "rounded" : "rounded-sm",
+        
+        // Grid Layout Styles (Month View)
+        !compact && "border border-border -ml-px -mt-px z-0 hover:z-10",
+        
+        // Rounded corners
+        borderRadiusClass,
+
         cellColor,
         isFutureDate
           ? "cursor-not-allowed opacity-50"
-          : "hover:ring-2 hover:ring-ring hover:ring-offset-1 cursor-pointer",
+          : "hover:brightness-75 cursor-pointer", // Darken on hover
         // Flex direction for discrete text layout
         !compact && discreteInfo && "flex-col p-1"
       )}
@@ -372,7 +440,7 @@ export function ActivityDay({
       {!compact && hasAchievedGoal && !isFutureDate && ( // Hide star in compact mode (Year view)
         <Star 
           className={cn(
-            "absolute top-0.5 right-0.5 h-3.5 w-3.5",
+            "absolute top-0.5 right-0.5 h-3.5 w-3.5 pointer-events-none",
             "text-white fill-white"
           )} 
         />

@@ -84,15 +84,34 @@ function MonthContent({
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {weeks.flat().map((date, index) => (
-          <ActivityDay
-            key={index}
-            date={date}
-            activity={date ? activities[formatDate(date)] : undefined}
-            isDiscreteFilter={isDiscreteFilter}
-            excludedValues={excludedValues}
-          />
+      <div className="grid grid-cols-7 gap-0">
+        {weeks.map((week, weekIndex) => (
+          week.map((date, dayIndex) => {
+            const isLastDayOfMonth = date ? 
+              (new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate() === date.getDate()) : false;
+            
+            // Check for adjacent cells in the grid to determine rounding
+            // Note: weeks[weekIndex - 1] might be undefined if first week
+            // date checks ensure we don't count null pads as cells
+            const hasCellAbove = weekIndex > 0 && weeks[weekIndex - 1][dayIndex] !== null;
+            const hasCellBelow = weekIndex < weeks.length - 1 && weeks[weekIndex + 1][dayIndex] !== null;
+
+            return (
+              <ActivityDay
+                key={`${weekIndex}-${dayIndex}`}
+                date={date}
+                activity={date ? activities[formatDate(date)] : undefined}
+                isDiscreteFilter={isDiscreteFilter}
+                excludedValues={excludedValues}
+                weekIndex={weekIndex}
+                dayIndex={dayIndex}
+                totalWeeks={weeks.length}
+                isLastDayOfMonth={isLastDayOfMonth}
+                hasCellAbove={hasCellAbove}
+                hasCellBelow={hasCellBelow}
+              />
+            );
+          })
         ))}
       </div>
     </div>
