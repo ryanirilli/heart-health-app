@@ -20,6 +20,7 @@ export function NoteEditorContent({ noteText, onNoteChange }: NoteEditorContentP
     <div className="space-y-3">
       <div className="relative">
         <textarea
+          data-vaul-no-drag
           value={noteText}
           onChange={(e) => {
             if (e.target.value.length <= MAX_NOTE_LENGTH) {
@@ -27,7 +28,7 @@ export function NoteEditorContent({ noteText, onNoteChange }: NoteEditorContentP
             }
           }}
           placeholder="Add a note for this day..."
-          className="w-full min-h-[120px] p-3 text-base sm:text-sm rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          className="note-editor-textarea w-full min-h-[120px] p-3 text-base sm:text-sm rounded-lg border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           autoFocus
         />
         <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">

@@ -186,7 +186,13 @@ a {
     @apply bg-background text-foreground;
   }
 
-
+  /* iOS: allow text selection + callout menu inside animated/Drawer content */
+  .note-editor-textarea {
+    touch-action: auto;
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }
 
 @layer utilities {
