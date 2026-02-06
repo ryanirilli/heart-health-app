@@ -16,10 +16,12 @@ async function getActivityData(userId: string) {
     .order("display_order", { ascending: true });
 
   // Fetch activities
+  // Note: Supabase has a default 1000 row limit, so we explicitly set a higher limit
   const { data: dbActivities } = await supabase
     .from("activities")
     .select("*")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .limit(10000);
 
   // Fetch notes
   const { data: dbNotes } = await supabase

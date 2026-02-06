@@ -22,20 +22,21 @@ import { CheckIn, CheckInResource } from "@/lib/checkIns";
 
 interface CheckInCardProps {
   checkIn: CheckIn;
+  headerExtra?: React.ReactNode;
 }
 
 /**
  * Full check-in card displaying all analysis sections.
  * This is the main content card shown when viewing a check-in.
  */
-export function CheckInCard({ checkIn }: CheckInCardProps) {
+export function CheckInCard({ checkIn, headerExtra }: CheckInCardProps) {
   const { analysis, periodStart, periodEnd, createdAt } = checkIn;
 
   return (
     <Card className="overflow-hidden">
       {/* Header */}
       <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -45,7 +46,7 @@ export function CheckInCard({ checkIn }: CheckInCardProps) {
               {format(parseISO(createdAt), "MMMM d, yyyy")}
             </p>
           </div>
-
+          {headerExtra}
         </div>
       </CardHeader>
 

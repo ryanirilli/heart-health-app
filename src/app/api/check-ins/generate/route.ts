@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { format, subDays, parseISO } from "date-fns";
+import { subDays, parseISO, addDays } from "date-fns";
 import {
   CheckIn,
   CheckInStreamingStatus,
@@ -55,28 +55,29 @@ export async function POST(request: NextRequest) {
         message: "Checking availability...",
       });
 
-      // Get date boundaries
+      // Get date boundaries (use UTC to avoid timezone issues)
       const today = new Date();
-      const todayStr = format(today, "yyyy-MM-dd");
-      const thirtyDaysAgo = format(subDays(today, 30), "yyyy-MM-dd");
-      const sevenDaysAgo = format(subDays(today, 7), "yyyy-MM-dd");
+      const todayStr = today.toISOString().split("T")[0];
+      const thirtyDaysAgo = subDays(today, 30).toISOString().split("T")[0];
+      const sevenDaysAgo = subDays(today, 7).toISOString().split("T")[0];
 
       // Check rate limiting - get most recent check-in
+      // Use gt (not gte) so that check-ins from exactly 7 days ago don't block
       const { data: recentCheckIn } = await supabase
         .from("check_ins")
         .select("created_at")
         .eq("user_id", user.id)
         .eq("status", "completed")
-        .gte("created_at", sevenDaysAgo)
+        .gt("created_at", sevenDaysAgo)
         .order("created_at", { ascending: false })
         .limit(1)
         .single();
 
       if (recentCheckIn) {
-        const nextAvailable = format(
-          subDays(parseISO(recentCheckIn.created_at), -7),
-          "yyyy-MM-dd"
-        );
+        // Use toISOString() to get UTC date and avoid timezone issues
+        const nextAvailable = addDays(parseISO(recentCheckIn.created_at), 7)
+          .toISOString()
+          .split("T")[0];
         await sendStatus({
           status: "error",
           message: `You can generate your next check-in on ${nextAvailable}`,

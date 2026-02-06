@@ -22,10 +22,12 @@ export async function GET() {
     }
 
     // Fetch activities
+    // Note: Supabase has a default 1000 row limit, so we explicitly set a higher limit
     const { data: dbActivities, error } = await supabase
       .from('activities')
       .select('*')
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .limit(10000);
 
     if (error) {
       console.error('Failed to fetch activities:', error);

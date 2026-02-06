@@ -227,7 +227,7 @@ export function ActivityDay({
   };
 
   const getColorClass = () => {
-    if (!hasData) return "bg-card";
+    if (!hasData) return "bg-muted/50";
     
     if (discreteInfo) {
         return DISCRETE_BG_CLASSES[discreteInfo.colorIndex] || "bg-chart-3/80";

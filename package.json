@@ -14,7 +14,11 @@
     "db:push": "supabase db push",
     "db:pull": "supabase db pull",
     "db:types": "supabase gen types typescript --linked > src/lib/supabase/database.types.ts",
-    "db:status": "supabase db diff"
+    "db:status": "supabase db diff",
+    "seed:demo": "bun scripts/seed-demo-accounts/index.ts",
+    "seed:demo:prod": "bun scripts/seed-demo-accounts/index.ts --env=prod",
+    "seed:demo:all": "bun scripts/seed-demo-accounts/index.ts --env=all",
+    "seed:demo:cleanup": "bun scripts/seed-demo-accounts/index.ts --cleanup"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.18",
