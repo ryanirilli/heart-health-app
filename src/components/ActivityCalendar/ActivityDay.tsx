@@ -217,86 +217,79 @@ export function ActivityDay({
   };
 
   // Static lookup for numeric intensity opacity (Stepped transparency)
-  // Using chart-3 (neutral blue) with opacity.
+  // Only used when filtering by a specific numeric activity type
   const NUMERIC_BG_CLASSES: Record<number, string> = {
-    1: "bg-chart-3/15", // 15% opacity
-    2: "bg-chart-3/30", // 30% opacity
-    3: "bg-chart-3/50", // 50% opacity
-    4: "bg-chart-3/70", // 50% opacity
-    5: "bg-chart-3/90", // 90% opacity
+    1: "bg-chart-1/8",
+    2: "bg-chart-1/14",
+    3: "bg-chart-1/20",
+    4: "bg-chart-1/28",
+    5: "bg-chart-1/35",
   };
 
   const getColorClass = () => {
     if (!hasData) return "bg-muted/50";
-    
+
+    // Discrete filter: solid colored backgrounds
     if (discreteInfo) {
-        return DISCRETE_BG_CLASSES[discreteInfo.colorIndex] || "bg-chart-3/80";
+        return DISCRETE_BG_CLASSES[discreteInfo.colorIndex] || "bg-muted/50";
     }
 
+    // Numeric filter: subtle intensity shading
     if (numericInfo) {
-        return NUMERIC_BG_CLASSES[numericInfo.intensity] || "bg-chart-3/80";
+        return NUMERIC_BG_CLASSES[numericInfo.intensity] || "bg-muted/50";
     }
 
-    // If we are strictly filtering (discrete mode), and didn't match above (e.g. excluded),
-    // we should treat it as empty/hidden.
     if (isDiscreteFilter) {
         return "bg-muted/50";
     }
 
-    // For other logged activities (numeric, multiple, OR "All Activities" view), use the "neutral blue" 
-    return "bg-chart-3/80";
+    // Default: no background change — data is indicated by text color/weight
+    return "bg-muted/50";
   };
   
   const cellColor = getColorClass();
   
-  // Use white text for filled cells... BUT for low opacity numeric, white might be unreadable?
-  // Let's check: 
-  // 20% opacity blue on white card -> very light blue. White text will disappear. Dark text needed.
-  // 40% -> still light.
-  // 60-80-100 -> distinct.
-  // Rule: intensity 1-2 (low) -> dark text. intensity 3-5 (high) -> white text.
-  // For discrete (solid colors) -> always white.
-  // For standard (solid chart-3) -> always white.
-  
+  // Days with data get the logo accent color + heavier weight
+  // Discrete filters with solid bg colors still need white text
   const getTextColorClass = () => {
       if (!hasData) return "text-foreground/70";
-      
-      if (discreteInfo) return "text-white font-semibold";
-      
-      if (numericInfo) {
-          // Low intensity = dark text
-          if (numericInfo.intensity <= 2) return "text-foreground font-semibold";
-          return "text-white font-semibold";
-      }
 
-      // If we are strictly filtering (discrete mode) and excluded, revert to deafult text style
-      if (isDiscreteFilter) {
-          return "text-foreground/70";
-      }
-      
-      return "text-white font-semibold";
+      if (discreteInfo) return "text-white font-semibold";
+
+      // Numeric filter with high intensity on colored bg needs contrast
+      if (numericInfo && numericInfo.intensity >= 4) return "text-foreground font-bold";
+
+      // Default: accent color from logo + bold weight to indicate data
+      return "text-chart-1 font-bold";
   };
   
   const textColorClass = getTextColorClass();
 
   const formattedDate = formatTooltipDate(date);
 
-  // Build activity summary for tooltip
-  const getActivitySummary = () => {
+  // Build activity summary for tooltip — capped to avoid huge tooltips
+  const MAX_TOOLTIP_ITEMS = 3;
+  const getActivitySummary = (): string[] => {
     if (!activity?.entries || Object.keys(activity.entries).length === 0)
-      return "No data";
+      return ["No data"];
 
     const summaryParts: string[] = [];
     for (const typeId in activity.entries) {
       const entry = activity.entries[typeId];
       const type = activityTypes[typeId];
       if (type) {
-        // Include all tracked entries, even those with value 0
         summaryParts.push(formatValueWithUnit(entry.value, type));
       }
     }
 
-    return summaryParts.length > 0 ? summaryParts.join(", ") : "No data";
+    if (summaryParts.length === 0) return ["No data"];
+
+    const shown = summaryParts.slice(0, MAX_TOOLTIP_ITEMS);
+    const remaining = summaryParts.length - MAX_TOOLTIP_ITEMS;
+    if (remaining > 0) {
+      shown.push(`+${remaining} more`);
+    }
+    return shown;
   };
 
   // Check if the date is in the future
@@ -339,22 +332,39 @@ export function ActivityDay({
   // Given tile size, showing BOTH date and label cleanly requires layout change.
   // Let's try Date top-left (xs), Label center (sm/bold).
   
+  // Whether to show the activity indicator circle (non-compact, non-discrete, has data)
+  const showActivityCircle = !compact && !discreteInfo && hasData;
+
   const cellContent = (
     <>
-      <span
-        className={cn(
-          "font-medium transition-all pointer-events-none",
-          compact 
-            ? "text-xs sm:text-sm" // Original compact behavior (though compact usually hides text via parent check)
-            : discreteInfo 
-                ? "absolute top-0.5 left-1 text-[10px] opacity-80 font-normal" // Discrete: Date moved to corner
-                : "text-xs sm:text-sm", // Standard: Date centered
-             textColorClass
-        )}
-      >
-        {dayNumber}
-      </span>
-      
+      {showActivityCircle ? (
+        <span
+          className={cn(
+            "flex items-center justify-center rounded-full pointer-events-none",
+            "w-7 h-7 sm:w-8 sm:h-8",
+            "bg-chart-1/15",
+            "text-xs sm:text-sm",
+            textColorClass
+          )}
+        >
+          {dayNumber}
+        </span>
+      ) : (
+        <span
+          className={cn(
+            "font-medium transition-all pointer-events-none",
+            compact
+              ? "text-xs sm:text-sm"
+              : discreteInfo
+                  ? "absolute top-0.5 left-1 text-[10px] opacity-80 font-normal"
+                  : "text-xs sm:text-sm",
+               textColorClass
+          )}
+        >
+          {dayNumber}
+        </span>
+      )}
+
       {!compact && discreteInfo && (
           <span className={cn(
             "text-[10px] sm:text-xs font-bold px-0.5 leading-tight text-center break-words line-clamp-2 pointer-events-none",
@@ -438,11 +448,11 @@ export function ActivityDay({
       {!compact && cellContent}
       {/* Goal indicator star - shows when goals are achieved on evaluation days */}
       {!compact && hasAchievedGoal && !isFutureDate && ( // Hide star in compact mode (Year view)
-        <Star 
+        <Star
           className={cn(
             "absolute top-0.5 right-0.5 h-3.5 w-3.5 pointer-events-none",
-            "text-white fill-white"
-          )} 
+            discreteInfo ? "text-white fill-white" : "text-chart-1 fill-chart-1"
+          )}
         />
       )}
     </div>
@@ -468,11 +478,15 @@ export function ActivityDay({
         <Tooltip>
           <TooltipTrigger asChild>{cell}</TooltipTrigger>
           <TooltipContent>
-            <div className="text-center">
+            <div className="text-center max-w-48">
               <div className="font-medium">{formattedDate}</div>
-              <div className="text-muted-foreground">
-                {isFutureDate ? "" : getActivitySummary()}
-              </div>
+              {!isFutureDate && (
+                <div className="text-muted-foreground text-xs mt-1 space-y-0.5">
+                  {getActivitySummary().map((item, i) => (
+                    <div key={i}>{item}</div>
+                  ))}
+                </div>
+              )}
               {!isFutureDate && (
                 <div className="text-xs text-muted-foreground/70 mt-1">
                   Click to {hasData ? "view" : "add entry"}
